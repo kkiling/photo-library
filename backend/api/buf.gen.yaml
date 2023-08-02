@@ -1,0 +1,23 @@
+version: v1
+plugins:
+  - name: go-patch
+    out: pkg/common/gen
+    opt:
+      - paths=source_relative
+      - plugin=go
+  - name: go-patch
+    out: pkg/common/gen
+    opt:
+      - paths=source_relative
+      - plugin=go-grpc
+      - require_unimplemented_servers=false
+  - name: grpc-gateway
+    out: pkg/common/gen
+    opt:
+      - paths=source_relative
+  - name: openapiv2
+    out: swagger
+    opt:
+      - allow_merge=true
+      - merge_file_name=app
+      - json_names_for_fields=false

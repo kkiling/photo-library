@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package pb.v1;
+
+option go_package = "github.com/byorty/enterprise-application/pkg/common/gen/pbv1";
+
+message Paginator {
+    uint32 offset = 1;
+    uint32 limit = 2;
+}
+
+message Error {
+    uint32 code = 1;
+    string message = 2;
+    map<string, string> details = 3;
+}

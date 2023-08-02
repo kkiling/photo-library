@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package pb.v1;
+
+option go_package = "github.com/kkiling/photo-library/backend/app/pkg/common/gen/pbv1";
+
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+service PhotosService {
+  rpc CheckHashPhoto(CheckHashPhotoRequest) returns (CheckHashPhotoResponse) {
+    option (google.api.http) = {
+      post: "/v1/photos/check_hash";
+      body: "*";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: ["photos"]
+      summary: "Проверка по хешу фотографии, загружена она или нет";
+    };
+  };
+
+  rpc UploadPhoto(UploadPhotoRequest) returns (UploadPhotoResponse) {
+    option (google.api.http) = {
+      post: "/v1/photos/upload";
+      body: "*";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: ["photos"]
+      summary: "Загрузка новой фотографии";
+    };
+  };
+}
+
+message CheckHashPhotoRequest {
+  string hash_photo= 1;
+}
+
+message CheckHashPhotoResponse {
+  bool already_loaded = 1;
+}
+
+message UploadPhotoRequest {
+  string  file = 1;
+  repeated bytes body = 2;
+}
+
+message UploadPhotoResponse {
+  bool success = 1;
+}
