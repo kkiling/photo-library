@@ -1,10 +1,10 @@
-package server
+package grpc_server
 
 import (
 	"context"
 	"fmt"
 	rn "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"github.com/kkiling/photo-library/backend/api/internal/log"
+	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -52,6 +52,7 @@ func NewServer(logger log.Logger, cfg Config, interceptor ...grpc.UnaryServerInt
 				grpc.MaxCallSendMsgSize(cfg.MaxSendMessageLength),
 			),
 		},
+		cfg:    cfg,
 		errors: make(chan error, 1),
 	}
 }
@@ -66,7 +67,7 @@ func (s *Server) Register(ctx context.Context, descriptor Descriptor) error {
 	if descriptor.GatewayRegistrar != nil {
 		host := fmt.Sprintf("%s:%d", s.cfg.Host, s.cfg.GrpcPort)
 		if err := descriptor.GatewayRegistrar(ctx, s.mux, host, s.opts); err != nil {
-			return fmt.Errorf("failed to register HTTP server: %v", err)
+			return fmt.Errorf("failed to register HTTP grpc_server: %v", err)
 		}
 	}
 
@@ -77,7 +78,7 @@ func (s *Server) Start() error {
 	go func(logger log.Logger) {
 		netAddress := fmt.Sprintf("%s:%d", s.cfg.Host, s.cfg.GrpcPort)
 
-		logger.Infof("start server at %s", netAddress)
+		logger.Infof("start grpc_server at %s", netAddress)
 		socket, err := net.Listen("tcp", netAddress)
 		if err != nil {
 			s.errors <- err

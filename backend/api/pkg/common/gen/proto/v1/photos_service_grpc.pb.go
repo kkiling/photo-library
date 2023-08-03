@@ -57,7 +57,7 @@ func (c *photosServiceClient) UploadPhoto(ctx context.Context, in *UploadPhotoRe
 	return out, nil
 }
 
-// PhotosServiceServer is the server API for PhotosService service.
+// PhotosServiceServer is the grpc_server API for PhotosService service.
 // All implementations should embed UnimplementedPhotosServiceServer
 // for forward compatibility
 type PhotosServiceServer interface {
