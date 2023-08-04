@@ -1,4 +1,4 @@
-package grpc_server
+package server
 
 type Config struct {
 	Host                    string `yaml:"host"`

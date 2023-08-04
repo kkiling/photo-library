@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"github.com/jessevdk/go-flags"
 	"github.com/kkiling/photo-library/backend/api/internal/handler"
+	"github.com/kkiling/photo-library/backend/api/pkg/common/config"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
-	"github.com/kkiling/photo-library/backend/api/pkg/common/provider"
 	"time"
 )
 
 func main() {
-	var args provider.Arguments
+	var args config.Arguments
 	_, err := flags.Parse(&args)
 	if err != nil {
 		panic(err)
@@ -21,7 +21,7 @@ func main() {
 	defer cancel()
 	logger := log.NewLogger()
 
-	cfgProvider, err := provider.NewProvider(args)
+	cfgProvider, err := config.NewProvider(args)
 	if err != nil {
 		panic(err)
 	}

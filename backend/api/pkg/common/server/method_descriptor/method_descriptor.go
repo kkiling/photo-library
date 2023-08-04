@@ -1,4 +1,4 @@
-package descriptor
+package method_descriptor
 
 import (
 	"errors"
@@ -8,28 +8,23 @@ import (
 )
 
 var (
-	ErrMethodDescriptorNotFound = errors.New("method descriptor not found")
+	ErrMethodDescriptorNotFound = errors.New("method method_descriptor not found")
 )
 
-type MethodDescriptor struct {
-	Method interface{}
-	// TODO: template
-	UseAuth int
+type Descriptor interface {
+	Method() interface{}
 }
 
-func (m *MethodDescriptor) GetName() (string, error) {
-	if m.Method == nil {
-		return "", ErrMethodDescriptorNotFound
-	}
+func getName(m Descriptor) (string, error) {
 	methodPointer := reflect.ValueOf(m.Method).Pointer()
 	fullName := runtime.FuncForPC(methodPointer).Name()
 	methodNameParts := strings.Split(fullName, ".")
 	return methodNameParts[len(methodNameParts)-1], nil
 }
 
-type MethodDescriptorMap map[string]MethodDescriptor
+type MethodDescriptorMap map[string]Descriptor
 
-func (m MethodDescriptorMap) GetByFullName(fullName string) (MethodDescriptor, bool) {
+func (m MethodDescriptorMap) GetByFullName(fullName string) (Descriptor, bool) {
 	methodNameParts := strings.Split(fullName, "/")
 	methodName := methodNameParts[len(methodNameParts)-1]
 	methodDescriptor, ok := m[methodName]
@@ -37,11 +32,11 @@ func (m MethodDescriptorMap) GetByFullName(fullName string) (MethodDescriptor, b
 }
 
 func NewMethodDescriptorMap(
-	methodDescriptors []MethodDescriptor,
+	methodDescriptors []Descriptor,
 ) (MethodDescriptorMap, error) {
 	m := make(MethodDescriptorMap)
 	for _, methodDescriptor := range methodDescriptors {
-		methodName, err := methodDescriptor.GetName()
+		methodName, err := getName(methodDescriptor)
 		if err != nil {
 			return nil, err
 		}

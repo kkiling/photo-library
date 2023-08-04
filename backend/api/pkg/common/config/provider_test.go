@@ -1,4 +1,4 @@
-package provider
+package config
 
 import (
 	"github.com/byorty/enterprise-application/pkg/common/adapter/application"

@@ -3,22 +3,31 @@ package handler
 import (
 	"context"
 	"fmt"
-	"github.com/kkiling/photo-library/backend/api/internal/handler/descriptor"
-	"github.com/kkiling/photo-library/backend/api/internal/handler/interseptors"
+	"github.com/kkiling/photo-library/backend/api/internal/cfg"
+	"github.com/kkiling/photo-library/backend/api/pkg/common/config"
 	pbv1 "github.com/kkiling/photo-library/backend/api/pkg/common/gen/proto/v1"
-	"github.com/kkiling/photo-library/backend/api/pkg/common/grpc_server"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
-	"github.com/kkiling/photo-library/backend/api/pkg/common/provider"
+	"github.com/kkiling/photo-library/backend/api/pkg/common/server"
+	"github.com/kkiling/photo-library/backend/api/pkg/common/server/method_descriptor"
 	"google.golang.org/grpc"
 )
 
-type PhotosServiceServer struct {
-	server      *grpc_server.Server
-	logger      log.Logger
-	cfgProvider provider.Provider
+type customDescriptor struct {
+	method  interface{}
+	useAuth bool
 }
 
-func NewPhotosServiceServer(logger log.Logger, cfgProvider provider.Provider) *PhotosServiceServer {
+func (c *customDescriptor) Method() interface{} {
+	return c.method
+}
+
+type PhotosServiceServer struct {
+	server      *server.Server
+	logger      log.Logger
+	cfgProvider config.Provider
+}
+
+func NewPhotosServiceServer(logger log.Logger, cfgProvider config.Provider) *PhotosServiceServer {
 	return &PhotosServiceServer{
 		logger:      logger,
 		cfgProvider: cfgProvider,
@@ -26,44 +35,43 @@ func NewPhotosServiceServer(logger log.Logger, cfgProvider provider.Provider) *P
 }
 
 func (p *PhotosServiceServer) crateServerInterceptors() ([]grpc.UnaryServerInterceptor, error) {
-	descriptors, err := descriptor.NewMethodDescriptorMap(
-		[]descriptor.MethodDescriptor{
-			{
-				Method:  (*PhotosServiceServer).UploadPhoto,
-				UseAuth: 10,
+	descriptors, err := method_descriptor.NewMethodDescriptorMap(
+		[]method_descriptor.Descriptor{
+			&customDescriptor{
+				method:  (*PhotosServiceServer).UploadPhoto,
+				useAuth: false,
 			},
-			{
-				Method:  (*PhotosServiceServer).CheckHashPhoto,
-				UseAuth: 11,
+			&customDescriptor{
+				method:  (*PhotosServiceServer).CheckHashPhoto,
+				useAuth: true,
 			},
 		},
 	)
 
 	if err != nil {
-		return nil, fmt.Errorf("descriptor.NewMethodDescriptorMap: %w", err)
+		return nil, fmt.Errorf("method_descriptor.NewMethodDescriptorMap: %w", err)
 	}
 
 	return []grpc.UnaryServerInterceptor{
-		interseptors.NewAuthInterceptor(p.logger, descriptors),
-		interseptors.NewPanicRecoverInterceptor(),
+		NewAuthInterceptor(p.logger, descriptors),
+		NewPanicRecoverInterceptor(),
 	}, nil
 }
 
 func (p *PhotosServiceServer) Start(ctx context.Context) error {
-	inters, err := p.crateServerInterceptors()
+	interceptors, err := p.crateServerInterceptors()
 	if err != nil {
 		return fmt.Errorf("crateServerInterceptors: %w", err)
 	}
 
-	// Создать конфиг
-	var cfg grpc_server.Config
-	err = p.cfgProvider.PopulateByKey("server", &cfg)
+	var serverConfig server.Config
+	err = p.cfgProvider.PopulateByKey(cfg.ServerConfigName, &serverConfig)
 	if err != nil {
 		return fmt.Errorf("PopulateByKey: %w", err)
 	}
 
-	p.server = grpc_server.NewServer(p.logger, cfg, inters...)
-	serverDs := grpc_server.Descriptor{
+	p.server = server.NewServer(p.logger, serverConfig, interceptors...)
+	serverDs := server.Descriptor{
 		GatewayRegistrar: pbv1.RegisterPhotosServiceHandlerFromEndpoint,
 		OnRegisterGrpcServer: func(grpcServer *grpc.Server) {
 			pbv1.RegisterPhotosServiceServer(grpcServer, p)

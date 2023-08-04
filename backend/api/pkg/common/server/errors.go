@@ -1,4 +1,4 @@
-package grpc_server
+package server
 
 import (
 	pbv1 "github.com/kkiling/photo-library/backend/api/pkg/common/gen/proto/v1"
