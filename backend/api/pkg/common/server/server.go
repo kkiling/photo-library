@@ -3,8 +3,10 @@ package server
 import (
 	"context"
 	"fmt"
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	rn "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -45,6 +47,8 @@ func NewServer(logger log.Logger, cfg Config, interceptor ...grpc.UnaryServerInt
 			grpc.MaxRecvMsgSize(cfg.MaxReceiveMessageLength),
 			grpc.MaxSendMsgSize(cfg.MaxSendMessageLength),
 			grpc.ChainUnaryInterceptor(interceptor...),
+			grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
+			grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
 		),
 		mux: rn.NewServeMux(muxOption),
 		opts: []grpc.DialOption{
@@ -74,6 +78,9 @@ func (s *Server) Register(ctx context.Context, descriptor Descriptor) error {
 		}
 	}
 
+	// После инициализации сервера:
+	grpc_prometheus.Register(s.grpcServer)
+
 	return nil
 }
 
@@ -96,6 +103,7 @@ func (s *Server) Start() error {
 		httpMux := http.NewServeMux()
 		httpMux.Handle("/api.swagger.json", http.FileServer(http.Dir("./swagger")))
 		httpMux.Handle("/swagger/", http.StripPrefix("/swagger/", http.FileServer(http.Dir("./swagger/"))))
+		httpMux.Handle("/metrics", promhttp.Handler())
 		httpMux.Handle("/", s.mux) // Обрабатываем остальные запросы через gRPC-Gateway
 
 		s.gatewayServer = &http.Server{
