@@ -19,5 +19,7 @@ plugins:
     out: swagger
     opt:
       - allow_merge=true
-      - merge_file_name=app
+      - merge_file_name=api
       - json_names_for_fields=false
+      - openapi_naming_strategy=simple
+      - output_format=json

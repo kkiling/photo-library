@@ -16,7 +16,7 @@ type Descriptor interface {
 }
 
 func getName(m Descriptor) (string, error) {
-	methodPointer := reflect.ValueOf(m.Method).Pointer()
+	methodPointer := reflect.ValueOf(m.Method()).Pointer()
 	fullName := runtime.FuncForPC(methodPointer).Name()
 	methodNameParts := strings.Split(fullName, ".")
 	return methodNameParts[len(methodNameParts)-1], nil

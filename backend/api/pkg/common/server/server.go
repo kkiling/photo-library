@@ -36,6 +36,9 @@ func NewServer(logger log.Logger, cfg Config, interceptor ...grpc.UnaryServerInt
 		UnmarshalOptions: protojson.UnmarshalOptions{},
 	})
 
+	r := http.NewServeMux()
+	r.Handle("/app.swagger.json", http.FileServer(http.Dir(".")))
+
 	return &Server{
 		logger: logger,
 		grpcServer: grpc.NewServer(
@@ -90,9 +93,14 @@ func (s *Server) Start() error {
 	go func(logger log.Logger) {
 		netAddress := fmt.Sprintf("%s:%d", s.cfg.Host, s.cfg.HttpPort)
 
+		httpMux := http.NewServeMux()
+		httpMux.Handle("/api.swagger.json", http.FileServer(http.Dir("./swagger")))
+		httpMux.Handle("/swagger/", http.StripPrefix("/swagger/", http.FileServer(http.Dir("./swagger/"))))
+		httpMux.Handle("/", s.mux) // Обрабатываем остальные запросы через gRPC-Gateway
+
 		s.gatewayServer = &http.Server{
 			Addr:    netAddress,
-			Handler: s.mux,
+			Handler: httpMux,
 		}
 
 		logger.Infof("start gateway at %s", netAddress)

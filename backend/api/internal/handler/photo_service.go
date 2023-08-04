@@ -43,7 +43,7 @@ func (p *PhotosServiceServer) crateServerInterceptors() ([]grpc.UnaryServerInter
 			},
 			&customDescriptor{
 				method:  (*PhotosServiceServer).CheckHashPhoto,
-				useAuth: true,
+				useAuth: false,
 			},
 		},
 	)

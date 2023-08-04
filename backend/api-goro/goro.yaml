@@ -1,0 +1,53 @@
+app:
+  name: testapp
+  module: testapp
+  work_dir: ""
+
+storages:
+  - mysql
+  - mysqlx
+  - postgres
+
+handlers:
+  - http
+  - grpc
+  - amqp
+
+use_case:
+  deps:
+    - MyService
+    - PingPong
+  methods:
+    - GetClients
+    - SignIn
+    - SignUp
+    - Pong
+
+services:
+  - name: MyService
+    methods:
+      - GetList
+      - GetByFilter
+    deps:
+      - MyRepo
+
+  - name: PingPong
+    methods:
+      - Pong
+    deps:
+      - MyRepo
+
+adapters:
+  - name: MyRepo
+    storage: mysql
+    methods:
+      - GetOne
+      - GetAll
+      - Save
+      - Update
+
+  - name: ClientRepo
+    storage: mysqlx
+    methods:
+      - GitByDate
+      - GetByID

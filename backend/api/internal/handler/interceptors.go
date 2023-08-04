@@ -27,16 +27,16 @@ func NewAuthInterceptor(logger log.Logger, descriptors method_descriptor.MethodD
 		logger = logger.WithCtx(ctx, "middleware", "NewTestTestInterceptor")
 
 		ds := getDescriptor(descriptors, info.FullMethod)
-		if ds != nil {
+		if ds == nil {
 			return nil, server.ErrUnauthenticated(method_descriptor.ErrMethodDescriptorNotFound)
 		}
 
 		if ds.useAuth {
-			logger.Errorf("%s - no auth", info.FullMethod)
+			logger.Errorf("Call %s - no auth", info.FullMethod)
 			return nil, server.ErrPermissionDenied(fmt.Errorf("no auth"))
 		}
 
-		logger.Info("%s", info.FullMethod)
+		logger.Infof("Call %s", info.FullMethod)
 		return handler(ctx, req)
 	}
 }

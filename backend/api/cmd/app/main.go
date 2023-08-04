@@ -17,8 +17,9 @@ func main() {
 		panic(err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*60)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*600)
 	defer cancel()
+
 	logger := log.NewLogger()
 
 	cfgProvider, err := config.NewProvider(args)
