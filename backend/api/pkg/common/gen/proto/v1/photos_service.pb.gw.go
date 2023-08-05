@@ -113,7 +113,7 @@ func RegisterPhotosServiceHandlerServer(ctx context.Context, mux *runtime.ServeM
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/pb.v1.PhotosService/CheckHashPhoto", runtime.WithHTTPPathPattern("/v1/photos/check_hash"))
+		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/pb.v1.PhotosService/CheckHashPhoto", runtime.WithHTTPPathPattern("/v1/photos/check-hash"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -202,7 +202,7 @@ func RegisterPhotosServiceHandlerClient(ctx context.Context, mux *runtime.ServeM
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/pb.v1.PhotosService/CheckHashPhoto", runtime.WithHTTPPathPattern("/v1/photos/check_hash"))
+		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/pb.v1.PhotosService/CheckHashPhoto", runtime.WithHTTPPathPattern("/v1/photos/check-hash"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -244,7 +244,7 @@ func RegisterPhotosServiceHandlerClient(ctx context.Context, mux *runtime.ServeM
 }
 
 var (
-	pattern_PhotosService_CheckHashPhoto_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "photos", "check_hash"}, ""))
+	pattern_PhotosService_CheckHashPhoto_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "photos", "check-hash"}, ""))
 
 	pattern_PhotosService_UploadPhoto_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "photos", "upload"}, ""))
 )

@@ -20,7 +20,7 @@
     "application/json"
   ],
   "paths": {
-    "/v1/photos/check_hash": {
+    "/v1/photos/check-hash": {
       "post": {
         "summary": "Проверка по хешу фотографии, загружена она или нет",
         "operationId": "PhotosService_CheckHashPhoto",
@@ -100,7 +100,7 @@
     "CheckHashPhotoRequest": {
       "type": "object",
       "properties": {
-        "hash_photo": {
+        "hash": {
           "type": "string"
         }
       }
@@ -108,8 +108,12 @@
     "CheckHashPhotoResponse": {
       "type": "object",
       "properties": {
-        "already_loaded": {
+        "already_uploaded": {
           "type": "boolean"
+        },
+        "uploaded_at": {
+          "type": "string",
+          "format": "date-time"
         }
       }
     },
@@ -135,15 +139,15 @@
     "UploadPhotoRequest": {
       "type": "object",
       "properties": {
-        "file": {
-          "type": "string"
-        },
-        "body": {
+        "paths": {
           "type": "array",
           "items": {
-            "type": "string",
-            "format": "byte"
+            "type": "string"
           }
+        },
+        "body": {
+          "type": "string",
+          "format": "byte"
         }
       }
     },
@@ -152,6 +156,13 @@
       "properties": {
         "success": {
           "type": "boolean"
+        },
+        "hash": {
+          "type": "string"
+        },
+        "uploaded_at": {
+          "type": "string",
+          "format": "date-time"
         }
       }
     }

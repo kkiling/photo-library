@@ -5,13 +5,9 @@ app:
 
 storages:
   - mysql
-  - mysqlx
-  - postgres
 
 handlers:
   - http
-  - grpc
-  - amqp
 
 use_case:
   deps:
@@ -47,7 +43,7 @@ adapters:
       - Update
 
   - name: ClientRepo
-    storage: mysqlx
+    storage: mysql
     methods:
       - GitByDate
       - GetByID

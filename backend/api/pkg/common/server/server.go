@@ -52,7 +52,6 @@ func NewServer(logger log.Logger, cfg Config, interceptor ...grpc.UnaryServerInt
 		),
 		mux: rn.NewServeMux(muxOption),
 		opts: []grpc.DialOption{
-			// TODO: insecure.NewCredentials() создаёт объект безопасности, который не предоставляет никакой защиты данных.
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
 			grpc.WithDefaultCallOptions(
 				grpc.MaxCallRecvMsgSize(cfg.MaxReceiveMessageLength),

@@ -10,6 +10,8 @@ import (
 	"github.com/kkiling/photo-library/backend/api/pkg/common/server"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/server/method_descriptor"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/timestamppb"
+	"time"
 )
 
 type customDescriptor struct {
@@ -95,10 +97,18 @@ func (p *PhotosServiceServer) Stop() {
 
 func (p *PhotosServiceServer) CheckHashPhoto(ctx context.Context, request *pbv1.CheckHashPhotoRequest) (*pbv1.CheckHashPhotoResponse, error) {
 	p.logger.Info("CheckHashPhoto")
-	return &pbv1.CheckHashPhotoResponse{AlreadyLoaded: true}, nil
+
+	return &pbv1.CheckHashPhotoResponse{
+		AlreadyUploaded: false,
+		UploadedAt: &timestamppb.Timestamp{
+			Seconds: time.Now().Unix(),
+		},
+	}, nil
 }
 
 func (p *PhotosServiceServer) UploadPhoto(ctx context.Context, request *pbv1.UploadPhotoRequest) (*pbv1.UploadPhotoResponse, error) {
-	return &pbv1.UploadPhotoResponse{Success: true}, nil
-
+	return &pbv1.UploadPhotoResponse{
+		Success: false,
+		Hash:    "",
+	}, nil
 }

@@ -11,7 +11,7 @@ import "google/protobuf/timestamp.proto";
 service PhotosService {
   rpc CheckHashPhoto(CheckHashPhotoRequest) returns (CheckHashPhotoResponse) {
     option (google.api.http) = {
-      post: "/v1/photos/check_hash";
+      post: "/v1/photos/check-hash";
       body: "*";
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
@@ -33,18 +33,21 @@ service PhotosService {
 }
 
 message CheckHashPhotoRequest {
-  string hash_photo= 1;
+  string hash = 1;
 }
 
 message CheckHashPhotoResponse {
-  bool already_loaded = 1;
+  bool already_uploaded = 1;
+  google.protobuf.Timestamp uploaded_at = 2;
 }
 
 message UploadPhotoRequest {
-  string  file = 1;
-  repeated bytes body = 2;
+  repeated string paths = 1;
+  bytes body = 2;
 }
 
 message UploadPhotoResponse {
   bool success = 1;
+  string hash = 2;
+  google.protobuf.Timestamp uploaded_at = 3;
 }
