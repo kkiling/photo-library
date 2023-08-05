@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"github.com/jessevdk/go-flags"
 	"github.com/kkiling/photo-library/backend/api/internal/handler"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/config"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
-	"time"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 func main() {
@@ -17,7 +18,7 @@ func main() {
 		panic(err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*600)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	logger := log.NewLogger()
@@ -29,11 +30,23 @@ func main() {
 
 	photoService := handler.NewPhotosServiceServer(logger, cfgProvider)
 
-	err = photoService.Start(ctx)
-	if err != nil {
-		panic(err)
-	}
+	go func() {
+		err = photoService.Start(ctx)
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	go func() {
+		sig := make(chan os.Signal, 1)
+		signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+		<-sig
+		logger.Infof("--- shutdown application ---")
+		cancel()
+	}()
+
 	<-ctx.Done()
+	logger.Infof("--- stopped application ---")
 	photoService.Stop()
-	fmt.Println("EndStop")
+	logger.Infof("--- stop application ---")
 }

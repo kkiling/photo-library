@@ -50,7 +50,7 @@ func NewAuthInterceptor(logger log.Logger, descriptors method_descriptor.MethodD
 		// Обновите значение метрики
 		myCounter.Inc()
 
-		logger.Infof("Call %s", info.FullMethod)
+		// logger.Infof("Call %s", info.FullMethod)
 		return handler(ctx, req)
 	}
 }

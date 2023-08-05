@@ -82,7 +82,7 @@ func main() {
 
 	go func() {
 		defer close(filesChan)
-		err = readDir(fs, "photos\\Фото\\13.01.18", filesChan)
+		err = readDir(fs, "photos", filesChan)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -103,24 +103,14 @@ func main() {
 	}
 	bar.Finish()
 
-	// Создание подключения к gRPC серверу
-	grpcConn, err := grpc.Dial("localhost:8080",
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
-	if err != nil {
-		log.Fatalf("Failed to connect to gRPC server: %v", err)
-	}
-	defer grpcConn.Close()
-
-	// Создание клиента
-	client := pbv1.NewPhotosServiceClient(grpcConn)
-
+	// ******
 	bar = progressbar.NewOptions(len(filesAll),
 		progressbar.OptionSetRenderBlankState(true),
 		progressbar.OptionEnableColorCodes(true),
 		progressbar.OptionFullWidth(),
-		progressbar.OptionSetDescription("Upload files"),
+		progressbar.OptionSetDescription("Check hash files"),
 	)
+
 	for _, filePath := range filesAll {
 		file, err := fs.Open(filePath)
 		if err != nil {
@@ -133,22 +123,71 @@ func main() {
 		}
 
 		hashString := fmt.Sprintf("%x", hash.Sum(nil))
-		bar.Add(1) // increment the progressbar after processing each element
-		file.Close()
-
 		photos[hashString] = append(photos[hashString], filePath)
 
-		response, err := client.CheckHashPhoto(ctx, &pbv1.CheckHashPhotoRequest{Hash: "123"})
+		bar.Add(1) // increment the progressbar after processing each element
+		file.Close()
+	}
+	bar.Finish()
+
+	// ****
+	bar = progressbar.NewOptions(len(photos),
+		progressbar.OptionSetRenderBlankState(true),
+		progressbar.OptionEnableColorCodes(true),
+		progressbar.OptionFullWidth(),
+		progressbar.OptionSetDescription("Upload files"),
+	)
+
+	// Создание подключения к gRPC серверу
+	grpcConn, err := grpc.Dial("localhost:8181", grpc.WithTransportCredentials(insecure.NewCredentials()))
+
+	if err != nil {
+		log.Fatalf("Failed to connect to gRPC server: %v", err)
+	}
+	defer grpcConn.Close()
+
+	// Создание клиента
+	client := pbv1.NewPhotosServiceClient(grpcConn)
+	for hash, paths := range photos {
+		response, err := client.CheckHashPhoto(ctx, &pbv1.CheckHashPhotoRequest{Hash: hash})
 		if err != nil {
 			log.Fatalf("Failed CheckHashPhotoRequest: %v", err)
 		}
 
 		if response.AlreadyUploaded {
+			continue
+		}
 
-		} else {
+		file, err := fs.Open(paths[0])
+		if err != nil {
+			log.Fatalf("Failed to open file: %v", err)
+		}
+
+		// Чтение содержимого файла
+		data, err := io.ReadAll(file)
+		if err != nil {
+			log.Fatalf("Failed to read file: %v", err)
+		}
+
+		bar.Add(1) // increment the progressbar after processing each element
+		file.Close()
+
+		uploadRespone, err := client.UploadPhoto(ctx, &pbv1.UploadPhotoRequest{
+			Paths: paths,
+			Body:  data,
+		})
+
+		if err != nil {
+			log.Fatalf("Failed CheckHashPhotoRequest: %v", err)
+		}
+
+		if !uploadRespone.Success {
+			log.Fatalf("UploadPhoto: no success")
 
 		}
 	}
+
+	bar.Finish()
 
 	fmt.Printf("Total: %d", len(filesAll))
 	fmt.Printf("Total unique: %d", len(photos))

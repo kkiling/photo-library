@@ -9,9 +9,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/reflection"
 	"google.golang.org/protobuf/encoding/protojson"
 	"net"
 	"net/http"
+	"time"
 )
 
 type Descriptor struct {
@@ -64,12 +66,14 @@ func NewServer(logger log.Logger, cfg Config, interceptor ...grpc.UnaryServerInt
 }
 
 func (s *Server) Register(ctx context.Context, descriptor Descriptor) error {
+	// Регистрация grpc сервера
 	if descriptor.OnRegisterGrpcServer == nil {
 		return fmt.Errorf("OnRegisterGrpcServer is requered")
 	}
 
 	descriptor.OnRegisterGrpcServer(s.grpcServer)
 
+	// Регистрация rest api gateway
 	if descriptor.GatewayRegistrar != nil {
 		host := fmt.Sprintf("%s:%d", s.cfg.Host, s.cfg.GrpcPort)
 		if err := descriptor.GatewayRegistrar(ctx, s.mux, host, s.opts); err != nil {
@@ -80,10 +84,15 @@ func (s *Server) Register(ctx context.Context, descriptor Descriptor) error {
 	// После инициализации сервера:
 	grpc_prometheus.Register(s.grpcServer)
 
+	// Нужно что бы сервер сам отдавал описание методов
+	// например для postman
+	reflection.Register(s.grpcServer)
+
 	return nil
 }
 
 func (s *Server) Start() error {
+	// Запуск grpc сервера
 	go func(logger log.Logger) {
 		netAddress := fmt.Sprintf("%s:%d", s.cfg.Host, s.cfg.GrpcPort)
 
@@ -94,16 +103,21 @@ func (s *Server) Start() error {
 			return
 		}
 		s.errors <- s.grpcServer.Serve(socket)
-	}(s.logger.Named("server"))
+	}(s.logger.Named("grpc_server"))
 
+	// Запуск rest api сервера с gateway
 	go func(logger log.Logger) {
 		netAddress := fmt.Sprintf("%s:%d", s.cfg.Host, s.cfg.HttpPort)
 
 		httpMux := http.NewServeMux()
+		// OpenApi спецификация апи
 		httpMux.Handle("/api.swagger.json", http.FileServer(http.Dir("./swagger")))
+		// Swagger в браузере
 		httpMux.Handle("/swagger/", http.StripPrefix("/swagger/", http.FileServer(http.Dir("./swagger/"))))
+		// Метрики
 		httpMux.Handle("/metrics", promhttp.Handler())
-		httpMux.Handle("/", s.mux) // Обрабатываем остальные запросы через gRPC-Gateway
+		// Обрабатываем остальные запросы через gRPC-Gateway
+		httpMux.Handle("/", s.mux)
 
 		s.gatewayServer = &http.Server{
 			Addr:    netAddress,
@@ -118,5 +132,10 @@ func (s *Server) Start() error {
 }
 
 func (s *Server) Stop() {
-	s.grpcServer.GracefulStop()
+	// Пробуем по хорошему
+	go s.grpcServer.GracefulStop()
+	// Ждем
+	time.Sleep(time.Duration(s.cfg.ShutdownTimeout) * time.Second)
+	// Уже по плохому
+	s.grpcServer.Stop()
 }

@@ -31,6 +31,7 @@ func NewLogger() Logger {
 		ErrorOutputPaths: []string{"stderr"},
 		Encoding:         "json",
 		EncoderConfig: zapcore.EncoderConfig{
+			TimeKey:        "ts",
 			MessageKey:     "msg",
 			LevelKey:       "level",
 			NameKey:        "log",

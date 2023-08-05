@@ -3,14 +3,17 @@ package handler
 import (
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/kkiling/photo-library/backend/api/internal/cfg"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/config"
-	pbv1 "github.com/kkiling/photo-library/backend/api/pkg/common/gen/proto/v1"
+	desc "github.com/kkiling/photo-library/backend/api/pkg/common/gen/proto/v1"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/server"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/server/method_descriptor"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -24,6 +27,7 @@ func (c *customDescriptor) Method() interface{} {
 }
 
 type PhotosServiceServer struct {
+	desc.UnimplementedPhotosServiceServer
 	server      *server.Server
 	logger      log.Logger
 	cfgProvider config.Provider
@@ -74,9 +78,9 @@ func (p *PhotosServiceServer) Start(ctx context.Context) error {
 
 	p.server = server.NewServer(p.logger, serverConfig, interceptors...)
 	serverDs := server.Descriptor{
-		GatewayRegistrar: pbv1.RegisterPhotosServiceHandlerFromEndpoint,
+		GatewayRegistrar: desc.RegisterPhotosServiceHandlerFromEndpoint,
 		OnRegisterGrpcServer: func(grpcServer *grpc.Server) {
-			pbv1.RegisterPhotosServiceServer(grpcServer, p)
+			desc.RegisterPhotosServiceServer(grpcServer, p)
 		},
 	}
 
@@ -95,10 +99,8 @@ func (p *PhotosServiceServer) Stop() {
 	p.server.Stop()
 }
 
-func (p *PhotosServiceServer) CheckHashPhoto(ctx context.Context, request *pbv1.CheckHashPhotoRequest) (*pbv1.CheckHashPhotoResponse, error) {
-	p.logger.Info("CheckHashPhoto")
-
-	return &pbv1.CheckHashPhotoResponse{
+func (p *PhotosServiceServer) CheckHashPhoto(ctx context.Context, request *desc.CheckHashPhotoRequest) (*desc.CheckHashPhotoResponse, error) {
+	return &desc.CheckHashPhotoResponse{
 		AlreadyUploaded: false,
 		UploadedAt: &timestamppb.Timestamp{
 			Seconds: time.Now().Unix(),
@@ -106,9 +108,30 @@ func (p *PhotosServiceServer) CheckHashPhoto(ctx context.Context, request *pbv1.
 	}, nil
 }
 
-func (p *PhotosServiceServer) UploadPhoto(ctx context.Context, request *pbv1.UploadPhotoRequest) (*pbv1.UploadPhotoResponse, error) {
-	return &pbv1.UploadPhotoResponse{
-		Success: false,
+func (p *PhotosServiceServer) UploadPhoto(ctx context.Context, request *desc.UploadPhotoRequest) (*desc.UploadPhotoResponse, error) {
+	// Извлекаем расширение файла
+	ext := filepath.Ext(request.Paths[0])
+	// Создаем UUID
+	uuid := uuid.New()
+
+	// Формируем новое имя файла
+	newFilename := fmt.Sprintf("/Users/kkiling/Desktop/photos/%s%s", uuid.String(), ext)
+
+	// Создаем новый файл с новым именем
+	newFile, err := os.Create(newFilename)
+	defer newFile.Close()
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create new file: %v", err)
+	}
+
+	// Записываем данные в новый файл
+	if _, err := newFile.Write(request.Body); err != nil {
+		return nil, fmt.Errorf("Failed to write to new file: %v", err)
+	}
+
+	return &desc.UploadPhotoResponse{
+		Success: true,
 		Hash:    "",
 	}, nil
 }
