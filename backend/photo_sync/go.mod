@@ -5,6 +5,7 @@ go 1.20
 require (
 	github.com/hirochachacha/go-smb2 v1.1.0
 	github.com/kkiling/photo-library/backend/api v0.0.0
+	github.com/mattn/go-sqlite3 v1.14.17
 	github.com/schollz/progressbar/v3 v3.13.1
 	google.golang.org/grpc v1.57.0
 )

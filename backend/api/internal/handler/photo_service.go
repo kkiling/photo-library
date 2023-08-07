@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"fmt"
-	"github.com/google/uuid"
 	"github.com/kkiling/photo-library/backend/api/internal/cfg"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/config"
 	desc "github.com/kkiling/photo-library/backend/api/pkg/common/gen/proto/v1"
@@ -12,8 +11,6 @@ import (
 	"github.com/kkiling/photo-library/backend/api/pkg/common/server/method_descriptor"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"os"
-	"path/filepath"
 	"time"
 )
 
@@ -109,7 +106,7 @@ func (p *PhotosServiceServer) CheckHashPhoto(ctx context.Context, request *desc.
 }
 
 func (p *PhotosServiceServer) UploadPhoto(ctx context.Context, request *desc.UploadPhotoRequest) (*desc.UploadPhotoResponse, error) {
-	// Извлекаем расширение файла
+	/*// Извлекаем расширение файла
 	ext := filepath.Ext(request.Paths[0])
 	// Создаем UUID
 	uuid := uuid.New()
@@ -129,7 +126,7 @@ func (p *PhotosServiceServer) UploadPhoto(ctx context.Context, request *desc.Upl
 	if _, err := newFile.Write(request.Body); err != nil {
 		return nil, fmt.Errorf("Failed to write to new file: %v", err)
 	}
-
+	*/
 	return &desc.UploadPhotoResponse{
 		Success: true,
 		Hash:    "",
