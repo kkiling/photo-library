@@ -8,5 +8,5 @@ goose create [name] sql
 ```
 ```
 goose -dir=./migrations sqlite3 ./files.db up
-goose sqlite3 ./files.db down
+goose -dir=./migrations sqlite3 ./files.db down
 ```

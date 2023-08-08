@@ -6,3 +6,18 @@ go install \
     google.golang.org/protobuf/cmd/protoc-gen-go \
     google.golang.org/grpc/cmd/protoc-gen-go-grpc
 ```
+
+Пример метрик
+```
+	// Создайте метрику
+	myCounter := prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "my_custom_counter",
+		Help: "This is my counter",
+	})
+
+	// Регистрируйте метрику
+	prometheus.MustRegister(myCounter)
+
+	// Обновите значение метрики
+	myCounter.Inc()
+```

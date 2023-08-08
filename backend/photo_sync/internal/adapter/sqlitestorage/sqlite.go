@@ -42,3 +42,20 @@ func (s *Storage) SaveFileHash(ctx context.Context, filePath, hash string, updat
 	_, err := s.db.ExecContext(ctx, "INSERT OR REPLACE INTO file_hash (file_path, update_at, hash) VALUES (?, ?, ?)", filePath, updateAt, hash)
 	return err
 }
+
+func (s *Storage) SaveUploadFileResponse(ctx context.Context, hash string, uploadDate time.Time, success bool) error {
+	_, err := s.db.ExecContext(ctx, "INSERT OR REPLACE INTO file_upload (hash, upload_at, success) VALUES (?, ?, ?)", hash, uploadDate, success)
+	return err
+}
+
+func (s *Storage) FileAlreadyUpload(ctx context.Context, hash string) (bool, error) {
+	var count int64
+	err := s.db.QueryRowContext(ctx, "SELECT count(hash) FROM file_upload WHERE hash = ? AND success = ?", hash, true).Scan(&count)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return count == 1, nil
+}

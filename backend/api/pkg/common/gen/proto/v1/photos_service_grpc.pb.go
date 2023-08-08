@@ -19,124 +19,87 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	PhotosService_CheckHashPhoto_FullMethodName = "/pb.v1.PhotosService/CheckHashPhoto"
-	PhotosService_UploadPhoto_FullMethodName    = "/pb.v1.PhotosService/UploadPhoto"
+	SyncPhotosService_UploadPhoto_FullMethodName = "/pb.v1.SyncPhotosService/UploadPhoto"
 )
 
-// PhotosServiceClient is the client API for PhotosService service.
+// SyncPhotosServiceClient is the client API for SyncPhotosService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type PhotosServiceClient interface {
-	CheckHashPhoto(ctx context.Context, in *CheckHashPhotoRequest, opts ...grpc.CallOption) (*CheckHashPhotoResponse, error)
+type SyncPhotosServiceClient interface {
 	UploadPhoto(ctx context.Context, in *UploadPhotoRequest, opts ...grpc.CallOption) (*UploadPhotoResponse, error)
 }
 
-type photosServiceClient struct {
+type syncPhotosServiceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewPhotosServiceClient(cc grpc.ClientConnInterface) PhotosServiceClient {
-	return &photosServiceClient{cc}
+func NewSyncPhotosServiceClient(cc grpc.ClientConnInterface) SyncPhotosServiceClient {
+	return &syncPhotosServiceClient{cc}
 }
 
-func (c *photosServiceClient) CheckHashPhoto(ctx context.Context, in *CheckHashPhotoRequest, opts ...grpc.CallOption) (*CheckHashPhotoResponse, error) {
-	out := new(CheckHashPhotoResponse)
-	err := c.cc.Invoke(ctx, PhotosService_CheckHashPhoto_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *photosServiceClient) UploadPhoto(ctx context.Context, in *UploadPhotoRequest, opts ...grpc.CallOption) (*UploadPhotoResponse, error) {
+func (c *syncPhotosServiceClient) UploadPhoto(ctx context.Context, in *UploadPhotoRequest, opts ...grpc.CallOption) (*UploadPhotoResponse, error) {
 	out := new(UploadPhotoResponse)
-	err := c.cc.Invoke(ctx, PhotosService_UploadPhoto_FullMethodName, in, out, opts...)
+	err := c.cc.Invoke(ctx, SyncPhotosService_UploadPhoto_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// PhotosServiceServer is the server API for PhotosService service.
-// All implementations should embed UnimplementedPhotosServiceServer
+// SyncPhotosServiceServer is the server API for SyncPhotosService service.
+// All implementations should embed UnimplementedSyncPhotosServiceServer
 // for forward compatibility
-type PhotosServiceServer interface {
-	CheckHashPhoto(context.Context, *CheckHashPhotoRequest) (*CheckHashPhotoResponse, error)
+type SyncPhotosServiceServer interface {
 	UploadPhoto(context.Context, *UploadPhotoRequest) (*UploadPhotoResponse, error)
 }
 
-// UnimplementedPhotosServiceServer should be embedded to have forward compatible implementations.
-type UnimplementedPhotosServiceServer struct {
+// UnimplementedSyncPhotosServiceServer should be embedded to have forward compatible implementations.
+type UnimplementedSyncPhotosServiceServer struct {
 }
 
-func (UnimplementedPhotosServiceServer) CheckHashPhoto(context.Context, *CheckHashPhotoRequest) (*CheckHashPhotoResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CheckHashPhoto not implemented")
-}
-func (UnimplementedPhotosServiceServer) UploadPhoto(context.Context, *UploadPhotoRequest) (*UploadPhotoResponse, error) {
+func (UnimplementedSyncPhotosServiceServer) UploadPhoto(context.Context, *UploadPhotoRequest) (*UploadPhotoResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UploadPhoto not implemented")
 }
 
-// UnsafePhotosServiceServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to PhotosServiceServer will
+// UnsafeSyncPhotosServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to SyncPhotosServiceServer will
 // result in compilation errors.
-type UnsafePhotosServiceServer interface {
-	mustEmbedUnimplementedPhotosServiceServer()
+type UnsafeSyncPhotosServiceServer interface {
+	mustEmbedUnimplementedSyncPhotosServiceServer()
 }
 
-func RegisterPhotosServiceServer(s grpc.ServiceRegistrar, srv PhotosServiceServer) {
-	s.RegisterService(&PhotosService_ServiceDesc, srv)
+func RegisterSyncPhotosServiceServer(s grpc.ServiceRegistrar, srv SyncPhotosServiceServer) {
+	s.RegisterService(&SyncPhotosService_ServiceDesc, srv)
 }
 
-func _PhotosService_CheckHashPhoto_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CheckHashPhotoRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PhotosServiceServer).CheckHashPhoto(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: PhotosService_CheckHashPhoto_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PhotosServiceServer).CheckHashPhoto(ctx, req.(*CheckHashPhotoRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _PhotosService_UploadPhoto_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _SyncPhotosService_UploadPhoto_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UploadPhotoRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PhotosServiceServer).UploadPhoto(ctx, in)
+		return srv.(SyncPhotosServiceServer).UploadPhoto(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: PhotosService_UploadPhoto_FullMethodName,
+		FullMethod: SyncPhotosService_UploadPhoto_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PhotosServiceServer).UploadPhoto(ctx, req.(*UploadPhotoRequest))
+		return srv.(SyncPhotosServiceServer).UploadPhoto(ctx, req.(*UploadPhotoRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// PhotosService_ServiceDesc is the grpc.ServiceDesc for PhotosService service.
+// SyncPhotosService_ServiceDesc is the grpc.ServiceDesc for SyncPhotosService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var PhotosService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "pb.v1.PhotosService",
-	HandlerType: (*PhotosServiceServer)(nil),
+var SyncPhotosService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "pb.v1.SyncPhotosService",
+	HandlerType: (*SyncPhotosServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "CheckHashPhoto",
-			Handler:    _PhotosService_CheckHashPhoto_Handler,
-		},
-		{
 			MethodName: "UploadPhoto",
-			Handler:    _PhotosService_UploadPhoto_Handler,
+			Handler:    _SyncPhotosService_UploadPhoto_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

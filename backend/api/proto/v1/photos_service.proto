@@ -2,52 +2,41 @@ syntax = "proto3";
 
 package pb.v1;
 
-option go_package = "github.com/kkiling/photo-library/backend/app/pkg/common/gen/pbv1";
+option go_package = "github.com/kkiling/photo-library/backend/sync_photos/pkg/common/gen/pbv1";
 
 import "google/api/annotations.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 import "google/protobuf/timestamp.proto";
 
-service PhotosService {
-  rpc CheckHashPhoto(CheckHashPhotoRequest) returns (CheckHashPhotoResponse) {
-    option (google.api.http) = {
-      post: "/v1/photos/check-hash";
-      body: "*";
-    };
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      tags: ["photos"]
-      summary: "Проверка по хешу фотографии, загружена она или нет";
-    };
-  };
-
+service SyncPhotosService {
   rpc UploadPhoto(UploadPhotoRequest) returns (UploadPhotoResponse) {
     option (google.api.http) = {
-      post: "/v1/photos/upload";
+      post: "/v1/sync-photos/upload";
       body: "*";
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      tags: ["photos"]
+      tags: ["sync-photo"]
       summary: "Загрузка новой фотографии";
     };
   };
 }
 
-message CheckHashPhotoRequest {
-  string hash = 1;
-}
-
-message CheckHashPhotoResponse {
-  bool already_uploaded = 1;
-  google.protobuf.Timestamp uploaded_at = 2;
-}
-
 message UploadPhotoRequest {
+  // Пути фотографий которые загружаем (может быть несколько если фото одинаковые)
   repeated string paths = 1;
-  bytes body = 2;
+  // Рассчитанный на клиенте хеш фотографии
+  string hash = 2;
+  // Данные фото
+  bytes body = 3;
+  // Информация о последнем изменении фото
+  google.protobuf.Timestamp update_at = 4;
 }
 
 message UploadPhotoResponse {
+  // Успешно или нет (если не успешно, можно загрузить попозже)
   bool success = 1;
-  string hash = 2;
-  google.protobuf.Timestamp uploaded_at = 3;
+  // Хеш фотографии
+  string hash = 3;
+  // Дата когда фотография была загружена на сервер
+  google.protobuf.Timestamp uploaded_at = 4;
 }

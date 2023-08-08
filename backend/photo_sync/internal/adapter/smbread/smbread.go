@@ -2,13 +2,14 @@ package smbread
 
 import (
 	"context"
-	"crypto/sha256"
 	"fmt"
 	"github.com/hirochachacha/go-smb2"
 	"github.com/kkiling/photo-library/backend/photo_sync/internal/adapter"
+	"golang.org/x/crypto/blake2b"
 	"io"
 	"net"
 	"strings"
+	"time"
 )
 
 type Config struct {
@@ -24,6 +25,15 @@ type SmbRead struct {
 	config  Config
 	session *smb2.Session
 	share   *smb2.Share
+}
+
+func (s *SmbRead) GetFileUpdateAt(ctx context.Context, filepath string) (time.Time, error) {
+	info, err := s.share.Stat(filepath)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("fail share.Sait: %w", err)
+	}
+
+	return info.ModTime(), nil
 }
 
 func NewSmbRead(cfg Config) *SmbRead {
@@ -56,14 +66,8 @@ func (s *SmbRead) readDir(fs *smb2.Share, dirPath string, files chan<- adapter.F
 		} else {
 			for _, ext := range s.config.Extensions {
 				if strings.HasSuffix(strings.ToLower(name), ext) {
-					// Получение атрибутов файла
-					info, err := fs.Stat(newPath)
-					if err != nil {
-						return fmt.Errorf("failed to stat file: %v", err)
-					}
 					files <- adapter.FileInfo{
 						FilePath: newPath,
-						UpdateAt: info.ModTime(),
 					}
 				}
 			}
@@ -122,8 +126,9 @@ func (s *SmbRead) Disconnect() error {
 func (s *SmbRead) ReadFiles(ctx context.Context, filesChan chan<- adapter.FileInfo) error {
 	err := s.readDir(s.share, s.config.DirPath, filesChan)
 	if err != nil {
-		return fmt.Errorf("fail readDir: %w", err)
+		err = fmt.Errorf("fail readDir: %w", err)
 	}
+
 	return nil
 }
 
@@ -132,8 +137,13 @@ func (s *SmbRead) GetFileHash(ctx context.Context, filepath string) (string, err
 	if err != nil {
 		return "", fmt.Errorf("share.Open: %w", err)
 	}
+	defer file.Close()
 
-	hash := sha256.New()
+	hash, err := blake2b.New256(nil) // Используем BLAKE2b с длиной хеша 256 бит.
+	if err != nil {
+		return "", fmt.Errorf("failed to create blake2b hasher: %w", err)
+	}
+
 	if _, err := io.Copy(hash, file); err != nil {
 		return "", fmt.Errorf("failed to copy content to hasher: %w", err)
 	}
@@ -141,7 +151,7 @@ func (s *SmbRead) GetFileHash(ctx context.Context, filepath string) (string, err
 	return fmt.Sprintf("%x", hash.Sum(nil)), nil
 }
 
-func (s *SmbRead) GetFileData(ctx context.Context, filepath string) ([]byte, error) {
+func (s *SmbRead) GetFileBody(ctx context.Context, filepath string) ([]byte, error) {
 	file, err := s.share.Open(filepath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %w", err)
@@ -149,10 +159,10 @@ func (s *SmbRead) GetFileData(ctx context.Context, filepath string) ([]byte, err
 	defer file.Close()
 
 	// Чтение содержимого файла
-	data, err := io.ReadAll(file)
+	body, err := io.ReadAll(file)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
 
-	return data, nil
+	return body, nil
 }

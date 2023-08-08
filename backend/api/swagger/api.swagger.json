@@ -6,7 +6,7 @@
   },
   "tags": [
     {
-      "name": "PhotosService"
+      "name": "SyncPhotosService"
     }
   ],
   "host": "localhost:8080",
@@ -20,43 +20,10 @@
     "application/json"
   ],
   "paths": {
-    "/v1/photos/check-hash": {
-      "post": {
-        "summary": "Проверка по хешу фотографии, загружена она или нет",
-        "operationId": "PhotosService_CheckHashPhoto",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/CheckHashPhotoResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/Status"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/CheckHashPhotoRequest"
-            }
-          }
-        ],
-        "tags": [
-          "photos"
-        ]
-      }
-    },
-    "/v1/photos/upload": {
+    "/v1/sync-photos/upload": {
       "post": {
         "summary": "Загрузка новой фотографии",
-        "operationId": "PhotosService_UploadPhoto",
+        "operationId": "SyncPhotosService_UploadPhoto",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -82,7 +49,7 @@
           }
         ],
         "tags": [
-          "photos"
+          "sync-photo"
         ]
       }
     }
@@ -96,26 +63,6 @@
         }
       },
       "additionalProperties": {}
-    },
-    "CheckHashPhotoRequest": {
-      "type": "object",
-      "properties": {
-        "hash": {
-          "type": "string"
-        }
-      }
-    },
-    "CheckHashPhotoResponse": {
-      "type": "object",
-      "properties": {
-        "already_uploaded": {
-          "type": "boolean"
-        },
-        "uploaded_at": {
-          "type": "string",
-          "format": "date-time"
-        }
-      }
     },
     "Status": {
       "type": "object",
@@ -143,11 +90,22 @@
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "title": "Пути фотографий которые загружаем (может быть несколько если фото одинаковые)"
+        },
+        "hash": {
+          "type": "string",
+          "title": "Рассчитанный на клиенте хеш фотографии"
         },
         "body": {
           "type": "string",
-          "format": "byte"
+          "format": "byte",
+          "title": "Данные фото"
+        },
+        "update_at": {
+          "type": "string",
+          "format": "date-time",
+          "title": "Информация о последнем изменении фото"
         }
       }
     },
@@ -155,14 +113,17 @@
       "type": "object",
       "properties": {
         "success": {
-          "type": "boolean"
+          "type": "boolean",
+          "title": "Успешно или нет (если не успешно, можно загрузить попозже)"
         },
         "hash": {
-          "type": "string"
+          "type": "string",
+          "title": "Хеш фотографии"
         },
         "uploaded_at": {
           "type": "string",
-          "format": "date-time"
+          "format": "date-time",
+          "title": "Дата когда фотография была загружена на сервер"
         }
       }
     }

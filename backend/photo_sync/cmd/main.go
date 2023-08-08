@@ -15,7 +15,7 @@ func main() {
 	smb := smbread.NewSmbRead(smbread.Config{
 		User:       "guest",
 		Password:   "guest",
-		Address:    "nas.lan:445",
+		Address:    "10.10.10.204:445",
 		ShareName:  "storage",
 		DirPath:    "photos",
 		Extensions: []string{".jpg", ".png", ".gif", ".bmp", ".jpeg"},
@@ -41,7 +41,10 @@ func main() {
 		return
 	}
 
-	sync := syncfiles.NewSyncPhotos(smb, storage, syncfiles.Config{})
+	sync := syncfiles.NewSyncPhotos(smb, storage, syncfiles.Config{
+		GrpcServerHost: "localhost:8181",
+		NumWorkers:     8,
+	})
 	if err := sync.Sync(ctx); err != nil {
 		fmt.Printf("fail sync.Sync: %v", err)
 		return

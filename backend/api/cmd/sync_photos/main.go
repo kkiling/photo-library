@@ -28,10 +28,10 @@ func main() {
 		panic(err)
 	}
 
-	photoService := handler.NewPhotosServiceServer(logger, cfgProvider)
+	syncPhotosService := handler.NewSyncPhotosServiceServer(logger, cfgProvider)
 
 	go func() {
-		err = photoService.Start(ctx)
+		err = syncPhotosService.Start(ctx)
 		if err != nil {
 			panic(err)
 		}
@@ -47,6 +47,6 @@ func main() {
 
 	<-ctx.Done()
 	logger.Infof("--- stopped application ---")
-	photoService.Stop()
+	syncPhotosService.Stop()
 	logger.Infof("--- stop application ---")
 }
