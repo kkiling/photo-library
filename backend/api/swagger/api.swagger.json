@@ -20,7 +20,7 @@
     "application/json"
   ],
   "paths": {
-    "/v1/sync-photos/upload": {
+    "/v1/sync-syncphotos/upload": {
       "post": {
         "summary": "Загрузка новой фотографии",
         "operationId": "SyncPhotosService_UploadPhoto",
@@ -106,15 +106,19 @@
           "type": "string",
           "format": "date-time",
           "title": "Информация о последнем изменении фото"
+        },
+        "client_id": {
+          "type": "string",
+          "title": "Идентификатор клиента"
         }
       }
     },
     "UploadPhotoResponse": {
       "type": "object",
       "properties": {
-        "success": {
+        "has_been_uploaded_before": {
           "type": "boolean",
-          "title": "Успешно или нет (если не успешно, можно загрузить попозже)"
+          "title": "Фото было загружено ранее"
         },
         "hash": {
           "type": "string",

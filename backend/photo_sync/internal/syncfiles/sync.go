@@ -15,6 +15,7 @@ import (
 
 type Config struct {
 	GrpcServerHost string
+	ClientId       string
 	NumWorkers     int
 }
 
@@ -245,14 +246,17 @@ func (s *SyncPhotos) uploadFiles(ctx context.Context, uploadDataList []uploadDat
 				}
 				if alreadyUpload, err := s.storage.FileAlreadyUpload(ctx, data.hash); err != nil {
 					errorsChan <- fmt.Errorf("storage.FileAlreadyUpload: %w", err)
+					bar.Increment()
 					continue
 				} else if alreadyUpload {
+					bar.Increment()
 					continue
 				}
 
 				body, err := s.fileRead.GetFileBody(ctx, data.mainPath)
 				if err != nil {
 					errorsChan <- fmt.Errorf("fileRead.GetFileBody: %w", err)
+					bar.Increment()
 					continue
 				}
 
@@ -265,18 +269,15 @@ func (s *SyncPhotos) uploadFiles(ctx context.Context, uploadDataList []uploadDat
 					},
 				})
 
+				if err := s.storage.SaveUploadFileResponse(ctx, res.Hash, res.UploadedAt.AsTime(), err == nil); err != nil {
+					errorsChan <- fmt.Errorf("storage.SaveUploadFileResponse: %w", err)
+					bar.Increment()
+					continue
+				}
+
 				if err != nil {
 					errorsChan <- fmt.Errorf("failed UploadPhoto: %v", err)
-					continue
-				}
-
-				if err := s.storage.SaveUploadFileResponse(ctx, res.Hash, res.UploadedAt.AsTime(), res.Success); err != nil {
-					errorsChan <- fmt.Errorf("storage.SaveUploadFileResponse: %w", err)
-					continue
-				}
-
-				if !res.Success {
-					errorsChan <- fmt.Errorf("UploadPhoto: no success")
+					bar.Increment()
 					continue
 				}
 

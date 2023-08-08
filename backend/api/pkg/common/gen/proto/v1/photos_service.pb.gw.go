@@ -79,7 +79,7 @@ func RegisterSyncPhotosServiceHandlerServer(ctx context.Context, mux *runtime.Se
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/pb.v1.SyncPhotosService/UploadPhoto", runtime.WithHTTPPathPattern("/v1/sync-photos/upload"))
+		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/pb.v1.SyncPhotosService/UploadPhoto", runtime.WithHTTPPathPattern("/v1/sync-syncphotos/upload"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -143,7 +143,7 @@ func RegisterSyncPhotosServiceHandlerClient(ctx context.Context, mux *runtime.Se
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/pb.v1.SyncPhotosService/UploadPhoto", runtime.WithHTTPPathPattern("/v1/sync-photos/upload"))
+		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/pb.v1.SyncPhotosService/UploadPhoto", runtime.WithHTTPPathPattern("/v1/sync-syncphotos/upload"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -163,7 +163,7 @@ func RegisterSyncPhotosServiceHandlerClient(ctx context.Context, mux *runtime.Se
 }
 
 var (
-	pattern_SyncPhotosService_UploadPhoto_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "sync-photos", "upload"}, ""))
+	pattern_SyncPhotosService_UploadPhoto_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"v1", "sync-syncphotos", "upload"}, ""))
 )
 
 var (

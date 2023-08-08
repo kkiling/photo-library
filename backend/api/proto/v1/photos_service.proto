@@ -11,7 +11,7 @@ import "google/protobuf/timestamp.proto";
 service SyncPhotosService {
   rpc UploadPhoto(UploadPhotoRequest) returns (UploadPhotoResponse) {
     option (google.api.http) = {
-      post: "/v1/sync-photos/upload";
+      post: "/v1/sync-syncphotos/upload";
       body: "*";
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
@@ -30,11 +30,13 @@ message UploadPhotoRequest {
   bytes body = 3;
   // Информация о последнем изменении фото
   google.protobuf.Timestamp update_at = 4;
+  // Идентификатор клиента
+  string client_id = 5;
 }
 
 message UploadPhotoResponse {
-  // Успешно или нет (если не успешно, можно загрузить попозже)
-  bool success = 1;
+  // Фото было загружено ранее
+  bool has_been_uploaded_before = 1;
   // Хеш фотографии
   string hash = 3;
   // Дата когда фотография была загружена на сервер

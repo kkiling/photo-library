@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/jessevdk/go-flags"
 	"github.com/kkiling/photo-library/backend/api/internal/handler"
+	"github.com/kkiling/photo-library/backend/api/internal/service/syncphotos"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/config"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 	"os"
@@ -28,7 +29,9 @@ func main() {
 		panic(err)
 	}
 
-	syncPhotosService := handler.NewSyncPhotosServiceServer(logger, cfgProvider)
+	syncPhoto := syncphotos.NewService(logger.Named("sync_photo"))
+
+	syncPhotosService := handler.NewSyncPhotosServiceServer(logger.Named("sync_photo_service_photo"), syncPhoto, cfgProvider)
 
 	go func() {
 		err = syncPhotosService.Start(ctx)
