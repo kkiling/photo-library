@@ -3,9 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
-	"github.com/kkiling/photo-library/backend/api/internal/cfg"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
-	"github.com/kkiling/photo-library/backend/api/pkg/common/config"
 	desc "github.com/kkiling/photo-library/backend/api/pkg/common/gen/proto/v1"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/server"
@@ -24,19 +22,19 @@ func (c *customDescriptor) Method() interface{} {
 
 type SyncPhotosServiceServer struct {
 	desc.UnimplementedSyncPhotosServiceServer
-	server      *server.Server
-	logger      log.Logger
-	cfgProvider config.Provider
-	syncPhoto   SyncPhotosService
+	server       *server.Server
+	logger       log.Logger
+	serverConfig server.Config
+	syncPhoto    SyncPhotosService
 }
 
 func NewSyncPhotosServiceServer(logger log.Logger,
 	syncPhoto SyncPhotosService,
-	cfgProvider config.Provider) *SyncPhotosServiceServer {
+	serverConfig server.Config) *SyncPhotosServiceServer {
 	return &SyncPhotosServiceServer{
-		logger:      logger,
-		cfgProvider: cfgProvider,
-		syncPhoto:   syncPhoto,
+		logger:       logger,
+		serverConfig: serverConfig,
+		syncPhoto:    syncPhoto,
 	}
 }
 
@@ -65,13 +63,7 @@ func (p *SyncPhotosServiceServer) Start(ctx context.Context) error {
 		return fmt.Errorf("crateServerInterceptors: %w", err)
 	}
 
-	var serverConfig server.Config
-	err = p.cfgProvider.PopulateByKey(cfg.ServerConfigName, &serverConfig)
-	if err != nil {
-		return fmt.Errorf("PopulateByKey: %w", err)
-	}
-
-	p.server = server.NewServer(p.logger, serverConfig, interceptors...)
+	p.server = server.NewServer(p.logger, p.serverConfig, interceptors...)
 	serverDs := server.Descriptor{
 		GatewayRegistrar: desc.RegisterSyncPhotosServiceHandlerFromEndpoint,
 		OnRegisterGrpcServer: func(grpcServer *grpc.Server) {

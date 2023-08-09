@@ -3,10 +3,8 @@ package main
 import (
 	"context"
 	"github.com/jessevdk/go-flags"
-	"github.com/kkiling/photo-library/backend/api/internal/handler"
-	"github.com/kkiling/photo-library/backend/api/internal/service/syncphotos"
+	"github.com/kkiling/photo-library/backend/api/internal/app"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/config"
-	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -19,24 +17,23 @@ func main() {
 		panic(err)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	logger := log.NewLogger()
-
 	cfgProvider, err := config.NewProvider(args)
 	if err != nil {
 		panic(err)
 	}
 
-	syncPhoto := syncphotos.NewService(logger.Named("sync_photo"))
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	syncPhotosService := handler.NewSyncPhotosServiceServer(logger.Named("sync_photo_service_photo"), syncPhoto, cfgProvider)
+	application := app.NewApp(cfgProvider)
+	if err := application.Create(ctx); err != nil {
+		panic(err)
+	}
 
 	go func() {
-		err = syncPhotosService.Start(ctx)
+		err = application.Start(ctx)
 		if err != nil {
-			panic(err)
+			application.Logger().Fatalf("fail start app: %v", err)
 		}
 	}()
 
@@ -44,12 +41,12 @@ func main() {
 		sig := make(chan os.Signal, 1)
 		signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 		<-sig
-		logger.Infof("--- shutdown application ---")
+		application.Logger().Infof("--- shutdown application ---")
 		cancel()
 	}()
 
 	<-ctx.Done()
-	logger.Infof("--- stopped application ---")
-	syncPhotosService.Stop()
-	logger.Infof("--- stop application ---")
+	application.Logger().Infof("--- stopped application ---")
+	application.Stop()
+	application.Logger().Infof("--- stop application ---")
 }

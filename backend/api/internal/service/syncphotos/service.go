@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/kkiling/photo-library/backend/api/internal/service"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 	"path/filepath"
@@ -11,12 +12,8 @@ import (
 	"time"
 )
 
-type Transactor interface {
-	WithTransaction(ctx context.Context, txFunc func(ctx context.Context) error) error
-}
-
 type Storage interface {
-	Transactor
+	service.Transactor
 	GetPhotoByHash(ctx context.Context, hash string) (*model.Photo, error)
 	SavePhoto(ctx context.Context, photo model.Photo) error
 	SaveUploadPhotoData(ctx context.Context, data model.UploadPhotoData) error
@@ -84,6 +81,7 @@ func (s *Service) UploadPhoto(ctx context.Context, form model.SyncPhotoRequest) 
 		// TODO:  ошибка
 		return model.SyncPhotoResponse{}, fmt.Errorf("paths must not be empty")
 	}
+
 	// Проверка, поддерживается ли расширение
 	ex := s.getPhotoExtension(form.Paths[0])
 	if ex == nil {
@@ -116,11 +114,11 @@ func (s *Service) UploadPhoto(ctx context.Context, form model.SyncPhotoRequest) 
 	}
 
 	// Одной транзакцией сохранить
-	err = s.storage.WithTransaction(ctx, func(tx context.Context) error {
-		if saveErr := s.storage.SavePhoto(tx, newPhoto); saveErr != nil {
+	err = s.storage.RunTransaction(ctx, func(ctxTx context.Context) error {
+		if saveErr := s.storage.SavePhoto(ctxTx, newPhoto); saveErr != nil {
 			return saveErr
 		}
-		if saveErr := s.storage.SaveUploadPhotoData(tx, uploadPhotoData); saveErr != nil {
+		if saveErr := s.storage.SaveUploadPhotoData(ctxTx, uploadPhotoData); saveErr != nil {
 			return saveErr
 		}
 		return nil

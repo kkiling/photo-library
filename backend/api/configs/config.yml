@@ -5,3 +5,6 @@ server:
   max_send_message_length: 2147483647
   max_receive_message_length: 63554432
   shutdown_timeout: 10
+
+pg_db:
+  conn_string: "postgresql://localhost:5432/photo_library"
