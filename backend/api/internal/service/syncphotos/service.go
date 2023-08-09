@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-type Storage interface {
+type Database interface {
 	service.Transactor
 	GetPhotoByHash(ctx context.Context, hash string) (*model.Photo, error)
 	SavePhoto(ctx context.Context, photo model.Photo) error
@@ -20,20 +20,20 @@ type Storage interface {
 }
 
 type FileStore interface {
-	SaveFileBody(ctx context.Context, body []byte) (url string, err error)
-	DeleteFile(ctx context.Context, url string) error
+	SaveFileBody(ctx context.Context, body []byte) (filePath string, err error)
+	DeleteFile(ctx context.Context, filePath string) error
 }
 
 type Service struct {
 	logger      log.Logger
-	storage     Storage
+	database    Database
 	fileStorage FileStore
 }
 
-func NewService(logger log.Logger, storage Storage, fileStorage FileStore) *Service {
+func NewService(logger log.Logger, storage Database, fileStorage FileStore) *Service {
 	return &Service{
 		logger:      logger,
-		storage:     storage,
+		database:    storage,
 		fileStorage: fileStorage,
 	}
 }
@@ -64,9 +64,9 @@ func (s *Service) getPhotoExtension(path string) *model.PhotoExtension {
 func (s *Service) UploadPhoto(ctx context.Context, form model.SyncPhotoRequest) (model.SyncPhotoResponse, error) {
 
 	// Проверяем загружено ли фото
-	photo, err := s.storage.GetPhotoByHash(ctx, form.Hash)
+	photo, err := s.database.GetPhotoByHash(ctx, form.Hash)
 	if err != nil {
-		return model.SyncPhotoResponse{}, fmt.Errorf("storage.GetPhotoByHash: %w", err)
+		return model.SyncPhotoResponse{}, fmt.Errorf("database.GetPhotoByHash: %w", err)
 	}
 
 	if photo != nil {
@@ -90,15 +90,15 @@ func (s *Service) UploadPhoto(ctx context.Context, form model.SyncPhotoRequest) 
 	}
 
 	// Сохранить файл и получить url
-	url, err := s.fileStorage.SaveFileBody(ctx, form.Body)
+	filePath, err := s.fileStorage.SaveFileBody(ctx, form.Body)
 	if err != nil {
 		// TODO:  ошибка
 		return model.SyncPhotoResponse{}, fmt.Errorf("fileStorage.SaveFileBody: %w", err)
 	}
 
 	newPhoto := model.Photo{
-		Id:        uuid.New(),
-		Url:       url,
+		ID:        uuid.New(),
+		FilePath:  filePath,
 		Hash:      form.Hash,
 		UpdateAt:  form.UpdateAt,
 		UploadAt:  time.Now(),
@@ -106,30 +106,11 @@ func (s *Service) UploadPhoto(ctx context.Context, form model.SyncPhotoRequest) 
 	}
 
 	uploadPhotoData := model.UploadPhotoData{
-		Id:       uuid.New(),
-		PhotoId:  newPhoto.Id,
+		ID:       uuid.New(),
+		PhotoID:  newPhoto.ID,
 		Paths:    form.Paths,
 		UploadAt: newPhoto.UploadAt,
 		ClientId: form.ClientId,
-	}
-
-	// Одной транзакцией сохранить
-	err = s.storage.RunTransaction(ctx, func(ctxTx context.Context) error {
-		if saveErr := s.storage.SavePhoto(ctxTx, newPhoto); saveErr != nil {
-			return saveErr
-		}
-		if saveErr := s.storage.SaveUploadPhotoData(ctxTx, uploadPhotoData); saveErr != nil {
-			return saveErr
-		}
-		return nil
-	})
-
-	if err != nil {
-		if delErr := s.fileStorage.DeleteFile(ctx, photo.Url); delErr != nil {
-			s.logger.Errorf("fail fileStorage.DeleteFile %s: %w", photo.Url, delErr)
-		}
-		// TODO:  ошибка
-		return model.SyncPhotoResponse{}, fmt.Errorf("storage.WithTransaction: %w", err)
 	}
 
 	// Если произошла ошибка при сохранении фото в базе
@@ -137,27 +118,25 @@ func (s *Service) UploadPhoto(ctx context.Context, form model.SyncPhotoRequest) 
 	// Если программа упадет до удаления из хранилища, то файл зависнет и будет бесхозным
 	// Нужна чистилка бесхозных файлов
 
-	/*// Извлекаем расширение файла
-	ext := filepath.Ext(request.Paths[0])
-	// Создаем UUID
-	uuid := uuid.New()
-
-	// Формируем новое имя файла
-	newFilename := fmt.Sprintf("/Users/kkiling/Desktop/syncphotos/%s%s", uuid.String(), ext)
-
-	// Создаем новый файл с новым именем
-	newFile, err := os.Create(newFilename)
-	defer newFile.Close()
+	// Одной транзакцией сохранить
+	err = s.database.RunTransaction(ctx, func(ctxTx context.Context) error {
+		if saveErr := s.database.SavePhoto(ctxTx, newPhoto); saveErr != nil {
+			return saveErr
+		}
+		if saveErr := s.database.SaveUploadPhotoData(ctxTx, uploadPhotoData); saveErr != nil {
+			return saveErr
+		}
+		return nil
+	})
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create new file: %v", err)
+		if delErr := s.fileStorage.DeleteFile(ctx, photo.FilePath); delErr != nil {
+			s.logger.Errorf("fail fileStorage.DeleteFile %s: %w", photo.FilePath, delErr)
+		}
+		// TODO:  ошибка
+		return model.SyncPhotoResponse{}, fmt.Errorf("database.WithTransaction: %w", err)
 	}
 
-	// Записываем данные в новый файл
-	if _, err := newFile.Write(request.Body); err != nil {
-		return nil, fmt.Errorf("Failed to write to new file: %v", err)
-	}
-	*/
 	return model.SyncPhotoResponse{
 		HasBeenUploadedBefore: false,
 		Hash:                  photo.Hash,

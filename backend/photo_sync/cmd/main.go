@@ -34,7 +34,7 @@ func main() {
 	}(smb)
 
 	storage, err := sqlitestorage.NewStorage(sqlitestorage.Config{
-		DSN: "./files.db",
+		DSN: "./files.adapter.go",
 	})
 
 	if err != nil {

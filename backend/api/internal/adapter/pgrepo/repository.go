@@ -3,30 +3,29 @@ package pgrepo
 import (
 	"context"
 	"github.com/jackc/pgx/v4"
-	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 )
 
-type Repository struct {
+type PhotoRepository struct {
 	Transactor
 }
 
-func NewRepository(conn *pgx.Conn) *Repository {
-	return &Repository{
+func NewPhotoRepository(conn *pgx.Conn) *PhotoRepository {
+	return &PhotoRepository{
 		Transactor: NewTransactor(conn),
 	}
 }
 
-func (r Repository) GetPhotoByHash(ctx context.Context, hash string) (*model.Photo, error) {
+func (r *PhotoRepository) GetPhotoByHash(ctx context.Context, hash string) (*Photo, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r Repository) SavePhoto(ctx context.Context, photo model.Photo) error {
+func (r *PhotoRepository) SavePhoto(ctx context.Context, photo Photo) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r Repository) SaveUploadPhotoData(ctx context.Context, data model.UploadPhotoData) error {
+func (r *PhotoRepository) SaveUploadPhotoData(ctx context.Context, data UploadPhotoData) error {
 	//TODO implement me
 	panic("implement me")
 }

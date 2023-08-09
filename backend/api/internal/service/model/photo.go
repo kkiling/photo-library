@@ -15,8 +15,8 @@ const (
 )
 
 type Photo struct {
-	Id        uuid.UUID
-	Url       string
+	ID        uuid.UUID
+	FilePath  string
 	Hash      string
 	UpdateAt  time.Time
 	UploadAt  time.Time
@@ -24,8 +24,8 @@ type Photo struct {
 }
 
 type UploadPhotoData struct {
-	Id       uuid.UUID
-	PhotoId  uuid.UUID
+	ID       uuid.UUID
+	PhotoID  uuid.UUID
 	Paths    []string
 	UploadAt time.Time
 	ClientId string
