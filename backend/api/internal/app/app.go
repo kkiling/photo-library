@@ -3,7 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/fsstore"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/pgrepo"
@@ -16,7 +16,7 @@ import (
 type App struct {
 	cfgProvider     config.Provider
 	logger          log.Logger
-	pgxConn         *pgx.Conn
+	pgxPool         *pgxpool.Pool
 	dbAdapter       *adapter.DbAdapter
 	pgRepo          *pgrepo.PhotoRepository
 	fsStore         *fsstore.Store
@@ -38,26 +38,32 @@ func (a *App) Create(ctx context.Context) error {
 		return fmt.Errorf("getPgConnConfig: %w", err)
 	}
 
-	conn, err := pgrepo.NewPgConn(ctx, pgCfg)
+	serverCfg, err := a.getServerConfig()
+	if err != nil {
+		return fmt.Errorf("getServerConfig: %w", err)
+	}
+
+	fsStoreCfg, err := a.getFsStoreConfig()
+	if err != nil {
+		return fmt.Errorf("getFsStoreConfig: %w", err)
+	}
+
+	pool, err := pgrepo.NewPgConn(ctx, pgCfg)
 	if err != nil {
 		return fmt.Errorf("newPgConn: %w", err)
 	}
 
-	a.pgxConn = conn
+	a.pgxPool = pool
 	a.logger = log.NewLogger()
-	a.pgRepo = pgrepo.NewPhotoRepository(a.pgxConn)
+	a.pgRepo = pgrepo.NewPhotoRepository(a.pgxPool)
 	a.dbAdapter = adapter.NewDbAdapter(a.pgRepo)
+	a.fsStore = fsstore.NewStore(fsStoreCfg)
 
 	a.syncPhoto = syncphotos.NewService(
 		a.logger.Named("sync_photo"),
 		a.dbAdapter,
 		a.fsStore,
 	)
-
-	serverCfg, err := a.getServerConfig()
-	if err != nil {
-		return fmt.Errorf("getServerConfig: %w", err)
-	}
 
 	a.syncPhotoServer = handler.NewSyncPhotosServiceServer(
 		a.logger.Named("sync_photo_service_photo"),

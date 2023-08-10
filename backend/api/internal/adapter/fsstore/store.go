@@ -23,12 +23,9 @@ func NewStore(cfg Config) *Store {
 	}
 }
 
-func (f *Store) SaveFileBody(ctx context.Context, body []byte) (filePath string, err error) {
-	// Извлекаем расширение файла
-	ext := filepath.Ext(filePath)
-
+func (f *Store) SaveFileBody(ctx context.Context, ext string, body []byte) (filePath string, err error) {
 	// Формируем новое имя файла
-	filePath = fmt.Sprintf("%s/%s%s", f.cfg.BaseFilesDir, uuid.New(), ext)
+	filePath = fmt.Sprintf("%s/%s.%s", f.cfg.BaseFilesDir, uuid.New(), strings.ToLower(ext))
 
 	// Создаем новый файл с новым именем
 	newFile, err := os.Create(filePath)

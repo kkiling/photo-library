@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/kkiling/photo-library/backend/api/internal/adapter/fsstore"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/pgrepo"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/server"
 )
@@ -9,6 +10,7 @@ import (
 const (
 	ServerConfigName = "server"
 	PgConnectionName = "pg_db"
+	FsStoreName      = "fs_store"
 )
 
 func (a *App) getServerConfig() (server.Config, error) {
@@ -28,6 +30,16 @@ func (a *App) getPgConnConfig() (pgrepo.PgConfig, error) {
 	err := a.cfgProvider.PopulateByKey(PgConnectionName, &config)
 	if err != nil {
 		return pgrepo.PgConfig{}, fmt.Errorf("PopulateByKey: %w", err)
+	}
+
+	return config, nil
+}
+
+func (a *App) getFsStoreConfig() (fsstore.Config, error) {
+	var config fsstore.Config
+	err := a.cfgProvider.PopulateByKey(FsStoreName, &config)
+	if err != nil {
+		return fsstore.Config{}, fmt.Errorf("PopulateByKey: %w", err)
 	}
 
 	return config, nil

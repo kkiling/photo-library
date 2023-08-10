@@ -20,7 +20,7 @@ type Database interface {
 }
 
 type FileStore interface {
-	SaveFileBody(ctx context.Context, body []byte) (filePath string, err error)
+	SaveFileBody(ctx context.Context, ext string, body []byte) (filePath string, err error)
 	DeleteFile(ctx context.Context, filePath string) error
 }
 
@@ -64,16 +64,16 @@ func (s *Service) getPhotoExtension(path string) *model.PhotoExtension {
 func (s *Service) UploadPhoto(ctx context.Context, form model.SyncPhotoRequest) (model.SyncPhotoResponse, error) {
 
 	// Проверяем загружено ли фото
-	photo, err := s.database.GetPhotoByHash(ctx, form.Hash)
+	findPhoto, err := s.database.GetPhotoByHash(ctx, form.Hash)
 	if err != nil {
 		return model.SyncPhotoResponse{}, fmt.Errorf("database.GetPhotoByHash: %w", err)
 	}
 
-	if photo != nil {
+	if findPhoto != nil {
 		return model.SyncPhotoResponse{
 			HasBeenUploadedBefore: true,
-			Hash:                  photo.Hash,
-			UploadAt:              photo.UploadAt,
+			Hash:                  findPhoto.Hash,
+			UploadAt:              findPhoto.UploadAt,
 		}, nil
 	}
 
@@ -90,7 +90,7 @@ func (s *Service) UploadPhoto(ctx context.Context, form model.SyncPhotoRequest) 
 	}
 
 	// Сохранить файл и получить url
-	filePath, err := s.fileStorage.SaveFileBody(ctx, form.Body)
+	filePath, err := s.fileStorage.SaveFileBody(ctx, string(*ex), form.Body)
 	if err != nil {
 		// TODO:  ошибка
 		return model.SyncPhotoResponse{}, fmt.Errorf("fileStorage.SaveFileBody: %w", err)
@@ -130,8 +130,8 @@ func (s *Service) UploadPhoto(ctx context.Context, form model.SyncPhotoRequest) 
 	})
 
 	if err != nil {
-		if delErr := s.fileStorage.DeleteFile(ctx, photo.FilePath); delErr != nil {
-			s.logger.Errorf("fail fileStorage.DeleteFile %s: %w", photo.FilePath, delErr)
+		if delErr := s.fileStorage.DeleteFile(ctx, newPhoto.FilePath); delErr != nil {
+			s.logger.Errorf("fail fileStorage.DeleteFile %s: %w", newPhoto.FilePath, delErr)
 		}
 		// TODO:  ошибка
 		return model.SyncPhotoResponse{}, fmt.Errorf("database.WithTransaction: %w", err)
@@ -139,7 +139,7 @@ func (s *Service) UploadPhoto(ctx context.Context, form model.SyncPhotoRequest) 
 
 	return model.SyncPhotoResponse{
 		HasBeenUploadedBefore: false,
-		Hash:                  photo.Hash,
-		UploadAt:              photo.UploadAt,
+		Hash:                  newPhoto.Hash,
+		UploadAt:              newPhoto.UploadAt,
 	}, nil
 }

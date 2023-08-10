@@ -21,3 +21,17 @@ go install \
 	// Обновите значение метрики
 	myCounter.Inc()
 ```
+
+
+```
+go get -u github.com/pressly/goose/v3/cmd/goose
+```
+
+Create migration
+```
+goose create [name] sql
+```
+```
+goose -dir=./migrations postgres "postgresql://localhost:5432/photo_library?sslmode=disable" up
+goose-dir=./migrations postgres "postgresql://localhost:5432/photo_library?sslmode=disable" down
+```

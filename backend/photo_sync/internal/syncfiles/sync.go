@@ -210,7 +210,6 @@ func (s *SyncPhotos) getUploadDataList(ctx context.Context, files []adapter.File
 
 func (s *SyncPhotos) uploadFiles(ctx context.Context, uploadDataList []uploadData) error {
 	bar := createProgressBar(len(uploadDataList), "Upload files")
-	defer bar.Finish()
 
 	// Создание подключения к gRPC серверу
 	conn, err := grpc.Dial(s.cfg.GrpcServerHost,
@@ -244,6 +243,7 @@ func (s *SyncPhotos) uploadFiles(ctx context.Context, uploadDataList []uploadDat
 					errorsChan <- ctx.Err()
 					return
 				}
+
 				if alreadyUpload, err := s.storage.FileAlreadyUpload(ctx, data.hash); err != nil {
 					errorsChan <- fmt.Errorf("storage.FileAlreadyUpload: %w", err)
 					bar.Increment()
@@ -253,9 +253,19 @@ func (s *SyncPhotos) uploadFiles(ctx context.Context, uploadDataList []uploadDat
 					continue
 				}
 
+				if data.mainPath == "" || len(data.paths) == 0 {
+					panic(fmt.Errorf("empty path"))
+				}
+
 				body, err := s.fileRead.GetFileBody(ctx, data.mainPath)
 				if err != nil {
 					errorsChan <- fmt.Errorf("fileRead.GetFileBody: %w", err)
+					bar.Increment()
+					continue
+				}
+
+				if len(body) == 0 {
+					errorsChan <- fmt.Errorf("empty body: %s", data.mainPath)
 					bar.Increment()
 					continue
 				}
@@ -267,16 +277,18 @@ func (s *SyncPhotos) uploadFiles(ctx context.Context, uploadDataList []uploadDat
 					UpdateAt: &timestamppb.Timestamp{
 						Seconds: data.updateAt.Unix(),
 					},
+					ClientId: s.cfg.ClientId,
 				})
+
+				if err != nil {
+					panic(fmt.Errorf("failed UploadPhoto: %v", err))
+					//errorsChan <- fmt.Errorf("failed UploadPhoto: %v", err)
+					//bar.Increment()
+					//continue
+				}
 
 				if err := s.storage.SaveUploadFileResponse(ctx, res.Hash, res.UploadedAt.AsTime(), err == nil); err != nil {
 					errorsChan <- fmt.Errorf("storage.SaveUploadFileResponse: %w", err)
-					bar.Increment()
-					continue
-				}
-
-				if err != nil {
-					errorsChan <- fmt.Errorf("failed UploadPhoto: %v", err)
 					bar.Increment()
 					continue
 				}
@@ -288,6 +300,7 @@ func (s *SyncPhotos) uploadFiles(ctx context.Context, uploadDataList []uploadDat
 
 	wg.Wait()
 	close(errorsChan)
+	bar.Finish()
 
 	if len(errorsChan) > 0 {
 		for err := range errorsChan {

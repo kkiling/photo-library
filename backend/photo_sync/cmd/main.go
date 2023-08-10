@@ -34,7 +34,7 @@ func main() {
 	}(smb)
 
 	storage, err := sqlitestorage.NewStorage(sqlitestorage.Config{
-		DSN: "./files.adapter.go",
+		DSN: "./files.db",
 	})
 
 	if err != nil {
@@ -45,7 +45,7 @@ func main() {
 	var sync = syncfiles.NewSyncPhotos(smb, storage, syncfiles.Config{
 		GrpcServerHost: "localhost:8181",
 		ClientId:       "mbp-kkiling-OZON-HXW066MJFG",
-		NumWorkers:     8,
+		NumWorkers:     16,
 	})
 	if err := sync.Sync(ctx); err != nil {
 		fmt.Printf("fail sync.Sync: %v", err)

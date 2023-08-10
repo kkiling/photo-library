@@ -4,7 +4,10 @@ server:
   grpc_port: 8181
   max_send_message_length: 2147483647
   max_receive_message_length: 63554432
-  shutdown_timeout: 10
+  shutdown_timeout: 3
 
 pg_db:
-  conn_string: "postgresql://localhost:5432/photo_library"
+  conn_string: "postgresql://localhost:5432/photo_library?sslmode=disable"
+
+fs_store:
+  base_files_dir: "/Users/kkiling/photos"

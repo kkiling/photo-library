@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	"github.com/kkiling/photo-library/backend/api/internal/adapter/mapping"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/pgrepo"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 )
@@ -21,16 +22,19 @@ func (r *DbAdapter) RunTransaction(ctx context.Context, txFunc func(ctxTx contex
 }
 
 func (r *DbAdapter) GetPhotoByHash(ctx context.Context, hash string) (*model.Photo, error) {
-	//TODO implement me
-	panic("implement me")
+	res, err := r.photoRepo.GetPhotoByHash(ctx, hash)
+	if err != nil {
+		return nil, err
+	}
+	return mapping.PhotoEntityToModel(res), nil
 }
 
 func (r *DbAdapter) SavePhoto(ctx context.Context, photo model.Photo) error {
-	//TODO implement me
-	panic("implement me")
+	in := mapping.PhotoModelToEntity(&photo)
+	return r.photoRepo.SavePhoto(ctx, *in)
 }
 
 func (r *DbAdapter) SaveUploadPhotoData(ctx context.Context, data model.UploadPhotoData) error {
-	//TODO implement me
-	panic("implement me")
+	in := mapping.UploadPhotoDataModelToEntity(&data)
+	return r.photoRepo.SaveUploadPhotoData(ctx, *in)
 }
