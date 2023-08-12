@@ -66,6 +66,7 @@ func (s *Service) UploadPhoto(ctx context.Context, form model.SyncPhotoRequest) 
 	// Проверяем загружено ли фото
 	findPhoto, err := s.database.GetPhotoByHash(ctx, form.Hash)
 	if err != nil {
+		// TODO:  ошибка
 		return model.SyncPhotoResponse{}, fmt.Errorf("database.GetPhotoByHash: %w", err)
 	}
 
@@ -106,7 +107,6 @@ func (s *Service) UploadPhoto(ctx context.Context, form model.SyncPhotoRequest) 
 	}
 
 	uploadPhotoData := model.UploadPhotoData{
-		ID:       uuid.New(),
 		PhotoID:  newPhoto.ID,
 		Paths:    form.Paths,
 		UploadAt: newPhoto.UploadAt,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/uuid"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -74,6 +75,23 @@ func (f *Store) DeleteFile(ctx context.Context, filePath string) error {
 	}
 
 	return nil
+}
+
+func (f *Store) GetFileBody(ctx context.Context, filePath string) ([]byte, error) {
+	// Открываем файл для чтения
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create new file: %w", err)
+	}
+	defer file.Close()
+
+	// Читаем содержимое файла
+	body, err := io.ReadAll(file)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create new file: %w", err)
+	}
+
+	return body, nil
 }
 
 func (f *Store) GetFileUrl(ctx context.Context, filepath string) error {

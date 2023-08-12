@@ -8,20 +8,26 @@ import (
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/fsstore"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/pgrepo"
 	"github.com/kkiling/photo-library/backend/api/internal/handler"
+	"github.com/kkiling/photo-library/backend/api/internal/service/exifphoto"
 	"github.com/kkiling/photo-library/backend/api/internal/service/syncphotos"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/config"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 )
 
 type App struct {
-	cfgProvider     config.Provider
-	logger          log.Logger
-	pgxPool         *pgxpool.Pool
-	dbAdapter       *adapter.DbAdapter
-	pgRepo          *pgrepo.PhotoRepository
-	fsStore         *fsstore.Store
-	syncPhoto       *syncphotos.Service
+	cfgProvider config.Provider
+	logger      log.Logger
+	// connect
+	pgxPool *pgxpool.Pool
+	// adapter
+	dbAdapter *adapter.DbAdapter
+	pgRepo    *pgrepo.PhotoRepository
+	fsStore   *fsstore.Store
+	// handler
 	syncPhotoServer *handler.SyncPhotosServiceServer
+	// service
+	syncPhoto *syncphotos.Service
+	exifPhoto *exifphoto.Service
 }
 
 func NewApp(cfgProvider config.Provider) *App {
@@ -65,6 +71,11 @@ func (a *App) Create(ctx context.Context) error {
 		a.fsStore,
 	)
 
+	a.exifPhoto = exifphoto.NewService(
+		a.dbAdapter,
+		a.fsStore,
+	)
+
 	a.syncPhotoServer = handler.NewSyncPhotosServiceServer(
 		a.logger.Named("sync_photo_service_photo"),
 		a.syncPhoto,
@@ -80,4 +91,16 @@ func (a *App) Start(ctx context.Context) error {
 
 func (a *App) Stop() {
 	a.syncPhotoServer.Stop()
+}
+
+func (a *App) GetExifPhoto() *exifphoto.Service {
+	return a.exifPhoto
+}
+
+func (a *App) GetDbAdapter() *adapter.DbAdapter {
+	return a.dbAdapter
+}
+
+func (a *App) GetFileStorage() *fsstore.Store {
+	return a.fsStore
 }

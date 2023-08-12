@@ -1,8 +1,10 @@
 package mapping
 
 import (
+	"fmt"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/entity"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
+	"reflect"
 )
 
 func PhotoEntityToModel(in *entity.Photo) *model.Photo {
@@ -38,10 +40,50 @@ func UploadPhotoDataModelToEntity(in *model.UploadPhotoData) *entity.UploadPhoto
 		return nil
 	}
 	return &entity.UploadPhotoData{
-		ID:       in.ID,
 		PhotoID:  in.PhotoID,
 		Paths:    in.Paths,
 		UploadAt: in.UploadAt,
 		ClientId: in.ClientId,
 	}
+}
+
+func mapExifData(in interface{}, outTemplate interface{}) interface{} {
+	if in == nil {
+		return nil
+	}
+
+	inVal := reflect.ValueOf(in).Elem()
+	outVal := reflect.ValueOf(outTemplate).Elem()
+
+	inType := inVal.Type()
+	outType := outVal.Type()
+
+	if inType.NumField() != outType.NumField() {
+		panic("fields count mismatch between structures")
+	}
+
+	for i := 0; i < inVal.NumField(); i++ {
+		inField := inType.Field(i)
+		outField, ok := outType.FieldByName(inField.Name)
+
+		if !ok {
+			panic(fmt.Sprintf("field %s is missing in the destination structure", inField.Name))
+		}
+
+		if inField.Type != outField.Type {
+			panic(fmt.Sprintf("field %s type mismatch between structures", inField.Name))
+		}
+
+		outVal.FieldByName(inField.Name).Set(inVal.Field(i))
+	}
+
+	return outTemplate
+}
+
+func ExifEntityToModel(in *entity.ExifData) *model.ExifData {
+	return mapExifData(in, &model.ExifData{}).(*model.ExifData)
+}
+
+func ExifModelToExif(in *model.ExifData) *entity.ExifData {
+	return mapExifData(in, &entity.ExifData{}).(*entity.ExifData)
 }

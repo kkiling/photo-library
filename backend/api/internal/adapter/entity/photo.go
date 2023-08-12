@@ -15,7 +15,6 @@ type Photo struct {
 }
 
 type UploadPhotoData struct {
-	ID       uuid.UUID
 	PhotoID  uuid.UUID
 	Paths    []string
 	UploadAt time.Time

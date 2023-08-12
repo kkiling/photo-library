@@ -5,6 +5,15 @@ import (
 	"time"
 )
 
+type PhotoProcessing string
+
+const (
+	PhotoProcessingExifData       PhotoProcessing = "GET_EXIF"
+	PhotoProcessingMetaData       PhotoProcessing = "CALC_META"
+	PhotoProcessingTagsByCatalogs PhotoExtension  = "TAGS_BY_CATALOGS"
+	PhotoProcessingTagsByMeta     PhotoExtension  = "TAGS_BY_META"
+)
+
 type PhotoExtension string
 
 const (
@@ -24,7 +33,6 @@ type Photo struct {
 }
 
 type UploadPhotoData struct {
-	ID       uuid.UUID
 	PhotoID  uuid.UUID
 	Paths    []string
 	UploadAt time.Time
