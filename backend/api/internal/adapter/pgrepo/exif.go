@@ -2,10 +2,15 @@ package pgrepo
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	sq "github.com/Masterminds/squirrel"
+	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/entity"
 	"reflect"
+	"strings"
 )
 
 func structToMapDBTag(obj interface{}) map[string]interface{} {
@@ -48,38 +53,48 @@ func structToMapDBTag(obj interface{}) map[string]interface{} {
 	return m
 }
 
-func (r *PhotoRepository) DeleteExif(ctx context.Context, photoId uuid.UUID) error {
-	conn := r.getConn(ctx)
-
-	query, args, err := sq.
-		Delete("exif_data").
-		Where(sq.Eq{"id": photoId}).
-		PlaceholderFormat(sq.Dollar).
-		ToSql()
-	if err != nil {
-		return err
-	}
-
-	_, err = conn.Exec(ctx, query, args...)
-	return err
-}
-
-func (r *PhotoRepository) SaveExif(ctx context.Context, data *entity.ExifData) error {
+func (r *PhotoRepository) SaveOrUpdateExif(ctx context.Context, data *entity.ExifData) error {
 	conn := r.getConn(ctx)
 	fields := structToMapDBTag(data)
+	updateParts := make([]string, 0, len(fields))
+	for column := range fields {
+		if column == "photo_id" {
+			continue
+		}
+		updateParts = append(updateParts, fmt.Sprintf("%s = EXCLUDED.%s", column, column))
+	}
+	updateStr := strings.Join(updateParts, ", ")
+
 	query, args, err := sq.
 		Insert("exif_data").
 		SetMap(fields).
+		Suffix("ON CONFLICT (photo_id) DO UPDATE SET " + updateStr).
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
 	if err != nil {
-		return err
+		return printError(err)
 	}
 
 	_, err = conn.Exec(ctx, query, args...)
-	return err
+	if err != nil {
+		return printError(err)
+	}
+
+	return nil
 }
 
 func (r *PhotoRepository) GetExif(ctx context.Context, photoId uuid.UUID) (*entity.ExifData, error) {
-	panic("not implement")
+	conn := r.getConn(ctx)
+
+	var exif entity.ExifData
+
+	err := pgxscan.Get(ctx, conn, &exif, `SELECT * FROM exif_data WHERE photo_id = $1`, photoId)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, printError(err)
+	}
+
+	return &exif, nil
 }

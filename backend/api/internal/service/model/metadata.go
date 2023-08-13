@@ -12,13 +12,16 @@ type Geo struct {
 
 type MetaData struct {
 	PhotoID     uuid.UUID
+	ModelInfo   *string
 	SizeBytes   int
 	WidthPixel  int
 	HeightPixel int
-	// Дата и время снимка (берем из exif если нет то пробуем из имени файла
-	PhotoAt *time.Time
+	// Дата и время снимка берем из exif // если нет то пробуем из имени файла
+	DateTime *time.Time
+
 	// Дата последнего обновления файла
 	// Берем из файла
 	UpdateAt time.Time
-	Geo      *Geo
+	// Geo локация
+	Geo *Geo
 }

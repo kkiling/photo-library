@@ -9,6 +9,7 @@ import (
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/pgrepo"
 	"github.com/kkiling/photo-library/backend/api/internal/handler"
 	"github.com/kkiling/photo-library/backend/api/internal/service/exifphoto"
+	"github.com/kkiling/photo-library/backend/api/internal/service/metaphoto"
 	"github.com/kkiling/photo-library/backend/api/internal/service/syncphotos"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/config"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
@@ -28,6 +29,7 @@ type App struct {
 	// service
 	syncPhoto *syncphotos.Service
 	exifPhoto *exifphoto.Service
+	metaPhoto *metaphoto.Service
 }
 
 func NewApp(cfgProvider config.Provider) *App {
@@ -73,7 +75,10 @@ func (a *App) Create(ctx context.Context) error {
 
 	a.exifPhoto = exifphoto.NewService(
 		a.dbAdapter,
-		a.fsStore,
+	)
+
+	a.metaPhoto = metaphoto.NewService(
+		a.dbAdapter,
 	)
 
 	a.syncPhotoServer = handler.NewSyncPhotosServiceServer(
@@ -95,6 +100,10 @@ func (a *App) Stop() {
 
 func (a *App) GetExifPhoto() *exifphoto.Service {
 	return a.exifPhoto
+}
+
+func (a *App) GetMetaPhoto() *metaphoto.Service {
+	return a.metaPhoto
 }
 
 func (a *App) GetDbAdapter() *adapter.DbAdapter {

@@ -14,26 +14,17 @@ import (
 
 type Database interface {
 	service.Transactor
-	GetPhotosCount(ctx context.Context) (int64, error)
-	GetPaginatedPhotos(ctx context.Context, offset int64, limit int) ([]model.Photo, error)
 	GetPhotoById(ctx context.Context, id uuid.UUID) (*model.Photo, error)
-	DeleteExif(ctx context.Context, photoID uuid.UUID) error
-	SaveExif(ctx context.Context, data *model.ExifData) error
-}
-
-type FileStore interface {
-	GetFileBody(ctx context.Context, filePath string) ([]byte, error)
+	SaveOrUpdateExif(ctx context.Context, data *model.ExifData) error
 }
 
 type Service struct {
-	database    Database
-	fileStorage FileStore
+	database Database
 }
 
-func NewService(storage Database, fileStorage FileStore) *Service {
+func NewService(storage Database) *Service {
 	return &Service{
-		database:    storage,
-		fileStorage: fileStorage,
+		database: storage,
 	}
 }
 
@@ -168,17 +159,12 @@ func (s *Service) SavePhotoExifData(ctx context.Context, photo model.Photo, phot
 		return fmt.Errorf("exif.Walk: %w", err)
 	}
 
-	err = s.database.RunTransaction(ctx, func(ctxTx context.Context) error {
-		err = s.database.DeleteExif(ctx, photo.ID)
-		if err != nil {
-			return fmt.Errorf("database.DeleteExif: %w", err)
-		}
-		err = s.database.SaveExif(ctx, &p.data)
-		if err != nil {
-			return fmt.Errorf("database.SaveExif: %w", err)
-		}
-		return nil
-	})
+	err = s.database.SaveOrUpdateExif(ctx, &p.data)
+
+	if err != nil {
+		// TODO:  ошибка
+		return fmt.Errorf("database.SaveOrUpdateExif: %w", err)
+	}
 
 	return nil
 }

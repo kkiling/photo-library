@@ -44,14 +44,15 @@ func (t *Transactor) RunTransaction(ctx context.Context, txFunc func(ctxTx conte
 	err = txFunc(txCtx)
 
 	if err != nil {
-		err = tx.Rollback(ctx)
-		if err != nil {
+		rerr := tx.Rollback(ctx)
+		if rerr != nil {
 			return fmt.Errorf("tx.Rollback: %w", err)
 		}
+		return fmt.Errorf("txFunc: %w", printError(rerr))
 	}
 
 	if err = tx.Commit(ctx); err != nil {
-		return fmt.Errorf("tx.Commit: %w", err)
+		return fmt.Errorf("tx.Commit: %w", printError(err))
 	}
 
 	return nil

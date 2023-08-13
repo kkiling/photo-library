@@ -105,17 +105,3 @@ var propertyDescription = map[string]string{
 	"SubjectDistanceRange":             "Диапазон расстояния до объекта",
 	"GPSTimeStamp":                     "Метка времени GPS",
 }
-
-var typeNames = map[dataType]string{
-	dataTypeUnknown:    "Unknown",
-	dataTypeInt:        "Int",
-	dataTypeString:     "String",
-	dataTypeFloat:      "Float",
-	dataTypeIntArray:   "IntArray",
-	dataTypeFloatArray: "FloatArray",
-}
-
-type metaDataType struct {
-	Name string
-	Type dataType
-}

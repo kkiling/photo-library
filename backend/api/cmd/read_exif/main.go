@@ -8,6 +8,7 @@ import (
 	"github.com/jessevdk/go-flags"
 	"github.com/kkiling/photo-library/backend/api/internal/app"
 	"github.com/kkiling/photo-library/backend/api/internal/service/exifphoto"
+	"github.com/kkiling/photo-library/backend/api/internal/service/metaphoto"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/config"
 )
 
@@ -34,6 +35,7 @@ func main() {
 	}
 
 	exifPhoto := application.GetExifPhoto()
+	metaPhoto := application.GetMetaPhoto()
 	database := application.GetDbAdapter()
 	fileStorage := application.GetFileStorage()
 	//if err = exifPhoto.PrintExifData(ctx); err != nil {
@@ -65,10 +67,20 @@ func main() {
 
 			if err = exifPhoto.SavePhotoExifData(ctx, photo, photoBody); err != nil {
 				if errors.Is(err, exifphoto.ExifCriticalErr) || errors.Is(err, exifphoto.ExifEOFErr) {
+					continue
 				} else {
 					panic(err)
 				}
 			}
+
+			if err = metaPhoto.SavePhotoMetaData(ctx, photo, photoBody); err != nil {
+				if errors.Is(err, metaphoto.ErrExifNotFound) {
+					continue
+				} else {
+					panic(err)
+				}
+			}
+
 			bar.Increment()
 		}
 	}

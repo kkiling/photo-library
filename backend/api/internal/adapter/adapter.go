@@ -65,19 +65,36 @@ func (r *DbAdapter) SaveUploadPhotoData(ctx context.Context, data model.UploadPh
 	return r.photoRepo.SaveUploadPhotoData(ctx, *in)
 }
 
-func (r *DbAdapter) DeleteExif(ctx context.Context, photoId uuid.UUID) error {
-	return r.photoRepo.DeleteExif(ctx, photoId)
+func (r *DbAdapter) GetUploadPhotoData(ctx context.Context, photoID uuid.UUID) (*model.UploadPhotoData, error) {
+	res, err := r.photoRepo.GetUploadPhotoData(ctx, photoID)
+	if err != nil {
+		return nil, err
+	}
+	return mapping.UploadPhotoDataEntityToModel(res), nil
 }
 
-func (r *DbAdapter) SaveExif(ctx context.Context, data *model.ExifData) error {
+func (r *DbAdapter) SaveOrUpdateExif(ctx context.Context, data *model.ExifData) error {
 	in := mapping.ExifModelToExif(data)
-	return r.photoRepo.SaveExif(ctx, in)
+	return r.photoRepo.SaveOrUpdateExif(ctx, in)
 }
 
-func (r *DbAdapter) GetExif(ctx context.Context, photoId uuid.UUID) (*model.ExifData, error) {
-	res, err := r.photoRepo.GetExif(ctx, photoId)
+func (r *DbAdapter) GetExif(ctx context.Context, photoID uuid.UUID) (*model.ExifData, error) {
+	res, err := r.photoRepo.GetExif(ctx, photoID)
 	if err != nil {
 		return nil, err
 	}
 	return mapping.ExifEntityToModel(res), nil
+}
+
+func (r *DbAdapter) SaveOrUpdateMetaData(ctx context.Context, data model.MetaData) error {
+	in := mapping.MetaDataModelToEntity(&data)
+	return r.photoRepo.SaveOrUpdateMetaData(ctx, in)
+}
+
+func (r *DbAdapter) GetMetaData(ctx context.Context, photoID uuid.UUID) (*model.MetaData, error) {
+	res, err := r.photoRepo.GetMetaData(ctx, photoID)
+	if err != nil {
+		return nil, err
+	}
+	return mapping.MetaDataDataEntityToModel(res), nil
 }

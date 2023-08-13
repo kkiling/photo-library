@@ -47,6 +47,18 @@ func UploadPhotoDataModelToEntity(in *model.UploadPhotoData) *entity.UploadPhoto
 	}
 }
 
+func UploadPhotoDataEntityToModel(in *entity.UploadPhotoData) *model.UploadPhotoData {
+	if in == nil {
+		return nil
+	}
+	return &model.UploadPhotoData{
+		PhotoID:  in.PhotoID,
+		Paths:    in.Paths,
+		UploadAt: in.UploadAt,
+		ClientId: in.ClientId,
+	}
+}
+
 func mapExifData(in interface{}, outTemplate interface{}) interface{} {
 	if in == nil {
 		return nil
@@ -86,4 +98,53 @@ func ExifEntityToModel(in *entity.ExifData) *model.ExifData {
 
 func ExifModelToExif(in *model.ExifData) *entity.ExifData {
 	return mapExifData(in, &entity.ExifData{}).(*entity.ExifData)
+}
+
+func MetaDataModelToEntity(in *model.MetaData) *entity.MetaData {
+	if in == nil {
+		return nil
+	}
+	var (
+		geoLatitude  *float64
+		geoLongitude *float64
+	)
+	if in.Geo != nil {
+		geoLatitude = &in.Geo.Latitude
+		geoLongitude = &in.Geo.Longitude
+	}
+	return &entity.MetaData{
+		PhotoID:      in.PhotoID,
+		ModelInfo:    in.ModelInfo,
+		SizeBytes:    in.SizeBytes,
+		WidthPixel:   in.WidthPixel,
+		HeightPixel:  in.HeightPixel,
+		DateTime:     in.DateTime,
+		UpdateAt:     in.UpdateAt,
+		GeoLatitude:  geoLatitude,
+		GeoLongitude: geoLongitude,
+	}
+}
+
+func MetaDataDataEntityToModel(in *entity.MetaData) *model.MetaData {
+	if in == nil {
+		return nil
+	}
+	var geo *model.Geo
+	if in.GeoLatitude != nil && in.GeoLongitude != nil {
+		geo = &model.Geo{
+			Latitude:  *in.GeoLatitude,
+			Longitude: *in.GeoLongitude,
+		}
+	}
+
+	return &model.MetaData{
+		PhotoID:     in.PhotoID,
+		ModelInfo:   in.ModelInfo,
+		SizeBytes:   in.SizeBytes,
+		WidthPixel:  in.WidthPixel,
+		HeightPixel: in.HeightPixel,
+		DateTime:    in.DateTime,
+		UpdateAt:    in.UpdateAt,
+		Geo:         geo,
+	}
 }
