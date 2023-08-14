@@ -3,9 +3,12 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/cheggaaa/pb/v3"
 	"github.com/jessevdk/go-flags"
 	"github.com/kkiling/photo-library/backend/api/internal/app"
+	"github.com/kkiling/photo-library/backend/api/internal/service/exifphoto"
+	"github.com/kkiling/photo-library/backend/api/internal/service/metaphoto"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/internal/service/systags"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/config"
@@ -33,11 +36,11 @@ func main() {
 		panic(err)
 	}
 
-	//exifPhoto := application.GetExifPhoto()
-	//metaPhoto := application.GetMetaPhoto()
+	exifPhoto := application.GetExifPhoto()
+	metaPhoto := application.GetMetaPhoto()
 	sysTagPhoto := application.GetSysTagPhoto()
 	database := application.GetDbAdapter()
-	//fileStorage := application.GetFileStorage()
+	fileStorage := application.GetFileStorage()
 
 	const limit = 1000
 	var offset int64
@@ -58,7 +61,7 @@ func main() {
 		for _, photo := range photos {
 
 			func(photo model.Photo) {
-				/*photoBody, err := fileStorage.GetFileBody(ctx, photo.FilePath)
+				photoBody, err := fileStorage.GetFileBody(ctx, photo.FilePath)
 				if err != nil {
 					panic(fmt.Errorf("fileStorage.GetFileBody: %w", err))
 				}
@@ -77,7 +80,7 @@ func main() {
 					} else {
 						panic(err)
 					}
-				}*/
+				}
 
 				if err = sysTagPhoto.CreateTagByMeta(ctx, photo); err != nil {
 					if errors.Is(err, systags.ErrMetaNotFound) {
