@@ -7,9 +7,11 @@ import (
 	"github.com/kkiling/photo-library/backend/api/internal/adapter"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/fsstore"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/pgrepo"
+	"github.com/kkiling/photo-library/backend/api/internal/adapter/photoml"
 	"github.com/kkiling/photo-library/backend/api/internal/handler"
 	"github.com/kkiling/photo-library/backend/api/internal/service/exifphoto"
 	"github.com/kkiling/photo-library/backend/api/internal/service/metaphoto"
+	"github.com/kkiling/photo-library/backend/api/internal/service/similarphotos"
 	"github.com/kkiling/photo-library/backend/api/internal/service/syncphotos"
 	"github.com/kkiling/photo-library/backend/api/internal/service/systags"
 	"github.com/kkiling/photo-library/backend/api/internal/service/tagphoto"
@@ -26,15 +28,17 @@ type App struct {
 	dbAdapter *adapter.DbAdapter
 	pgRepo    *pgrepo.PhotoRepository
 	fsStore   *fsstore.Store
+	photoML   *photoml.Service
 	// handler
 	syncPhotoServer *handler.SyncPhotosServiceServer
 	// service
 	tagPhoto *tagphoto.Service
 
-	syncPhoto   *syncphotos.Service
-	exifPhoto   *exifphoto.Service
-	metaPhoto   *metaphoto.Service
-	sysTagPhoto *systags.Service
+	syncPhoto     *syncphotos.Service
+	exifPhoto     *exifphoto.Service
+	metaPhoto     *metaphoto.Service
+	sysTagPhoto   *systags.Service
+	similarPhotos *similarphotos.Service
 }
 
 func NewApp(cfgProvider config.Provider) *App {
@@ -61,6 +65,11 @@ func (a *App) Create(ctx context.Context) error {
 		return fmt.Errorf("getFsStoreConfig: %w", err)
 	}
 
+	photoMlCfg, err := a.getPhotoMLConfig()
+	if err != nil {
+		return fmt.Errorf("getPhotoMLConfig: %w", err)
+	}
+
 	pool, err := pgrepo.NewPgConn(ctx, pgCfg)
 	if err != nil {
 		return fmt.Errorf("newPgConn: %w", err)
@@ -71,7 +80,10 @@ func (a *App) Create(ctx context.Context) error {
 	a.pgRepo = pgrepo.NewPhotoRepository(a.pgxPool)
 	a.dbAdapter = adapter.NewDbAdapter(a.pgRepo)
 	a.fsStore = fsstore.NewStore(fsStoreCfg)
-
+	a.photoML = photoml.NewService(
+		a.logger.Named("photo_ml"),
+		photoMlCfg,
+	)
 	a.tagPhoto = tagphoto.NewService(
 		a.dbAdapter,
 	)
@@ -100,6 +112,13 @@ func (a *App) Create(ctx context.Context) error {
 		a.logger.Named("sync_photo_service_photo"),
 		a.syncPhoto,
 		serverCfg,
+	)
+
+	a.similarPhotos = similarphotos.NewService(
+		a.logger.Named("similar_photos"),
+		a.tagPhoto,
+		a.dbAdapter,
+		a.photoML,
 	)
 
 	return nil
@@ -131,4 +150,12 @@ func (a *App) GetFileStorage() *fsstore.Store {
 
 func (a *App) GetSysTagPhoto() *systags.Service {
 	return a.sysTagPhoto
+}
+
+func (a *App) GetSimilarPhotos() *similarphotos.Service {
+	return a.similarPhotos
+}
+
+func (a *App) GetLogger() log.Logger {
+	return a.logger
 }

@@ -11,3 +11,6 @@ pg_db:
 
 fs_store:
   base_files_dir: "/Users/kkiling/photos"
+
+photo_ml:
+  url: "http://127.0.0.1:5000"

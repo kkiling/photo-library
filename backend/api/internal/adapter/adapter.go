@@ -132,3 +132,20 @@ func (r *DbAdapter) SaveTag(ctx context.Context, tag model.Tag) error {
 	in := mapping.TagModelToEntity(&tag)
 	return r.photoRepo.SaveTag(ctx, *in)
 }
+
+func (r *DbAdapter) SaveOrUpdatePhotoVector(ctx context.Context, photoVector model.PhotoVector) error {
+	return r.photoRepo.SaveOrUpdatePhotoVector(ctx, photoVector.PhotoID, photoVector.Vector, photoVector.Norm)
+}
+
+func (r *DbAdapter) ExistPhotoVector(ctx context.Context, photoID uuid.UUID) (bool, error) {
+	return r.photoRepo.ExistPhotoVector(ctx, photoID)
+}
+
+func (r *DbAdapter) GetPaginatedPhotosVector(ctx context.Context, offset int64, limit int) ([]model.PhotoVector, error) {
+	panic("not implement")
+}
+
+func (r *DbAdapter) SaveSimilarPhotoCoefficient(ctx context.Context, sim model.PhotosSimilarCoefficient) error {
+	//TODO implement me
+	panic("implement me")
+}

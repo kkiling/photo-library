@@ -93,6 +93,9 @@ func mapExifData(in interface{}, outTemplate interface{}) interface{} {
 }
 
 func ExifEntityToModel(in *entity.ExifData) *model.ExifData {
+	if in == nil {
+		return nil
+	}
 	return mapExifData(in, &model.ExifData{}).(*model.ExifData)
 }
 

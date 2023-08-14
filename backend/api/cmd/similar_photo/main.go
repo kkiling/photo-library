@@ -8,6 +8,7 @@ import (
 	"github.com/kkiling/photo-library/backend/api/internal/app"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/config"
+	"sync"
 )
 
 // Чтение мета информации фотографий что бы определить какие свойства есть
@@ -32,14 +33,13 @@ func main() {
 		panic(err)
 	}
 
-	// exifPhoto := application.GetExifPhoto()
-	metaPhoto := application.GetMetaPhoto()
-	// sysTagPhoto := application.GetSysTagPhoto()
+	similarPhotos := application.GetSimilarPhotos()
 	database := application.GetDbAdapter()
 	fileStorage := application.GetFileStorage()
 
 	const limit = 1000
 	var offset int64
+	const maxGoroutines = 1
 
 	countPhotos, err := database.GetPhotosCount(ctx)
 	if err != nil {
@@ -49,41 +49,38 @@ func main() {
 	bar := pb.New(int(countPhotos)).Start()
 	defer bar.Finish()
 
-	for offset = 0; offset < countPhotos; offset += limit {
-		photos, err := database.GetPaginatedPhotos(ctx, offset, limit)
-		if err != nil {
-			panic(err)
-		}
-		for _, photo := range photos {
+	photoChan := make(chan model.Photo)
+	var wg sync.WaitGroup
 
-			func(photo model.Photo) {
+	go func() {
+		for offset = 0; offset < countPhotos; offset += limit {
+			photos, err := database.GetPaginatedPhotos(ctx, offset, limit)
+			if err != nil {
+				panic(err)
+			}
+			for _, photo := range photos {
+				photoChan <- photo
+			}
+		}
+		close(photoChan)
+	}()
+
+	for i := 0; i < maxGoroutines; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for photo := range photoChan {
 				photoBody, err := fileStorage.GetFileBody(ctx, photo.FilePath)
 				if err != nil {
 					panic(fmt.Errorf("fileStorage.GetFileBody: %w", err))
 				}
-
-				/*if err = exifPhoto.SavePhotoExifData(ctx, photo, photoBody); err != nil {
-					if errors.Is(err, exifphoto.ExifCriticalErr) || errors.Is(err, exifphoto.ExifEOFErr) {
-						return
-					} else {
-						panic(err)
-					}
-				}*/
-
-				if err = metaPhoto.SavePhotoMetaData(ctx, photo, photoBody); err != nil {
-					application.Logger().Errorf("fail save photo meta data: %s - %v", photo.ID, err)
+				if err = similarPhotos.SavePhotoVector(ctx, photo, photoBody); err != nil {
+					application.Logger().Errorf("fail save photo vector: %s - %v", photo.ID, err)
 				}
-
-				/*if err = sysTagPhoto.CreateTagByMeta(ctx, photo); err != nil {
-					if errors.Is(err, systags.ErrMetaNotFound) {
-						return
-					} else {
-						panic(err)
-					}
-				}*/
-			}(photo)
-
-			bar.Increment()
-		}
+				bar.Increment()
+			}
+		}()
 	}
+
+	wg.Wait()
 }

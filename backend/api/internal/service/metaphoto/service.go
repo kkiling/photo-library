@@ -13,7 +13,6 @@ const timeLayout = "2006:01:02 15:04:05"
 const invalidTime = "0000:00:00 00:00:00"
 
 var errInvalidDateFormat = fmt.Errorf("invalid date format")
-var ErrExifNotFound = fmt.Errorf("exif not found")
 
 type Database interface {
 	service.Transactor
@@ -33,18 +32,13 @@ func NewService(storage Database) *Service {
 	}
 }
 
-// SavePhotoMetaData рассчитывает meta данные фотографии и сохраняет в базу
-func (s *Service) SavePhotoMetaData(ctx context.Context, photo model.Photo, photoBody []byte) error {
-	exif, err := s.database.GetExif(ctx, photo.ID)
-	if err != nil {
-		return fmt.Errorf("database.GetExif: %w", err)
-	}
-
+func (s *Service) getDateTime(ctx context.Context, exif *model.ExifData, photoID uuid.UUID) (*time.Time, error) {
 	if exif == nil {
-		return ErrExifNotFound
+		return nil, nil
 	}
 
 	var dateTime *time.Time = nil
+
 	if exif.DateTime != nil {
 		if d, err := parseDate(*exif.DateTime); err == nil {
 			dateTime = &d
@@ -54,13 +48,13 @@ func (s *Service) SavePhotoMetaData(ctx context.Context, photo model.Photo, phot
 			dateTime = &d
 		}
 	} else {
-		uploadData, err := s.database.GetUploadPhotoData(ctx, photo.ID)
+		uploadData, err := s.database.GetUploadPhotoData(ctx, photoID)
 		if err != nil {
-			return fmt.Errorf("database.GetUploadPhotoData: %w", err)
+			return nil, fmt.Errorf("database.GetUploadPhotoData: %w", err)
 		}
 
-		if exif == nil {
-			return fmt.Errorf("not found upload data for photo: %s", photo.ID)
+		if uploadData == nil {
+			return nil, fmt.Errorf("not found upload data for photo: %s", photoID)
 		}
 
 		for _, path := range uploadData.Paths {
@@ -73,30 +67,58 @@ func (s *Service) SavePhotoMetaData(ctx context.Context, photo model.Photo, phot
 		}
 	}
 
-	var geo *model.Geo
-	if exif.GPSLongitude != nil && exif.GPSLatitude != nil {
-		geo, err = convertToGeo(exif.GPSLatitude, exif.GPSLongitude)
+	return dateTime, nil
+}
+
+func (s *Service) getGeo(exif *model.ExifData) (*model.Geo, error) {
+	if exif != nil && exif.GPSLongitude != nil && exif.GPSLatitude != nil {
+		geo, err := convertToGeo(exif.GPSLatitude, exif.GPSLongitude)
 		if err != nil {
-			return fmt.Errorf("convertToGeo: %w", err)
+			return nil, fmt.Errorf("convertToGeo: %w", err)
 		}
+		return geo, nil
 	}
 
-	var modelInfo *string
-	if exif.Model != nil || exif.Make != nil {
-		sss := ""
+	return nil, nil
+}
+
+func (s *Service) getModelInfo(exif *model.ExifData) *string {
+	if exif != nil && (exif.Model != nil || exif.Make != nil) {
+		modelInfo := ""
 		if exif.Model != nil && exif.Make != nil {
-			sss = fmt.Sprintf("%s %s", *exif.Model, *exif.Make)
+			modelInfo = fmt.Sprintf("%s %s", *exif.Model, *exif.Make)
 		} else if exif.Model != nil {
-			sss = *exif.Model
+			modelInfo = *exif.Model
 		} else {
-			sss = *exif.Make
+			modelInfo = *exif.Make
 		}
-		modelInfo = &sss
+		return &modelInfo
 	}
+
+	return nil
+}
+
+// SavePhotoMetaData рассчитывает meta данные фотографии и сохраняет в базу
+func (s *Service) SavePhotoMetaData(ctx context.Context, photo model.Photo, photoBody []byte) error {
+	exif, err := s.database.GetExif(ctx, photo.ID)
+	if err != nil {
+		return fmt.Errorf("database.GetExif: %w", err)
+	}
+
+	dateTime, err := s.getDateTime(ctx, exif, photo.ID)
+	if err != nil {
+		return fmt.Errorf("getDateTime: %w", err)
+	}
+	geo, err := s.getGeo(exif)
+	if err != nil {
+		return fmt.Errorf("getGeo: %w", err)
+	}
+
+	modelInfo := s.getModelInfo(exif)
 
 	widthPixel, heightPixel, err := getImageDetails(photoBody)
 	if err != nil {
-		return fmt.Errorf("getImageDetails: %w", exif)
+		return fmt.Errorf("getImageDetails: %w", err)
 	}
 
 	meta := model.MetaData{
