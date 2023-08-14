@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/codingsince1985/geo-golang"
+	"github.com/codingsince1985/geo-golang/openstreetmap"
 	"github.com/google/uuid"
 	"github.com/kkiling/photo-library/backend/api/internal/service"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
@@ -42,7 +44,7 @@ type Service struct {
 	logger     log.Logger
 	tagService TagPhoto
 	database   Database
-	geoPoints  []model.Geo
+	geocoder   geo.Geocoder
 }
 
 func NewService(logger log.Logger, tagService TagPhoto, database Database) *Service {
@@ -50,7 +52,7 @@ func NewService(logger log.Logger, tagService TagPhoto, database Database) *Serv
 		logger:     logger,
 		tagService: tagService,
 		database:   database,
-		geoPoints:  make([]model.Geo, 0),
+		geocoder:   openstreetmap.Geocoder(),
 	}
 }
 
@@ -156,7 +158,42 @@ func (s *Service) CreateTagByMeta(ctx context.Context, photo model.Photo) error 
 	}
 
 	if meta.Geo != nil {
-		s.geoPoints = append(s.geoPoints, *meta.Geo)
+		locationCategory, err := s.getOrCreateTagCategory(ctx, LocationTag, LocationTagColor)
+		if err != nil {
+			return fmt.Errorf("getOrCreateTagCategory: %w", err)
+		}
+
+		location, err := s.geocoder.ReverseGeocode(meta.Geo.Latitude, meta.Geo.Longitude)
+		if err != nil {
+			return fmt.Errorf("geocoder.ReverseGeocode: %w", err)
+		}
+
+		locationTags := make([]string, 0)
+		if location.State != "" {
+			locationTags = append(locationTags, location.State)
+		}
+		if location.StateDistrict != "" {
+			locationTags = append(locationTags, location.StateDistrict)
+		}
+		if location.County != "" {
+			locationTags = append(locationTags, location.County)
+		}
+		if location.Country != "" {
+			locationTags = append(locationTags, location.Country)
+		}
+		if location.City != "" {
+			locationTags = append(locationTags, location.City)
+		}
+
+		for _, loc := range locationTags {
+			_, err = s.tagService.AddPhotoTag(ctx, photo.ID, locationCategory.ID, loc)
+			if err != nil {
+				if errors.Is(err, tagphoto.ErrTagAlreadyExist) {
+				} else {
+					return fmt.Errorf("tagService.AddPhotoTag: %w", err)
+				}
+			}
+		}
 	}
 
 	return nil
