@@ -12,6 +12,11 @@ type DbAdapter struct {
 	photoRepo *pgrepo.PhotoRepository
 }
 
+func (r *DbAdapter) GetTypeCategory(ctx context.Context, categoryID uuid.UUID) (*model.TagCategory, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func NewDbAdapter(photoRepo *pgrepo.PhotoRepository) *DbAdapter {
 	return &DbAdapter{
 		photoRepo: photoRepo,
@@ -97,4 +102,24 @@ func (r *DbAdapter) GetMetaData(ctx context.Context, photoID uuid.UUID) (*model.
 		return nil, err
 	}
 	return mapping.MetaDataDataEntityToModel(res), nil
+}
+
+func (r *DbAdapter) GetTagCategoryByType(ctx context.Context, typeCategory string) (*model.TagCategory, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *DbAdapter) SaveTagCategory(ctx context.Context, category model.TagCategory) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *DbAdapter) GetTagByName(ctx context.Context, categoryID, photoID uuid.UUID, name string) (*model.Tag, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (r *DbAdapter) SaveTag(ctx context.Context, tag model.Tag) error {
+	//TODO implement me
+	panic("implement me")
 }

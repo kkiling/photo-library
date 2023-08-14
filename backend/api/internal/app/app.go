@@ -11,6 +11,8 @@ import (
 	"github.com/kkiling/photo-library/backend/api/internal/service/exifphoto"
 	"github.com/kkiling/photo-library/backend/api/internal/service/metaphoto"
 	"github.com/kkiling/photo-library/backend/api/internal/service/syncphotos"
+	"github.com/kkiling/photo-library/backend/api/internal/service/systags"
+	"github.com/kkiling/photo-library/backend/api/internal/service/tagphoto"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/config"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 )
@@ -27,9 +29,12 @@ type App struct {
 	// handler
 	syncPhotoServer *handler.SyncPhotosServiceServer
 	// service
-	syncPhoto *syncphotos.Service
-	exifPhoto *exifphoto.Service
-	metaPhoto *metaphoto.Service
+	tagPhoto *tagphoto.Service
+
+	syncPhoto   *syncphotos.Service
+	exifPhoto   *exifphoto.Service
+	metaPhoto   *metaphoto.Service
+	sysTagPhoto *systags.Service
 }
 
 func NewApp(cfgProvider config.Provider) *App {
@@ -67,6 +72,10 @@ func (a *App) Create(ctx context.Context) error {
 	a.dbAdapter = adapter.NewDbAdapter(a.pgRepo)
 	a.fsStore = fsstore.NewStore(fsStoreCfg)
 
+	a.tagPhoto = tagphoto.NewService(
+		a.dbAdapter,
+	)
+
 	a.syncPhoto = syncphotos.NewService(
 		a.logger.Named("sync_photo"),
 		a.dbAdapter,
@@ -78,6 +87,12 @@ func (a *App) Create(ctx context.Context) error {
 	)
 
 	a.metaPhoto = metaphoto.NewService(
+		a.dbAdapter,
+	)
+
+	a.sysTagPhoto = systags.NewService(
+		a.logger.Named("sync_photo_service_photo"),
+		a.tagPhoto,
 		a.dbAdapter,
 	)
 
