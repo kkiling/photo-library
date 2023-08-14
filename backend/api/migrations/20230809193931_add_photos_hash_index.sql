@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE INDEX idx_photos_hash ON photos (hash);
+CREATE UNIQUE INDEX idx_photos_hash ON photos (hash);
 -- +goose StatementEnd
 
 -- +goose Down

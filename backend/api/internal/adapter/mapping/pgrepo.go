@@ -148,3 +148,49 @@ func MetaDataDataEntityToModel(in *entity.MetaData) *model.MetaData {
 		Geo:         geo,
 	}
 }
+
+func TagEntityToModel(in *entity.Tag) *model.Tag {
+	if in == nil {
+		return nil
+	}
+	return &model.Tag{
+		ID:         in.ID,
+		CategoryID: in.CategoryID,
+		PhotoID:    in.PhotoID,
+		Name:       in.Name,
+	}
+}
+
+func TagModelToEntity(in *model.Tag) *entity.Tag {
+	if in == nil {
+		return nil
+	}
+	return &entity.Tag{
+		ID:         in.ID,
+		CategoryID: in.CategoryID,
+		PhotoID:    in.PhotoID,
+		Name:       in.Name,
+	}
+}
+
+func TagCategoryEntityToModel(in *entity.TagCategory) *model.TagCategory {
+	if in == nil {
+		return nil
+	}
+	return &model.TagCategory{
+		ID:    in.ID,
+		Type:  in.Type,
+		Color: in.Color,
+	}
+}
+
+func TagCategoryModelToEntity(in *model.TagCategory) *entity.TagCategory {
+	if in == nil {
+		return nil
+	}
+	return &entity.TagCategory{
+		ID:    in.ID,
+		Type:  in.Type,
+		Color: in.Color,
+	}
+}

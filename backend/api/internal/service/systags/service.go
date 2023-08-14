@@ -9,6 +9,7 @@ import (
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/internal/service/tagphoto"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
+	"unicode/utf8"
 )
 
 var ErrMetaNotFound = fmt.Errorf("meta not found")
@@ -98,6 +99,9 @@ func (s *Service) CreateTagByMeta(ctx context.Context, photo model.Photo) error 
 	}
 
 	for tag, _ := range tags {
+		if utf8.RuneCountInString(tag) < tagphoto.TagNameMin {
+			continue
+		}
 		_, err = s.tagService.AddPhotoTag(ctx, photo.ID, photoCatalog.ID, tag)
 		if err != nil {
 			if errors.Is(err, tagphoto.ErrTagAlreadyExist) {
@@ -128,40 +132,31 @@ func (s *Service) CreateTagByMeta(ctx context.Context, photo model.Photo) error 
 		name := fmt.Sprintf("%d", meta.DateTime.Year())
 		_, err = s.tagService.AddPhotoTag(ctx, photo.ID, yearCategory.ID, name)
 		if err != nil {
-			return fmt.Errorf("tagService.AddPhotoTag: %w", err)
+			if errors.Is(err, tagphoto.ErrTagAlreadyExist) {
+			} else {
+				return fmt.Errorf("tagService.AddPhotoTag: %w", err)
+			}
 		}
 	}
 
 	// По модели МОДЕЛЬ
-	if meta.ModelInfo != nil {
-		yearCategory, err := s.getOrCreateTagCategory(ctx, CameraModelTag, CameraModelTagColor)
+	if meta.ModelInfo != nil && (*meta.ModelInfo != "") {
+		cameraCategory, err := s.getOrCreateTagCategory(ctx, CameraModelTag, CameraModelTagColor)
 		if err != nil {
 			return fmt.Errorf("getOrCreateTagCategory: %w", err)
 		}
 
-		_, err = s.tagService.AddPhotoTag(ctx, photo.ID, yearCategory.ID, *meta.ModelInfo)
+		_, err = s.tagService.AddPhotoTag(ctx, photo.ID, cameraCategory.ID, *meta.ModelInfo)
 		if err != nil {
-			return fmt.Errorf("tagService.AddPhotoTag: %w", err)
+			if errors.Is(err, tagphoto.ErrTagAlreadyExist) {
+			} else {
+				return fmt.Errorf("tagService.AddPhotoTag: %w", err)
+			}
 		}
 	}
 
 	if meta.Geo != nil {
 		s.geoPoints = append(s.geoPoints, *meta.Geo)
-	}
-
-	return nil
-}
-
-// TODO: придумать как сделать что бы теги можно было расчитывать по одной фотке, а не пачкой как щас
-
-// CalculateGeoTags вычисление тегов по локации
-func (s *Service) CalculateGeoTags(ctx context.Context) error {
-	radius := 25.0 // км
-	grouped := groupByMean(s.geoPoints, radius)
-	for i, group := range grouped {
-		fmt.Printf("Group %d: %v\n", i+1, group)
-		mean := meanGeo(group)
-		fmt.Printf("Mean for Group %d: Latitude: %f, Longitude: %f\n", i+1, mean.Latitude, mean.Longitude)
 	}
 
 	return nil

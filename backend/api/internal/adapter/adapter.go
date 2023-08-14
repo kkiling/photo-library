@@ -12,11 +12,6 @@ type DbAdapter struct {
 	photoRepo *pgrepo.PhotoRepository
 }
 
-func (r *DbAdapter) GetTypeCategory(ctx context.Context, categoryID uuid.UUID) (*model.TagCategory, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
 func NewDbAdapter(photoRepo *pgrepo.PhotoRepository) *DbAdapter {
 	return &DbAdapter{
 		photoRepo: photoRepo,
@@ -104,22 +99,36 @@ func (r *DbAdapter) GetMetaData(ctx context.Context, photoID uuid.UUID) (*model.
 	return mapping.MetaDataDataEntityToModel(res), nil
 }
 
+func (r *DbAdapter) GetTagCategory(ctx context.Context, categoryID uuid.UUID) (*model.TagCategory, error) {
+	res, err := r.photoRepo.GetTagCategory(ctx, categoryID)
+	if err != nil {
+		return nil, err
+	}
+	return mapping.TagCategoryEntityToModel(res), nil
+}
+
 func (r *DbAdapter) GetTagCategoryByType(ctx context.Context, typeCategory string) (*model.TagCategory, error) {
-	//TODO implement me
-	panic("implement me")
+	res, err := r.photoRepo.GetTagCategoryByType(ctx, typeCategory)
+	if err != nil {
+		return nil, err
+	}
+	return mapping.TagCategoryEntityToModel(res), nil
 }
 
 func (r *DbAdapter) SaveTagCategory(ctx context.Context, category model.TagCategory) error {
-	//TODO implement me
-	panic("implement me")
+	in := mapping.TagCategoryModelToEntity(&category)
+	return r.photoRepo.SaveTagCategory(ctx, *in)
 }
 
-func (r *DbAdapter) GetTagByName(ctx context.Context, categoryID, photoID uuid.UUID, name string) (*model.Tag, error) {
-	//TODO implement me
-	panic("implement me")
+func (r *DbAdapter) GetTagByName(ctx context.Context, photoID uuid.UUID, name string) (*model.Tag, error) {
+	res, err := r.photoRepo.GetTagByName(ctx, photoID, name)
+	if err != nil {
+		return nil, err
+	}
+	return mapping.TagEntityToModel(res), nil
 }
 
 func (r *DbAdapter) SaveTag(ctx context.Context, tag model.Tag) error {
-	//TODO implement me
-	panic("implement me")
+	in := mapping.TagModelToEntity(&tag)
+	return r.photoRepo.SaveTag(ctx, *in)
 }

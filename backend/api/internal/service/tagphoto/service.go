@@ -11,10 +11,10 @@ import (
 )
 
 const (
-	tagCategoryTypeMin = 3
-	tagCategoryTypeMax = 128
-	tagNameMin         = 3
-	tagNameMax         = 128
+	TagCategoryTypeMin = 3
+	TagCategoryTypeMax = 128
+	TagNameMin         = 3
+	TagNameMax         = 128
 )
 
 var ErrCategoryAlreadyExist = fmt.Errorf("category already exist")
@@ -23,10 +23,10 @@ var ErrTagAlreadyExist = fmt.Errorf("tag already exist")
 
 type Database interface {
 	service.Transactor
-	GetTypeCategory(ctx context.Context, categoryID uuid.UUID) (*model.TagCategory, error)
+	GetTagCategory(ctx context.Context, categoryID uuid.UUID) (*model.TagCategory, error)
 	GetTagCategoryByType(ctx context.Context, typeCategory string) (*model.TagCategory, error)
 	SaveTagCategory(ctx context.Context, category model.TagCategory) error
-	GetTagByName(ctx context.Context, categoryID, photoID uuid.UUID, name string) (*model.Tag, error)
+	GetTagByName(ctx context.Context, photoID uuid.UUID, name string) (*model.Tag, error)
 	SaveTag(ctx context.Context, tag model.Tag) error
 }
 
@@ -44,7 +44,7 @@ func validateCreateCategory(typeCategory, color string) error {
 	validate := validator.New()
 
 	// Валидация имени
-	if err := validate.Var(typeCategory, fmt.Sprintf("min=%d,max=%d", tagCategoryTypeMin, tagCategoryTypeMax)); err != nil {
+	if err := validate.Var(typeCategory, fmt.Sprintf("min=%d,max=%d", TagCategoryTypeMin, TagCategoryTypeMax)); err != nil {
 		// TODO: ошибка
 
 		var validationErrors validator.ValidationErrors
@@ -114,7 +114,7 @@ func validateAddPhotoTag(name string) error {
 	validate := validator.New()
 
 	// Валидация имени
-	if err := validate.Var(name, fmt.Sprintf("min=%d,max=%d", tagNameMin, tagNameMax)); err != nil {
+	if err := validate.Var(name, fmt.Sprintf("min=%d,max=%d", TagNameMin, TagNameMax)); err != nil {
 		// TODO: ошибка
 
 		var validationErrors validator.ValidationErrors
@@ -134,7 +134,7 @@ func (s *Service) AddPhotoTag(ctx context.Context, photoID, categoryID uuid.UUID
 		return model.Tag{}, err
 	}
 
-	if findCategory, err := s.database.GetTypeCategory(ctx, categoryID); err != nil {
+	if findCategory, err := s.database.GetTagCategory(ctx, categoryID); err != nil {
 		// TODO: ошибка
 		return model.Tag{}, fmt.Errorf("database.GetTypeCategory: %w", err)
 	} else if findCategory == nil {
@@ -142,10 +142,10 @@ func (s *Service) AddPhotoTag(ctx context.Context, photoID, categoryID uuid.UUID
 		return model.Tag{}, ErrCategoryNotExist
 	}
 
-	if findTag, err := s.database.GetTagByName(ctx, categoryID, photoID, name); err != nil {
+	if findTag, err := s.database.GetTagByName(ctx, photoID, name); err != nil {
 		// TODO: ошибка
 		return model.Tag{}, fmt.Errorf("database.GetTagByName: %w", err)
-	} else if findTag == nil {
+	} else if findTag != nil {
 		// TODO: ошибка
 		return model.Tag{}, ErrTagAlreadyExist
 	}
@@ -154,7 +154,6 @@ func (s *Service) AddPhotoTag(ctx context.Context, photoID, categoryID uuid.UUID
 		ID:         uuid.New(),
 		CategoryID: categoryID,
 		PhotoID:    photoID,
-		Category:   nil,
 		Name:       name,
 	}
 

@@ -128,3 +128,7 @@ func (a *App) GetDbAdapter() *adapter.DbAdapter {
 func (a *App) GetFileStorage() *fsstore.Store {
 	return a.fsStore
 }
+
+func (a *App) GetSysTagPhoto() *systags.Service {
+	return a.sysTagPhoto
+}
