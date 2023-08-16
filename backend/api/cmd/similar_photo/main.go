@@ -2,13 +2,9 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"github.com/cheggaaa/pb/v3"
 	"github.com/jessevdk/go-flags"
 	"github.com/kkiling/photo-library/backend/api/internal/app"
-	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/config"
-	"sync"
 )
 
 // Чтение мета информации фотографий что бы определить какие свойства есть
@@ -34,7 +30,7 @@ func main() {
 	}
 
 	similarPhotos := application.GetSimilarPhotos()
-	database := application.GetDbAdapter()
+	/*database := application.GetDbAdapter()
 	fileStorage := application.GetFileStorage()
 
 	const limit = 1000
@@ -82,5 +78,11 @@ func main() {
 		}()
 	}
 
-	wg.Wait()
+	wg.Wait()*/
+
+	if err = similarPhotos.SavePhotoSimilarCoefficient(ctx); err != nil {
+		application.Logger().Errorf("fail SavePhotoSimilarCoefficient: %v", err)
+	}
+
+	application.Logger().Infof("stop")
 }

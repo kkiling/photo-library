@@ -3,6 +3,7 @@ package similarphotos
 import (
 	"context"
 	"fmt"
+	"github.com/cheggaaa/pb/v3"
 	"github.com/google/uuid"
 	"github.com/kkiling/photo-library/backend/api/internal/service"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
@@ -75,19 +76,21 @@ func similarity(photoVector1, photoVector2 *model.PhotoVector) float64 {
 	return dotProduct / (photoVector1.Norm * photoVector2.Norm)
 }
 
-func (s *Service) SavePhotoSimilarCoefficient(ctx context.Context, photo model.Photo, photoBody []byte) error {
+func (s *Service) SavePhotoSimilarCoefficient(ctx context.Context) error {
+	const limit = 1000
+	const maxGoroutines = 20
+	const minSimilarCoefficient = 0.8
+
 	countPhotos, err := s.database.GetPhotosCount(ctx)
 	if err != nil {
 		return fmt.Errorf("database.GetPhotosCount: %w", err)
 	}
-	const limit = 1000
-	const maxGoroutines = 20
+
 	var offset int64
 	var wg sync.WaitGroup
 	photoVectors := make([]model.PhotoVector, 0, countPhotos)
 	photoVectorsChan := make(chan model.PhotoVector)
-
-	s.logger.Infof("Start read photos vectors")
+	errorsChan := make(chan error, maxGoroutines)
 
 	for offset = 0; offset < countPhotos; offset += limit {
 		vectors, err := s.database.GetPaginatedPhotosVector(ctx, offset, limit)
@@ -97,14 +100,15 @@ func (s *Service) SavePhotoSimilarCoefficient(ctx context.Context, photo model.P
 		photoVectors = append(photoVectors, vectors...)
 	}
 
-	s.logger.Infof("Calculate photos Coefficient")
-
 	go func() {
 		defer close(photoVectorsChan)
 		for _, vector := range photoVectors {
 			photoVectorsChan <- vector
 		}
 	}()
+
+	bar := pb.New(int(countPhotos)).Start()
+	defer bar.Finish()
 
 	for i := 0; i < maxGoroutines; i++ {
 		wg.Add(1)
@@ -116,21 +120,34 @@ func (s *Service) SavePhotoSimilarCoefficient(ctx context.Context, photo model.P
 						continue
 					}
 					coefficient := similarity(&thisPhotoVector, &photoVector)
-					if coefficient > 0.8 { // TODO: в конфиг
+					if coefficient > minSimilarCoefficient {
+						id1 := thisPhotoVector.PhotoID
+						id2 := photoVector.PhotoID
+						// Сравниваем UUID и ставим больший UUID в PhotoID1
+						if id1.String() > id2.String() {
+							id1, id2 = id2, id1
+						}
 						err := s.database.SaveSimilarPhotoCoefficient(ctx, model.PhotosSimilarCoefficient{
-							PhotoID1:    thisPhotoVector.PhotoID,
-							PhotoID2:    photoVector.PhotoID,
+							PhotoID1:    id1,
+							PhotoID2:    id2,
 							Coefficient: coefficient,
 						})
 						if err != nil {
-							panic(err) // вынест в канал ошибок
+							errorsChan <- fmt.Errorf("database.SaveSimilarPhotoCoefficient: %w", err)
+							return
 						}
 					}
 				}
+				bar.Increment()
 			}
 		}()
 	}
 	wg.Wait()
+	close(errorsChan)
+
+	if len(errorsChan) > 0 {
+		return <-errorsChan
+	}
 
 	return nil
 }

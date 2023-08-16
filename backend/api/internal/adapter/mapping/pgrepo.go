@@ -197,3 +197,47 @@ func TagCategoryModelToEntity(in *model.TagCategory) *entity.TagCategory {
 		Color: in.Color,
 	}
 }
+
+func PhotoVectorEntityToModel(in *entity.PhotoVector) *model.PhotoVector {
+	if in == nil {
+		return nil
+	}
+	return &model.PhotoVector{
+		PhotoID: in.PhotoID,
+		Vector:  in.Vector,
+		Norm:    in.Norm,
+	}
+}
+
+func PhotoVectorModelToEntity(in *model.PhotoVector) *entity.PhotoVector {
+	if in == nil {
+		return nil
+	}
+	return &entity.PhotoVector{
+		PhotoID: in.PhotoID,
+		Vector:  in.Vector,
+		Norm:    in.Norm,
+	}
+}
+
+func PhotosSimilarCoefficientEntityToModel(in *entity.PhotosSimilarCoefficient) *model.PhotosSimilarCoefficient {
+	if in == nil {
+		return nil
+	}
+	return &model.PhotosSimilarCoefficient{
+		PhotoID1:    in.PhotoID1,
+		PhotoID2:    in.PhotoID2,
+		Coefficient: in.Coefficient,
+	}
+}
+
+func PhotosSimilarCoefficientModelToEntity(in *model.PhotosSimilarCoefficient) *entity.PhotosSimilarCoefficient {
+	if in == nil {
+		return nil
+	}
+	return &entity.PhotosSimilarCoefficient{
+		PhotoID1:    in.PhotoID1,
+		PhotoID2:    in.PhotoID2,
+		Coefficient: in.Coefficient,
+	}
+}

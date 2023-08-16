@@ -56,7 +56,6 @@ func (r *DbAdapter) GetPaginatedPhotos(ctx context.Context, offset int64, limit 
 	for _, p := range photos {
 		result = append(result, *mapping.PhotoEntityToModel(&p))
 	}
-
 	return result, nil
 }
 
@@ -134,7 +133,8 @@ func (r *DbAdapter) SaveTag(ctx context.Context, tag model.Tag) error {
 }
 
 func (r *DbAdapter) SaveOrUpdatePhotoVector(ctx context.Context, photoVector model.PhotoVector) error {
-	return r.photoRepo.SaveOrUpdatePhotoVector(ctx, photoVector.PhotoID, photoVector.Vector, photoVector.Norm)
+	in := mapping.PhotoVectorModelToEntity(&photoVector)
+	return r.photoRepo.SaveOrUpdatePhotoVector(ctx, *in)
 }
 
 func (r *DbAdapter) ExistPhotoVector(ctx context.Context, photoID uuid.UUID) (bool, error) {
@@ -142,10 +142,18 @@ func (r *DbAdapter) ExistPhotoVector(ctx context.Context, photoID uuid.UUID) (bo
 }
 
 func (r *DbAdapter) GetPaginatedPhotosVector(ctx context.Context, offset int64, limit int) ([]model.PhotoVector, error) {
-	panic("not implement")
+	vectors, err := r.photoRepo.GetPaginatedPhotosVector(ctx, offset, limit)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]model.PhotoVector, 0, len(vectors))
+	for _, p := range vectors {
+		result = append(result, *mapping.PhotoVectorEntityToModel(&p))
+	}
+	return result, nil
 }
 
 func (r *DbAdapter) SaveSimilarPhotoCoefficient(ctx context.Context, sim model.PhotosSimilarCoefficient) error {
-	//TODO implement me
-	panic("implement me")
+	in := mapping.PhotosSimilarCoefficientModelToEntity(&sim)
+	return r.photoRepo.SaveSimilarPhotoCoefficient(ctx, *in)
 }
