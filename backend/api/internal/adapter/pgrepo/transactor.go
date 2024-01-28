@@ -34,7 +34,6 @@ func (t *Transactor) getConn(ctx context.Context) ConnectContext {
 }
 
 func (t *Transactor) RunTransaction(ctx context.Context, txFunc func(ctxTx context.Context) error) error {
-
 	tx, err := t.pool.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return fmt.Errorf("con.BeginTx: %w", err)
@@ -46,9 +45,9 @@ func (t *Transactor) RunTransaction(ctx context.Context, txFunc func(ctxTx conte
 	if err != nil {
 		rerr := tx.Rollback(ctx)
 		if rerr != nil {
-			return fmt.Errorf("tx.Rollback: %w", err)
+			return fmt.Errorf("tx.Rollback: %w", rerr)
 		}
-		return fmt.Errorf("txFunc: %w", printError(rerr))
+		return fmt.Errorf("txFunc: %w", printError(err))
 	}
 
 	if err = tx.Commit(ctx); err != nil {

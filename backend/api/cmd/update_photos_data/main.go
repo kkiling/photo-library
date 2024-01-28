@@ -2,11 +2,14 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/cheggaaa/pb/v3"
 	"github.com/jessevdk/go-flags"
 	"github.com/kkiling/photo-library/backend/api/internal/app"
+	"github.com/kkiling/photo-library/backend/api/internal/service/exifphoto"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
+	"github.com/kkiling/photo-library/backend/api/internal/service/systags"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/config"
 )
 
@@ -32,9 +35,9 @@ func main() {
 		panic(err)
 	}
 
-	// exifPhoto := application.GetExifPhoto()
+	exifPhoto := application.GetExifPhoto()
 	metaPhoto := application.GetMetaPhoto()
-	// sysTagPhoto := application.GetSysTagPhoto()
+	sysTagPhoto := application.GetSysTagPhoto()
 	database := application.GetDbAdapter()
 	fileStorage := application.GetFileStorage()
 
@@ -62,25 +65,25 @@ func main() {
 					panic(fmt.Errorf("fileStorage.GetFileBody: %w", err))
 				}
 
-				/*if err = exifPhoto.SavePhotoExifData(ctx, photo, photoBody); err != nil {
+				if err = exifPhoto.SavePhotoExifData(ctx, photo, photoBody); err != nil {
 					if errors.Is(err, exifphoto.ExifCriticalErr) || errors.Is(err, exifphoto.ExifEOFErr) {
 						return
 					} else {
 						panic(err)
 					}
-				}*/
+				}
 
 				if err = metaPhoto.SavePhotoMetaData(ctx, photo, photoBody); err != nil {
 					application.Logger().Errorf("fail save photo meta data: %s - %v", photo.ID, err)
 				}
 
-				/*if err = sysTagPhoto.CreateTagByMeta(ctx, photo); err != nil {
+				if err = sysTagPhoto.CreateTagByMeta(ctx, photo); err != nil {
 					if errors.Is(err, systags.ErrMetaNotFound) {
 						return
 					} else {
 						panic(err)
 					}
-				}*/
+				}
 			}(photo)
 
 			bar.Increment()

@@ -7,7 +7,7 @@ import (
 	pbv1 "github.com/kkiling/photo-library/backend/api/pkg/common/gen/proto/v1"
 	"github.com/kkiling/photo-library/backend/photo_sync/internal/adapter/smbread"
 	"github.com/kkiling/photo-library/backend/photo_sync/internal/adapter/sqlitestorage"
-	"github.com/kkiling/photo-library/backend/photo_sync/internal/adapter/uploadclient"
+	"github.com/kkiling/photo-library/backend/photo_sync/internal/adapter/syncclient"
 	"github.com/kkiling/photo-library/backend/photo_sync/internal/syncfiles"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -93,7 +93,7 @@ func main() {
 	grpcClient := pbv1.NewSyncPhotosServiceClient(conn)
 	//
 
-	uploadClient := uploadclient.NewClient(grpcClient, cfg.ClientID)
+	uploadClient := syncclient.NewClient(grpcClient, cfg.ClientID)
 
 	//
 	var sync = syncfiles.NewSyncPhotos(smb, storage, uploadClient, syncfiles.Config{

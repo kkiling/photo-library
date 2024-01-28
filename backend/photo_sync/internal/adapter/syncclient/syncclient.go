@@ -1,4 +1,4 @@
-package uploadclient
+package syncclient
 
 import (
 	"context"

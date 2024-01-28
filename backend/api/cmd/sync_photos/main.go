@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
-	"github.com/jessevdk/go-flags"
-	"github.com/kkiling/photo-library/backend/api/internal/app"
-	"github.com/kkiling/photo-library/backend/api/pkg/common/config"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/jessevdk/go-flags"
+	"github.com/kkiling/photo-library/backend/api/internal/app"
+	"github.com/kkiling/photo-library/backend/api/pkg/common/config"
 )
 
 func main() {
@@ -27,6 +28,7 @@ func main() {
 
 	application := app.NewApp(cfgProvider)
 	if err := application.Create(ctx); err != nil {
+
 		panic(err)
 	}
 

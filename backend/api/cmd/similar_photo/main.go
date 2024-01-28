@@ -2,13 +2,19 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"github.com/cheggaaa/pb/v3"
 	"github.com/jessevdk/go-flags"
 	"github.com/kkiling/photo-library/backend/api/internal/app"
+	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/config"
+	"sync"
 )
 
-// Чтение мета информации фотографий что бы определить какие свойства есть
-// Например что бы создать миграцию таблицы со свойствами
+func startApp() {
+
+}
+
 func main() {
 	var args config.Arguments
 	_, err := flags.Parse(&args)
@@ -30,7 +36,7 @@ func main() {
 	}
 
 	similarPhotos := application.GetSimilarPhotos()
-	/*database := application.GetDbAdapter()
+	database := application.GetDbAdapter()
 	fileStorage := application.GetFileStorage()
 
 	const limit = 1000
@@ -70,15 +76,17 @@ func main() {
 				if err != nil {
 					panic(fmt.Errorf("fileStorage.GetFileBody: %w", err))
 				}
+
 				if err = similarPhotos.SavePhotoVector(ctx, photo, photoBody); err != nil {
 					application.Logger().Errorf("fail save photo vector: %s - %v", photo.ID, err)
 				}
+
 				bar.Increment()
 			}
 		}()
 	}
 
-	wg.Wait()*/
+	wg.Wait()
 
 	if err = similarPhotos.SavePhotoSimilarCoefficient(ctx); err != nil {
 		application.Logger().Errorf("fail SavePhotoSimilarCoefficient: %v", err)
