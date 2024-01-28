@@ -3,13 +3,14 @@ package smbread
 import (
 	"context"
 	"fmt"
-	"github.com/hirochachacha/go-smb2"
-	"github.com/kkiling/photo-library/backend/photo_sync/internal/adapter"
-	"golang.org/x/crypto/blake2b"
 	"io"
 	"net"
 	"strings"
 	"time"
+
+	"github.com/hirochachacha/go-smb2"
+	"github.com/kkiling/photo-library/backend/photo_sync/internal/model"
+	"golang.org/x/crypto/blake2b"
 )
 
 type Config struct {
@@ -43,7 +44,7 @@ func NewSmbRead(cfg Config) *SmbRead {
 	}
 }
 
-func (s *SmbRead) readDir(fs *smb2.Share, dirPath string, files chan<- adapter.FileInfo) error {
+func (s *SmbRead) readDir(fs *smb2.Share, dirPath string, files chan<- model.FileInfo) error {
 	dir, err := fs.Open(dirPath)
 	if err != nil {
 		return err
@@ -66,7 +67,7 @@ func (s *SmbRead) readDir(fs *smb2.Share, dirPath string, files chan<- adapter.F
 		} else {
 			for _, ext := range s.config.Extensions {
 				if strings.HasSuffix(strings.ToLower(name), ext) {
-					files <- adapter.FileInfo{
+					files <- model.FileInfo{
 						FilePath: newPath,
 					}
 				}
@@ -123,7 +124,7 @@ func (s *SmbRead) Disconnect() error {
 	return nil
 }
 
-func (s *SmbRead) ReadFiles(ctx context.Context, filesChan chan<- adapter.FileInfo) error {
+func (s *SmbRead) ReadFiles(_ context.Context, filesChan chan<- model.FileInfo) error {
 	err := s.readDir(s.share, s.config.DirPath, filesChan)
 	if err != nil {
 		err = fmt.Errorf("fail readDir: %w", err)
@@ -132,7 +133,7 @@ func (s *SmbRead) ReadFiles(ctx context.Context, filesChan chan<- adapter.FileIn
 	return nil
 }
 
-func (s *SmbRead) GetFileHash(ctx context.Context, filepath string) (string, error) {
+func (s *SmbRead) GetFileHash(_ context.Context, filepath string) (string, error) {
 	file, err := s.share.Open(filepath)
 	if err != nil {
 		return "", fmt.Errorf("share.Open: %w", err)
@@ -151,7 +152,7 @@ func (s *SmbRead) GetFileHash(ctx context.Context, filepath string) (string, err
 	return fmt.Sprintf("%x", hash.Sum(nil)), nil
 }
 
-func (s *SmbRead) GetFileBody(ctx context.Context, filepath string) ([]byte, error) {
+func (s *SmbRead) GetFileBody(_ context.Context, filepath string) ([]byte, error) {
 	file, err := s.share.Open(filepath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file: %w", err)

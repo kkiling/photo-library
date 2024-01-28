@@ -50,7 +50,7 @@ func (s *Storage) SaveUploadFileResponse(ctx context.Context, hash string, uploa
 
 func (s *Storage) FileAlreadyUpload(ctx context.Context, hash string) (bool, error) {
 	var count int64
-	err := s.db.QueryRowContext(ctx, "SELECT count(hash) FROM file_upload WHERE hash = ? AND success = ?", hash, true).Scan(&count)
+	err := s.db.QueryRowContext(ctx, "SELECT count(1) FROM file_upload WHERE hash = ? AND success = ?", hash, true).Scan(&count)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}
