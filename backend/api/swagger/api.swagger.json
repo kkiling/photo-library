@@ -110,6 +110,10 @@
         "client_id": {
           "type": "string",
           "title": "Идентификатор клиента"
+        },
+        "access_key": {
+          "type": "string",
+          "title": "Ключ доступа"
         }
       }
     },

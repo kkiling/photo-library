@@ -2,11 +2,15 @@
 .PHONY: install
 install:
 	go mod tidy
+	go install github.com/bufbuild/buf/cmd/buf@latest
+	go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@latest
+	go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@latest
+	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+	go install github.com/golang/mock/mockgen@latest
+	go install golang.org/x/tools/cmd/goimports@latest
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.54.2
 	go install github.com/pressly/goose/v3/cmd/goose@latest
-	go install golang.org/x/tools/cmd/goimports@latest
-	go get github.com/GaijinEntertainment/go-exhaustruct/v3/cmd/exhaustruct
-	go install github.com/golang/mock/mockgen@latest
 
 .PHONY: generate
 generate: ## Compile message protobuf and gRPC service files.

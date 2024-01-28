@@ -32,6 +32,8 @@ message UploadPhotoRequest {
   google.protobuf.Timestamp update_at = 4;
   // Идентификатор клиента
   string client_id = 5;
+  // Ключ доступа
+  string access_key = 6;
 }
 
 message UploadPhotoResponse {
