@@ -124,11 +124,11 @@ func (a *App) Create(ctx context.Context) error {
 	return nil
 }
 
-func (a *App) Start(ctx context.Context) error {
+func (a *App) StartSyncPhotoServer(ctx context.Context) error {
 	return a.syncPhotoServer.Start(ctx)
 }
 
-func (a *App) Stop() {
+func (a *App) StopSyncPhotoServer() {
 	a.syncPhotoServer.Stop()
 }
 

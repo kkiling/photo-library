@@ -10,14 +10,16 @@ import (
 )
 
 type Client struct {
-	client   pbv1.SyncPhotosServiceClient
-	clientID string
+	client    pbv1.SyncPhotosServiceClient
+	clientID  string
+	accessKey string
 }
 
-func NewClient(client pbv1.SyncPhotosServiceClient, clientID string) *Client {
+func NewClient(client pbv1.SyncPhotosServiceClient, clientID string, accessKey string) *Client {
 	return &Client{
-		client:   client,
-		clientID: clientID,
+		client:    client,
+		clientID:  clientID,
+		accessKey: accessKey,
 	}
 }
 
@@ -29,7 +31,8 @@ func (c *Client) UploadPhoto(ctx context.Context, data model.UploadData, body []
 		UpdateAt: &timestamppb.Timestamp{
 			Seconds: data.UpdateAt.Unix(),
 		},
-		ClientId: c.clientID,
+		ClientId:  c.clientID,
+		AccessKey: c.accessKey,
 	})
 	if err != nil {
 		return model.UploadResult{}, fmt.Errorf("client.UploadPhoto: %w", err)

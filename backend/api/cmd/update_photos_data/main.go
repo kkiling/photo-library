@@ -13,8 +13,6 @@ import (
 	"github.com/kkiling/photo-library/backend/api/pkg/common/config"
 )
 
-// Чтение мета информации фотографий что бы определить какие свойства есть
-// Например что бы создать миграцию таблицы со свойствами
 func main() {
 	var args config.Arguments
 	_, err := flags.Parse(&args)
@@ -53,30 +51,36 @@ func main() {
 	defer bar.Finish()
 
 	for offset = 0; offset < countPhotos; offset += limit {
+
 		photos, err := database.GetPaginatedPhotos(ctx, offset, limit)
 		if err != nil {
 			panic(err)
 		}
+
 		for _, photo := range photos {
 
 			func(photo model.Photo) {
-				photoBody, err := fileStorage.GetFileBody(ctx, photo.FilePath)
+				// Считали фото
+				photoBody, err := fileStorage.GetFileBody(ctx, photo.FileName)
 				if err != nil {
 					panic(fmt.Errorf("fileStorage.GetFileBody: %w", err))
 				}
 
+				// Сохранили ее exif инфу в базу
 				if err = exifPhoto.SavePhotoExifData(ctx, photo, photoBody); err != nil {
 					if errors.Is(err, exifphoto.ExifCriticalErr) || errors.Is(err, exifphoto.ExifEOFErr) {
-						return
+						// return
 					} else {
 						panic(err)
 					}
 				}
 
+				// Сохранили мета данные в базу
 				if err = metaPhoto.SavePhotoMetaData(ctx, photo, photoBody); err != nil {
 					application.Logger().Errorf("fail save photo meta data: %s - %v", photo.ID, err)
 				}
 
+				// Сохранили теги фото
 				if err = sysTagPhoto.CreateTagByMeta(ctx, photo); err != nil {
 					if errors.Is(err, systags.ErrMetaNotFound) {
 						return

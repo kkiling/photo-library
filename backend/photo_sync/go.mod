@@ -8,7 +8,7 @@ require (
 	github.com/cheggaaa/pb/v3 v3.1.5
 	github.com/hirochachacha/go-smb2 v1.1.0
 	github.com/kkiling/photo-library/backend/api v0.0.0
-	github.com/mattn/go-sqlite3 v1.14.17
+	github.com/mattn/go-sqlite3 v1.14.20
 	golang.org/x/crypto v0.18.0
 	google.golang.org/grpc v1.61.0
 	google.golang.org/protobuf v1.32.0

@@ -13,7 +13,7 @@ func PhotoEntityToModel(in *entity.Photo) *model.Photo {
 	}
 	return &model.Photo{
 		ID:        in.ID,
-		FilePath:  in.FilePath,
+		FileName:  in.FileName,
 		Hash:      in.Hash,
 		UpdateAt:  in.UpdateAt,
 		UploadAt:  in.UploadAt,
@@ -27,7 +27,7 @@ func PhotoModelToEntity(in *model.Photo) *entity.Photo {
 	}
 	return &entity.Photo{
 		ID:        in.ID,
-		FilePath:  in.FilePath,
+		FileName:  in.FileName,
 		Hash:      in.Hash,
 		UpdateAt:  in.UpdateAt,
 		UploadAt:  in.UploadAt,

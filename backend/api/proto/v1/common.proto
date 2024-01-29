@@ -2,15 +2,34 @@ syntax = "proto3";
 
 package pb.v1;
 
-option go_package = "github.com/kkiling/photo-library/backend/sync_photos/pkg/common/gen/pbv1";
+option go_package = "github.com/kkiling/photo-library/backend/sync_photos_server/pkg/common/gen/pbv1";
+
+import "protoc-gen-openapiv2/options/annotations.proto";
+
 
 message Paginator {
     uint32 offset = 1;
     uint32 limit = 2;
 }
 
-message Error {
+message ServerError {
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+        json_schema: {
+            title: "ServerError",
+            description: "Custom error response"
+        }
+    };
     uint32 code = 1;
     string message = 2;
-    map<string, string> details = 3;
+    repeated ErrorInfo details = 3;
+}
+
+message ErrorInfo {
+    string description = 2;
+    repeated FieldViolation field_violations = 4;
+}
+
+message FieldViolation {
+    string field = 1;
+    string error = 2;
 }

@@ -38,8 +38,8 @@ migrate-create\:%:
 
 .PHONY: migrate-up
 migrate-up:
-	goose -dir=./migrations postgres "postgresql://localhost:5432/uritmix?sslmode=disable" up
+	goose -dir=./migrations postgres "postgresql://root:q9ckMfi6xQUc1@10.10.10.201:5501/photos?sslmode=disable" up
 
-.PHONY: run
-run:
-	go run cmd/app/main.go
+.PHONY: run_sync_server
+run-sync-server:
+	go run cmd/sync_photos_server/main.go

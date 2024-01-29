@@ -12,7 +12,7 @@ func (r *PhotoRepository) GetPhotoByHash(ctx context.Context, hash string) (*ent
 	conn := r.getConn(ctx)
 
 	const query = `
-		SELECT id, file_path, hash, update_at, upload_at, extension
+		SELECT id, file_name, hash, update_at, upload_at, extension
 		FROM photos
 		WHERE hash = $1
 		LIMIT 1
@@ -21,7 +21,7 @@ func (r *PhotoRepository) GetPhotoByHash(ctx context.Context, hash string) (*ent
 	row := conn.QueryRow(ctx, query, hash)
 
 	var photo entity.Photo
-	err := row.Scan(&photo.ID, &photo.FilePath, &photo.Hash, &photo.UpdateAt, &photo.UploadAt, &photo.Extension)
+	err := row.Scan(&photo.ID, &photo.FileName, &photo.Hash, &photo.UpdateAt, &photo.UploadAt, &photo.Extension)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -36,11 +36,11 @@ func (r *PhotoRepository) SavePhoto(ctx context.Context, photo entity.Photo) err
 	conn := r.getConn(ctx)
 
 	const query = `
-		INSERT INTO photos (id, file_path, hash, update_at, upload_at, extension)
+		INSERT INTO photos (id, file_name, hash, update_at, upload_at, extension)
 		VALUES ($1, $2, $3, $4, $5, $6)
 	`
 
-	_, err := conn.Exec(ctx, query, photo.ID, photo.FilePath, photo.Hash, photo.UpdateAt, photo.UploadAt, photo.Extension)
+	_, err := conn.Exec(ctx, query, photo.ID, photo.FileName, photo.Hash, photo.UpdateAt, photo.UploadAt, photo.Extension)
 	if err != nil {
 		return printError(err)
 	}
@@ -52,7 +52,7 @@ func (r *PhotoRepository) GetPhotoById(ctx context.Context, id uuid.UUID) (*enti
 	conn := r.getConn(ctx)
 
 	const query = `
-		SELECT id, file_path, hash, update_at, upload_at, extension
+		SELECT id, file_name, hash, update_at, upload_at, extension
 		FROM photos
 		WHERE id = $1
 		LIMIT 1
@@ -61,7 +61,7 @@ func (r *PhotoRepository) GetPhotoById(ctx context.Context, id uuid.UUID) (*enti
 	row := conn.QueryRow(ctx, query, id)
 
 	var photo entity.Photo
-	err := row.Scan(&photo.ID, &photo.FilePath, &photo.Hash, &photo.UpdateAt, &photo.UploadAt, &photo.Extension)
+	err := row.Scan(&photo.ID, &photo.FileName, &photo.Hash, &photo.UpdateAt, &photo.UploadAt, &photo.Extension)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -76,7 +76,7 @@ func (r *PhotoRepository) GetPaginatedPhotos(ctx context.Context, offset int64, 
 	conn := r.getConn(ctx)
 
 	const query = `
-		SELECT id, file_path, hash, update_at, upload_at, extension
+		SELECT id, file_name, hash, update_at, upload_at, extension
 		FROM photos
 		OFFSET $1
 		LIMIT $2
@@ -92,7 +92,7 @@ func (r *PhotoRepository) GetPaginatedPhotos(ctx context.Context, offset int64, 
 	for rows.Next() {
 		var photo entity.Photo
 
-		errScan := rows.Scan(&photo.ID, &photo.FilePath, &photo.Hash, &photo.UpdateAt, &photo.UploadAt, &photo.Extension)
+		errScan := rows.Scan(&photo.ID, &photo.FileName, &photo.Hash, &photo.UpdateAt, &photo.UploadAt, &photo.Extension)
 		if errScan != nil {
 			if errors.Is(errScan, pgx.ErrNoRows) {
 				return nil, nil

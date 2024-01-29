@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"github.com/kkiling/photo-library/backend/api/internal/handler/mapper"
 
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	desc "github.com/kkiling/photo-library/backend/api/pkg/common/gen/proto/v1"
@@ -10,7 +11,6 @@ import (
 	"github.com/kkiling/photo-library/backend/api/pkg/common/server"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/server/method_descriptor"
 	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type customDescriptor struct {
@@ -88,28 +88,15 @@ func (p *SyncPhotosServiceServer) Stop() {
 }
 
 type SyncPhotosService interface {
-	UploadPhoto(ctx context.Context, form model.SyncPhotoRequest) (model.SyncPhotoResponse, error)
+	UploadPhoto(ctx context.Context, form *model.SyncPhotoRequest) (*model.SyncPhotoResponse, error)
 }
 
 func (p *SyncPhotosServiceServer) UploadPhoto(ctx context.Context, request *desc.UploadPhotoRequest) (*desc.UploadPhotoResponse, error) {
-
-	response, err := p.syncPhoto.UploadPhoto(ctx, model.SyncPhotoRequest{
-		Paths:    request.Paths,
-		Hash:     request.Hash,
-		Body:     request.Body,
-		UpdateAt: request.UpdateAt.AsTime(),
-		ClientId: request.ClientId,
-	})
+	response, err := p.syncPhoto.UploadPhoto(ctx, mapper.UploadPhotoRequest(request))
 
 	if err != nil {
-		return nil, err
+		return nil, handleError(err, p.syncPhoto.UploadPhoto)
 	}
 
-	return &desc.UploadPhotoResponse{
-		HasBeenUploadedBefore: response.HasBeenUploadedBefore,
-		Hash:                  response.Hash,
-		UploadedAt: &timestamppb.Timestamp{
-			Seconds: response.UploadAt.Unix(),
-		},
-	}, nil
+	return mapper.UploadPhotoResponse(response), nil
 }

@@ -72,7 +72,7 @@ func main() {
 		go func() {
 			defer wg.Done()
 			for photo := range photoChan {
-				photoBody, err := fileStorage.GetFileBody(ctx, photo.FilePath)
+				photoBody, err := fileStorage.GetFileBody(ctx, photo.FileName)
 				if err != nil {
 					panic(fmt.Errorf("fileStorage.GetFileBody: %w", err))
 				}

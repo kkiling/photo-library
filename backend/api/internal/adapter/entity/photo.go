@@ -7,7 +7,7 @@ import (
 
 type Photo struct {
 	ID        uuid.UUID
-	FilePath  string
+	FileName  string
 	Hash      string
 	UpdateAt  time.Time
 	UploadAt  time.Time

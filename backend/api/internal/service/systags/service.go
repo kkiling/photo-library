@@ -114,7 +114,6 @@ func (s *Service) CreateTagByMeta(ctx context.Context, photo model.Photo) error 
 	}
 
 	// Мета информация
-
 	meta, err := s.database.GetMetaData(ctx, photo.ID)
 	if err != nil {
 		return fmt.Errorf("databases.GetMetaData: %w", err)

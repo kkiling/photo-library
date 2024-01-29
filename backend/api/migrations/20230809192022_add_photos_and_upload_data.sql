@@ -2,7 +2,7 @@
 -- +goose StatementBegin
 CREATE TABLE photos (
     id UUID PRIMARY KEY NOT NULL,
-    file_path VARCHAR(2048) NOT NULL,
+    file_name VARCHAR(2048) NOT NULL,
     hash VARCHAR(512) NOT NULL,
     update_at TIMESTAMP NOT NULL,
     upload_at TIMESTAMP NOT NULL,

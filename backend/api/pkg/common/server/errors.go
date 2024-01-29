@@ -1,43 +1,49 @@
 package server
 
 import (
-	pbv1 "github.com/kkiling/photo-library/backend/api/pkg/common/gen/proto/v1"
+	"github.com/golang/protobuf/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
 var (
-	ErrInternal = func(err error) error {
-		return NewResponseError(codes.Internal, err)
+	// ErrInternal .
+	ErrInternal = func(err error, details ...proto.Message) error {
+		return NewResponseError(codes.Internal, err, details...)
 	}
-	ErrNotFound = func(err error) error {
+	// ErrNotFound .
+	ErrNotFound = func(err error, details ...proto.Message) error {
 		return NewResponseError(codes.NotFound, err)
 	}
-	ErrPermissionDenied = func(err error) error {
-		return NewResponseError(codes.PermissionDenied, err)
+	// ErrPermissionDenied .
+	ErrPermissionDenied = func(err error, details ...proto.Message) error {
+		return NewResponseError(codes.PermissionDenied, err, details...)
 	}
-	ErrInvalidArgument = func(err error) error {
-		return NewResponseError(codes.InvalidArgument, err)
+	// ErrInvalidArgument .
+	ErrInvalidArgument = func(err error, details ...proto.Message) error {
+		return NewResponseError(codes.InvalidArgument, err, details...)
 	}
-	ErrUnauthenticated = func(err error) error {
-		return NewResponseError(codes.Unauthenticated, err)
+	// ErrUnauthenticated .
+	ErrUnauthenticated = func(err error, details ...proto.Message) error {
+		return NewResponseError(codes.Unauthenticated, err, details...)
 	}
-	ErrAlreadyExists = func(err error) error {
-		return NewResponseError(codes.AlreadyExists, err)
+	// ErrAlreadyExists .
+	ErrAlreadyExists = func(err error, details ...proto.Message) error {
+		return NewResponseError(codes.AlreadyExists, err, details...)
 	}
-	ErrTooManyRequests = func(err error) error {
-		return NewResponseError(codes.ResourceExhausted, err)
+	// ErrTooManyRequests .
+	ErrTooManyRequests = func(err error, details ...proto.Message) error {
+		return NewResponseError(codes.ResourceExhausted, err, details...)
 	}
 )
 
-func NewResponseError(code codes.Code, err error) error {
-	s, err := status.New(code, err.Error()).WithDetails(&pbv1.Error{
-		Code: uint32(code),
-	})
+// NewResponseError .
+func NewResponseError(code codes.Code, err error, details ...proto.Message) error {
+	st, err := status.New(code, err.Error()).WithDetails(details...)
 
 	if err != nil {
 		return status.Errorf(codes.Internal, err.Error())
 	}
 
-	return s.Err()
+	return st.Err()
 }

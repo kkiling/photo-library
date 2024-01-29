@@ -3,7 +3,6 @@ package fsstore
 import (
 	"context"
 	"fmt"
-	"github.com/google/uuid"
 	"io"
 	"os"
 	"path/filepath"
@@ -24,28 +23,28 @@ func NewStore(cfg Config) *Store {
 	}
 }
 
-func (f *Store) SaveFileBody(ctx context.Context, ext string, body []byte) (filePath string, err error) {
+func (f *Store) SaveFileBody(_ context.Context, fileName string, body []byte) error {
 	// Формируем новое имя файла
-	filePath = fmt.Sprintf("%s/%s.%s", f.cfg.BaseFilesDir, uuid.New(), strings.ToLower(ext))
+	filePath := filepath.Join(f.cfg.BaseFilesDir, fileName)
 
 	// Создаем новый файл с новым именем
 	newFile, err := os.Create(filePath)
 	defer newFile.Close()
 
 	if err != nil {
-		return "", fmt.Errorf("failed to create new file: %w", err)
+		return fmt.Errorf("failed to create new file: %w", err)
 	}
 
 	// Записываем данные в новый файл
 	if _, err := newFile.Write(body); err != nil {
-		return "", fmt.Errorf("failed to write to new file: %w", err)
+		return fmt.Errorf("failed to write to new file: %w", err)
 	}
 
-	return filePath, nil
+	return nil
 }
 
-func (f *Store) DeleteFile(ctx context.Context, filePath string) error {
-
+func (f *Store) DeleteFile(_ context.Context, fileName string) error {
+	filePath := filepath.Join(f.cfg.BaseFilesDir, fileName)
 	// Construct the absolute path
 	absPath, err := filepath.Abs(filePath)
 	if err != nil {
@@ -77,7 +76,8 @@ func (f *Store) DeleteFile(ctx context.Context, filePath string) error {
 	return nil
 }
 
-func (f *Store) GetFileBody(ctx context.Context, filePath string) ([]byte, error) {
+func (f *Store) GetFileBody(_ context.Context, fileName string) ([]byte, error) {
+	filePath := filepath.Join(f.cfg.BaseFilesDir, fileName)
 	// Открываем файл для чтения
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -94,7 +94,7 @@ func (f *Store) GetFileBody(ctx context.Context, filePath string) ([]byte, error
 	return body, nil
 }
 
-func (f *Store) GetFileUrl(ctx context.Context, filepath string) error {
+func (f *Store) GetFileUrl(ctx context.Context, fileName string) error {
 	//TODO implement me
 	panic("implement me")
 }

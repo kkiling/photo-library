@@ -3,7 +3,6 @@ package systags
 import (
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"math"
-	"os"
 	"path/filepath"
 	"strings"
 )
@@ -26,9 +25,8 @@ func haversine(lat1, lon1, lat2, lon2 float64) float64 {
 }
 
 func getDirectories(path string) []string {
-	catalogs := strings.ReplaceAll(path, "/"+filepath.Base(path), "")
-	parts := strings.Split(catalogs, string(os.PathSeparator))
-
+	catalogs := filepath.Dir(path)
+	parts := strings.Split(catalogs, string(filepath.Separator))
 	return parts
 }
 

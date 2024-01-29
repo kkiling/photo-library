@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package pb.v1;
 
-option go_package = "github.com/kkiling/photo-library/backend/sync_photos/pkg/common/gen/pbv1";
+option go_package = "github.com/kkiling/photo-library/backend/sync_photos_server/pkg/common/gen/pbv1";
 
 import "google/api/annotations.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";

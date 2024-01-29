@@ -2,6 +2,7 @@ package syncfiles
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -9,6 +10,8 @@ import (
 	"github.com/cheggaaa/pb/v3"
 	"github.com/kkiling/photo-library/backend/photo_sync/internal/model"
 )
+
+var ErrFileIsEmptyBody = fmt.Errorf("is empty body")
 
 type Config struct {
 	NumWorkers int
@@ -92,9 +95,9 @@ func (s *SyncPhotos) getUploadData(ctx context.Context, filePath string) (model.
 		return model.UploadData{}, fmt.Errorf("fileRead.GetFileUpdateAt: %w", err)
 	}
 
-	//s.mx.Lock()
+	s.mx.Lock()
 	findHash, err := s.storage.GetFileHash(ctx, filePath, updateAt)
-	//s.mx.Unlock()
+	s.mx.Unlock()
 
 	if err != nil {
 		return model.UploadData{}, fmt.Errorf("storage.GetFileHash: %w", err)
@@ -113,11 +116,11 @@ func (s *SyncPhotos) getUploadData(ctx context.Context, filePath string) (model.
 		return model.UploadData{}, fmt.Errorf("fileRead.GetFileHash: %w", err)
 	}
 
-	//s.mx.Lock()
+	s.mx.Lock()
 	if err := s.storage.SaveFileHash(ctx, filePath, hash, updateAt); err != nil {
 		return model.UploadData{}, fmt.Errorf("storage.SaveFileHash: %w", err)
 	}
-	//s.mx.Unlock()
+	s.mx.Unlock()
 
 	return model.UploadData{
 		Paths:    []string{filePath},
@@ -174,6 +177,8 @@ func (s *SyncPhotos) getUploadDataList(ctx context.Context, files []model.FileIn
 				data, err := s.getUploadData(ctx, file.FilePath)
 				if err != nil {
 					errorsChan <- fmt.Errorf("fail getFileHash: %w", err)
+					bar.Increment()
+					return
 				}
 
 				s.mx.Lock()
@@ -202,7 +207,7 @@ func (s *SyncPhotos) getUploadDataList(ctx context.Context, files []model.FileIn
 }
 
 func (s *SyncPhotos) deletingAlreadyDownloadedFiles(ctx context.Context, uploadDataList []model.UploadData) ([]model.UploadData, error) {
-	bar := createProgressBar(len(uploadDataList), "Upload files")
+	bar := createProgressBar(len(uploadDataList), "Delete already downloaded files")
 	defer bar.Finish()
 
 	result := make([]model.UploadData, 0)
@@ -268,7 +273,7 @@ func (s *SyncPhotos) uploadFile(ctx context.Context, data model.UploadData) erro
 	}
 
 	if len(body) == 0 {
-		return fmt.Errorf("empty body: %s", data.MainPath)
+		return ErrFileIsEmptyBody
 	}
 
 	res, err := s.client.UploadPhoto(ctx, data, body)
@@ -285,10 +290,11 @@ func (s *SyncPhotos) uploadFile(ctx context.Context, data model.UploadData) erro
 
 func (s *SyncPhotos) uploadFiles(ctx context.Context, uploadDataList []model.UploadData) error {
 	bar := createProgressBar(len(uploadDataList), "Upload files")
+	defer bar.Finish()
 
 	uploadChan := make(chan model.UploadData)
 	errorsChan := make(chan error, len(uploadDataList))
-
+	warningsChan := make(chan error)
 	go func() {
 		defer close(uploadChan)
 		for _, data := range uploadDataList {
@@ -308,9 +314,13 @@ func (s *SyncPhotos) uploadFiles(ctx context.Context, uploadDataList []model.Upl
 				}
 
 				if err := s.uploadFile(ctx, data); err != nil {
-					errorsChan <- fmt.Errorf("fileRead.GetFileBody: %w", err)
-					bar.Increment()
-					continue
+					if errors.Is(err, ErrFileIsEmptyBody) {
+						warningsChan <- fmt.Errorf("empty body: %s", data.MainPath)
+					} else {
+						errorsChan <- fmt.Errorf("fileRead.GetFileBody: %w", err)
+						bar.Increment()
+						continue
+					}
 				}
 
 				bar.Increment()
@@ -320,12 +330,15 @@ func (s *SyncPhotos) uploadFiles(ctx context.Context, uploadDataList []model.Upl
 
 	wg.Wait()
 	close(errorsChan)
-	bar.Finish()
 
-	// Выводим все ошибки для информации
 	if len(errorsChan) > 0 {
 		// returning the first error, you might want to handle or log all errors
 		return <-errorsChan
+	}
+
+	// Выводим все warning для информации
+	for warning := range warningsChan {
+		fmt.Println(warning.Error())
 	}
 
 	return nil

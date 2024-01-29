@@ -26,6 +26,7 @@ type SyncConfig struct {
 	SmbConfig              *SmbConfig `yaml:"smbConfig"`
 	SqliteFile             string     `yaml:"sqliteFile"`
 	ClientID               string     `yaml:"clientID"`
+	AccessKey              string     `yaml:"accessKey"`
 	UploadClientGRPCTarget string     `yaml:"uploadClientGRPCTarget"`
 	NumWorkers             int        `yaml:"numWorkers"`
 }
@@ -43,8 +44,9 @@ func main() {
 			DirPath:    "photos",
 			Extensions: []string{".jpg", ".jpeg", ".png", ".bmp"},
 		},
-		SqliteFile:             "./files.db",
+		SqliteFile:             "files.db",
 		ClientID:               "mbp-kkiling-OZON-HXW066MJFG",
+		AccessKey:              "1234567",
 		UploadClientGRPCTarget: "localhost:8181",
 		NumWorkers:             16,
 	}
@@ -93,7 +95,7 @@ func main() {
 	grpcClient := pbv1.NewSyncPhotosServiceClient(conn)
 	//
 
-	uploadClient := syncclient.NewClient(grpcClient, cfg.ClientID)
+	uploadClient := syncclient.NewClient(grpcClient, cfg.ClientID, cfg.AccessKey)
 
 	//
 	var sync = syncfiles.NewSyncPhotos(smb, storage, uploadClient, syncfiles.Config{

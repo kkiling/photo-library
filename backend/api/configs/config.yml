@@ -7,10 +7,10 @@ server:
   shutdown_timeout: 3
 
 pg_db:
-  conn_string: "postgresql://localhost:5432/photo_library?sslmode=disable"
+  conn_string: "postgresql://root:q9ckMfi6xQUc1@10.10.10.201:5501/photos?sslmode=disable"
 
 fs_store:
-  base_files_dir: "/Users/kkiling/photos"
+  base_files_dir: "Y:\\documents\\photos_storage"
 
 photo_ml:
   url: "http://127.0.0.1:5000"
