@@ -43,9 +43,9 @@ func (t *Transactor) RunTransaction(ctx context.Context, txFunc func(ctxTx conte
 	err = txFunc(txCtx)
 
 	if err != nil {
-		rerr := tx.Rollback(ctx)
-		if rerr != nil {
-			return fmt.Errorf("tx.Rollback: %w", rerr)
+		rollBackErr := tx.Rollback(ctx)
+		if rollBackErr != nil {
+			return fmt.Errorf("tx.Rollback: %w", rollBackErr)
 		}
 		return fmt.Errorf("txFunc: %w", printError(err))
 	}

@@ -9,11 +9,14 @@ import (
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/pgrepo"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/photoml"
 	"github.com/kkiling/photo-library/backend/api/internal/handler"
-	"github.com/kkiling/photo-library/backend/api/internal/service/exifphoto"
-	"github.com/kkiling/photo-library/backend/api/internal/service/metaphoto"
-	"github.com/kkiling/photo-library/backend/api/internal/service/similarphotos"
+	"github.com/kkiling/photo-library/backend/api/internal/service/model"
+	"github.com/kkiling/photo-library/backend/api/internal/service/processing"
+	"github.com/kkiling/photo-library/backend/api/internal/service/processing/exifphoto"
+	"github.com/kkiling/photo-library/backend/api/internal/service/processing/metaphoto"
+	"github.com/kkiling/photo-library/backend/api/internal/service/processing/similarphotos"
+	"github.com/kkiling/photo-library/backend/api/internal/service/processing/systags"
+	"github.com/kkiling/photo-library/backend/api/internal/service/processing/vectorphoto"
 	"github.com/kkiling/photo-library/backend/api/internal/service/syncphotos"
-	"github.com/kkiling/photo-library/backend/api/internal/service/systags"
 	"github.com/kkiling/photo-library/backend/api/internal/service/tagphoto"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/config"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
@@ -32,13 +35,15 @@ type App struct {
 	// handler
 	syncPhotoServer *handler.SyncPhotosServiceServer
 	// service
-	tagPhoto *tagphoto.Service
-
-	syncPhoto     *syncphotos.Service
-	exifPhoto     *exifphoto.Service
-	metaPhoto     *metaphoto.Service
-	sysTagPhoto   *systags.Service
 	similarPhotos *similarphotos.Service
+	syncPhoto     *syncphotos.Service
+	// Processing
+	tagPhoto         *tagphoto.Service
+	exifPhoto        *exifphoto.Service
+	metaPhoto        *metaphoto.Service
+	sysTagPhoto      *systags.Service
+	vectorPhoto      *vectorphoto.Service
+	processingPhotos *processing.Service
 }
 
 func NewApp(cfgProvider config.Provider) *App {
@@ -70,6 +75,11 @@ func (a *App) Create(ctx context.Context) error {
 		return fmt.Errorf("getPhotoMLConfig: %w", err)
 	}
 
+	processingPhotosCfg, err := a.getProcessingPhotosConfig()
+	if err != nil {
+		return fmt.Errorf("getProcessingPhotosConfig: %w", err)
+	}
+
 	pool, err := pgrepo.NewPgConn(ctx, pgCfg)
 	if err != nil {
 		return fmt.Errorf("newPgConn: %w", err)
@@ -87,38 +97,50 @@ func (a *App) Create(ctx context.Context) error {
 	a.tagPhoto = tagphoto.NewService(
 		a.dbAdapter,
 	)
-
 	a.syncPhoto = syncphotos.NewService(
 		a.logger.Named("sync_photo"),
 		a.dbAdapter,
 		a.fsStore,
 	)
-
 	a.exifPhoto = exifphoto.NewService(
+		a.logger.Named("exif_photo"),
 		a.dbAdapter,
 	)
-
 	a.metaPhoto = metaphoto.NewService(
+		a.logger.Named("meta_photo"),
 		a.dbAdapter,
 	)
-
 	a.sysTagPhoto = systags.NewService(
 		a.logger.Named("sync_photo_service_photo"),
 		a.tagPhoto,
 		a.dbAdapter,
 	)
-
 	a.syncPhotoServer = handler.NewSyncPhotosServiceServer(
 		a.logger.Named("sync_photo_service_photo"),
 		a.syncPhoto,
 		serverCfg,
 	)
-
-	a.similarPhotos = similarphotos.NewService(
-		a.logger.Named("similar_photos"),
-		a.tagPhoto,
+	a.vectorPhoto = vectorphoto.NewService(
+		a.logger.Named("vector_photo"),
 		a.dbAdapter,
 		a.photoML,
+	)
+	a.similarPhotos = similarphotos.NewService(
+		a.logger.Named("similar_photos"),
+		a.dbAdapter,
+	)
+	a.processingPhotos = processing.NewService(
+		a.logger.Named("processing_photos"),
+		processingPhotosCfg,
+		a.dbAdapter,
+		a.fsStore,
+		map[model.PhotoProcessingStatus]processing.PhotoProcessor{
+			model.PhotoProcessingNew:         nil, // Стартовая точка каждой фотографии
+			model.PhotoProcessingExifData:    a.exifPhoto,
+			model.PhotoProcessingMetaData:    a.metaPhoto,
+			model.PhotoProcessingTagsByMeta:  a.sysTagPhoto,
+			model.PhotoProcessingPhotoVector: a.vectorPhoto,
+		},
 	)
 
 	return nil
@@ -132,28 +154,8 @@ func (a *App) StopSyncPhotoServer() {
 	a.syncPhotoServer.Stop()
 }
 
-func (a *App) GetExifPhoto() *exifphoto.Service {
-	return a.exifPhoto
-}
-
-func (a *App) GetMetaPhoto() *metaphoto.Service {
-	return a.metaPhoto
-}
-
-func (a *App) GetDbAdapter() *adapter.DbAdapter {
-	return a.dbAdapter
-}
-
-func (a *App) GetFileStorage() *fsstore.Store {
-	return a.fsStore
-}
-
-func (a *App) GetSysTagPhoto() *systags.Service {
-	return a.sysTagPhoto
-}
-
-func (a *App) GetSimilarPhotos() *similarphotos.Service {
-	return a.similarPhotos
+func (a *App) GetProcessingPhotos() *processing.Service {
+	return a.processingPhotos
 }
 
 func (a *App) GetLogger() log.Logger {

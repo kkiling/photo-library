@@ -76,7 +76,8 @@ func (s *Service) getOrCreateTagCategory(ctx context.Context, tagCategory, color
 	return category, nil
 }
 
-func (s *Service) CreateTagByMeta(ctx context.Context, photo model.Photo) error {
+// Processing создание и сохранение автоматических тегов (по мета данным или по путям и тд)
+func (s *Service) Processing(ctx context.Context, photo model.Photo, _ []byte) error {
 
 	// По каталогу КАТАЛОГ
 	data, err := s.database.GetUploadPhotoData(ctx, photo.ID)
@@ -120,7 +121,8 @@ func (s *Service) CreateTagByMeta(ctx context.Context, photo model.Photo) error 
 	}
 
 	if meta == nil {
-		return ErrMetaNotFound
+		s.logger.Debugf("meta for photo (%s) not found", photo.ID)
+		return nil
 	}
 
 	// По дате формируем тег ГОД

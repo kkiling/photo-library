@@ -45,9 +45,11 @@ func structToMapDBTag(obj interface{}) map[string]interface{} {
 		if tag == "" {
 			tag = t.Field(i).Tag.Get("json")
 		}
+
 		if tag == "" {
 			tag = t.Field(i).Name
 		}
+
 		m[tag] = fieldValue.Interface()
 	}
 	return m

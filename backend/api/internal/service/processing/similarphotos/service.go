@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/cheggaaa/pb/v3"
-	"github.com/google/uuid"
 	"github.com/kkiling/photo-library/backend/api/internal/service"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
@@ -14,61 +13,21 @@ import (
 
 type Database interface {
 	service.Transactor
-	GetPhotosCount(ctx context.Context) (int64, error)
-	ExistPhotoVector(ctx context.Context, photoID uuid.UUID) (bool, error)
-	SaveOrUpdatePhotoVector(ctx context.Context, photoVector model.PhotoVector) error
+	GetPhotosCount(ctx context.Context, filter *model.PhotoFilter) (int64, error)
 	GetPaginatedPhotosVector(ctx context.Context, offset int64, limit int) ([]model.PhotoVector, error)
 	SaveSimilarPhotoCoefficient(ctx context.Context, sim model.PhotosSimilarCoefficient) error
 }
 
-type TagPhoto interface {
-	AddPhotoTag(ctx context.Context, photoID, categoryID uuid.UUID, name string) (model.Tag, error)
-	GetCategory(ctx context.Context, typeCategory string) (*model.TagCategory, error)
-	CreateCategory(ctx context.Context, typeCategory, color string) (model.TagCategory, error)
-}
-
-type PhotoML interface {
-	GetImageVector(ctx context.Context, imgBytes []byte) ([]float64, error)
-}
-
 type Service struct {
-	logger     log.Logger
-	tagService TagPhoto
-	database   Database
-	photoML    PhotoML
+	logger   log.Logger
+	database Database
 }
 
-func NewService(logger log.Logger, tagService TagPhoto, database Database, photoML PhotoML) *Service {
+func NewService(logger log.Logger, database Database) *Service {
 	return &Service{
-		logger:     logger,
-		tagService: tagService,
-		database:   database,
-		photoML:    photoML,
+		logger:   logger,
+		database: database,
 	}
-}
-
-func (s *Service) SavePhotoVector(ctx context.Context, photo model.Photo, photoBody []byte) error {
-	if exist, err := s.database.ExistPhotoVector(ctx, photo.ID); err != nil {
-		return fmt.Errorf("database.ExistPhotoVector: %e", err)
-	} else if exist {
-		return nil
-	}
-
-	vector, err := s.photoML.GetImageVector(ctx, photoBody)
-	if err != nil {
-		return fmt.Errorf("photoML.GetImageVector: %e", err)
-	}
-
-	norm := floats.Norm(vector, 2)
-	if err := s.database.SaveOrUpdatePhotoVector(ctx, model.PhotoVector{
-		PhotoID: photo.ID,
-		Vector:  vector,
-		Norm:    norm,
-	}); err != nil {
-		return fmt.Errorf("database.SaveOrUpdatePhotoVector: %e", err)
-	}
-
-	return nil
 }
 
 func similarity(photoVector1, photoVector2 *model.PhotoVector) float64 {
@@ -81,7 +40,7 @@ func (s *Service) SavePhotoSimilarCoefficient(ctx context.Context) error {
 	const maxGoroutines = 20
 	const minSimilarCoefficient = 0.8
 
-	countPhotos, err := s.database.GetPhotosCount(ctx)
+	countPhotos, err := s.database.GetPhotosCount(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("database.GetPhotosCount: %w", err)
 	}

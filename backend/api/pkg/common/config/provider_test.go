@@ -1,7 +1,6 @@
 package config
 
 import (
-	"github.com/byorty/enterprise-application/pkg/common/adapter/application"
 	"os"
 	"strings"
 	"testing"
@@ -34,7 +33,7 @@ type ConfigProviderSuite struct {
 func (s *ConfigProviderSuite) TestPopulate() {
 	reader := strings.NewReader("a: {b: bar, c: {d: true, f: 12}}")
 
-	provider, err := application.NewProviderByOptions(config.Source(reader))
+	provider, err := NewProviderByOptions(config.Source(reader))
 	s.Nil(err)
 
 	var a A
@@ -69,7 +68,7 @@ b: "$VAR_B"
 c: "$VAR_C"
 `)
 
-	provider, err := application.NewProviderByOptions(config.Source(reader))
+	provider, err := NewProviderByOptions(config.Source(reader))
 	s.Nil(err)
 
 	s.Nil(provider.PopulateByKey("a", &a))

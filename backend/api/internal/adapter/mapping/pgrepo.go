@@ -12,12 +12,13 @@ func PhotoEntityToModel(in *entity.Photo) *model.Photo {
 		return nil
 	}
 	return &model.Photo{
-		ID:        in.ID,
-		FileName:  in.FileName,
-		Hash:      in.Hash,
-		UpdateAt:  in.UpdateAt,
-		UploadAt:  in.UploadAt,
-		Extension: model.PhotoExtension(in.Extension),
+		ID:               in.ID,
+		FileName:         in.FileName,
+		Hash:             in.Hash,
+		UpdateAt:         in.UpdateAt,
+		UploadAt:         in.UploadAt,
+		Extension:        model.PhotoExtension(in.Extension),
+		ProcessingStatus: model.PhotoProcessingStatus(in.ProcessingStatus),
 	}
 }
 
@@ -26,12 +27,13 @@ func PhotoModelToEntity(in *model.Photo) *entity.Photo {
 		return nil
 	}
 	return &entity.Photo{
-		ID:        in.ID,
-		FileName:  in.FileName,
-		Hash:      in.Hash,
-		UpdateAt:  in.UpdateAt,
-		UploadAt:  in.UploadAt,
-		Extension: string(in.Extension),
+		ID:               in.ID,
+		FileName:         in.FileName,
+		Hash:             in.Hash,
+		UpdateAt:         in.UpdateAt,
+		UploadAt:         in.UploadAt,
+		Extension:        string(in.Extension),
+		ProcessingStatus: string(in.ProcessingStatus),
 	}
 }
 
@@ -239,5 +241,29 @@ func PhotosSimilarCoefficientModelToEntity(in *model.PhotosSimilarCoefficient) *
 		PhotoID1:    in.PhotoID1,
 		PhotoID2:    in.PhotoID2,
 		Coefficient: in.Coefficient,
+	}
+}
+
+func PhotoFilter(in *model.PhotoFilter) *entity.PhotoFilter {
+	if in == nil {
+		return nil
+	}
+
+	var filter *entity.PhotoFilter = nil
+	filter = &entity.PhotoFilter{}
+	filter.ProcessingStatusIn = make([]string, 0, len(in.ProcessingStatusIn))
+	for _, s := range in.ProcessingStatusIn {
+		filter.ProcessingStatusIn = append(filter.ProcessingStatusIn, string(s))
+	}
+
+	return filter
+}
+
+func PhotoSelectParams(in model.PhotoSelectParams) entity.PhotoSelectParams {
+	return entity.PhotoSelectParams{
+		Offset:     in.Offset,
+		Limit:      in.Limit,
+		SortOrder:  entity.PhotoSortOrder(in.SortOrder),
+		SortDirect: entity.SortDirect(in.SortOrder),
 	}
 }

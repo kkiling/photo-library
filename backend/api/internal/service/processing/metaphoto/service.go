@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/kkiling/photo-library/backend/api/internal/service"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
+	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 	"time"
 )
 
@@ -23,11 +24,13 @@ type Database interface {
 }
 
 type Service struct {
+	logger   log.Logger
 	database Database
 }
 
-func NewService(storage Database) *Service {
+func NewService(logger log.Logger, storage Database) *Service {
 	return &Service{
+		logger:   logger,
 		database: storage,
 	}
 }
@@ -98,8 +101,8 @@ func (s *Service) getModelInfo(exif *model.ExifData) *string {
 	return nil
 }
 
-// SavePhotoMetaData рассчитывает meta данные фотографии и сохраняет в базу
-func (s *Service) SavePhotoMetaData(ctx context.Context, photo model.Photo, photoBody []byte) error {
+// Processing рассчитывает meta данные фотографии и сохраняет в базу
+func (s *Service) Processing(ctx context.Context, photo model.Photo, photoBody []byte) error {
 	exif, err := s.database.GetExif(ctx, photo.ID)
 	if err != nil {
 		return fmt.Errorf("database.GetExif: %w", err)

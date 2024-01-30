@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/kkiling/photo-library/backend/api/internal/service"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
+	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 	"github.com/rwcarlsen/goexif/exif"
 	"github.com/rwcarlsen/goexif/tiff"
 	"strings"
@@ -19,11 +20,13 @@ type Database interface {
 }
 
 type Service struct {
+	logger   log.Logger
 	database Database
 }
 
-func NewService(storage Database) *Service {
+func NewService(logger log.Logger, storage Database) *Service {
 	return &Service{
+		logger:   logger,
 		database: storage,
 	}
 }
@@ -136,17 +139,19 @@ func (p *write) Walk(name exif.FieldName, tag *tiff.Tag) error {
 	return nil
 }
 
-// SavePhotoExifData рассчитывает exif данные фотографии и сохраняет в базу
-func (s *Service) SavePhotoExifData(ctx context.Context, photo model.Photo, photoBody []byte) error {
+// Processing рассчитывает exif данные фотографии и сохраняет в базу
+func (s *Service) Processing(ctx context.Context, photo model.Photo, photoBody []byte) error {
 	reader := bytes.NewReader(photoBody)
 	x, err := exif.Decode(reader)
 
 	if err != nil {
 		if err.Error() == "EOF" {
-			return ExifEOFErr
+			s.logger.Debugf("photo (%s) exif decode error: %v", photo.ID, err)
+			return nil
 		}
 		if exif.IsCriticalError(err) {
-			return ExifCriticalErr
+			s.logger.Debugf("photo (%s) exif decode error: %v", photo.ID, err)
+			return nil
 		}
 	}
 
@@ -162,7 +167,6 @@ func (s *Service) SavePhotoExifData(ctx context.Context, photo model.Photo, phot
 	err = s.database.SaveOrUpdateExif(ctx, &p.data)
 
 	if err != nil {
-		// TODO:  ошибка
 		return fmt.Errorf("database.SaveOrUpdateExif: %w", err)
 	}
 

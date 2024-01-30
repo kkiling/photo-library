@@ -5,14 +5,16 @@ import (
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/fsstore"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/pgrepo"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/photoml"
+	"github.com/kkiling/photo-library/backend/api/internal/service/processing"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/server"
 )
 
 const (
-	ServerConfigName = "server"
-	PgConnectionName = "pg_db"
-	FsStoreName      = "fs_store"
-	PhotoMLName      = "photo_ml"
+	ServerConfigName     = "server"
+	PgConnectionName     = "pg_db"
+	FsStoreName          = "fs_store"
+	PhotoMLName          = "photo_ml"
+	ProcessingPhotosName = "processing_photo"
 )
 
 func (a *App) getServerConfig() (server.Config, error) {
@@ -52,6 +54,16 @@ func (a *App) getPhotoMLConfig() (photoml.Config, error) {
 	err := a.cfgProvider.PopulateByKey(PhotoMLName, &config)
 	if err != nil {
 		return photoml.Config{}, fmt.Errorf("PopulateByKey: %w", err)
+	}
+
+	return config, nil
+}
+
+func (a *App) getProcessingPhotosConfig() (processing.Config, error) {
+	var config processing.Config
+	err := a.cfgProvider.PopulateByKey(ProcessingPhotosName, &config)
+	if err != nil {
+		return processing.Config{}, fmt.Errorf("PopulateByKey: %w", err)
 	}
 
 	return config, nil

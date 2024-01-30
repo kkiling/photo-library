@@ -43,12 +43,16 @@ func (r *DbAdapter) GetPhotoById(ctx context.Context, id uuid.UUID) (*model.Phot
 	return mapping.PhotoEntityToModel(res), nil
 }
 
-func (r *DbAdapter) GetPhotosCount(ctx context.Context) (int64, error) {
-	return r.photoRepo.GetPhotosCount(ctx)
+func (r *DbAdapter) GetPhotosCount(ctx context.Context, filter *model.PhotoFilter) (int64, error) {
+	return r.photoRepo.GetPhotosCount(ctx, mapping.PhotoFilter(filter))
 }
 
-func (r *DbAdapter) GetPaginatedPhotos(ctx context.Context, offset int64, limit int) ([]model.Photo, error) {
-	photos, err := r.photoRepo.GetPaginatedPhotos(ctx, offset, limit)
+func (r *DbAdapter) UpdatePhotosProcessingStatus(ctx context.Context, id uuid.UUID, newProcessingStatus model.PhotoProcessingStatus) error {
+	return r.photoRepo.UpdatePhotosProcessingStatus(ctx, id, string(newProcessingStatus))
+}
+
+func (r *DbAdapter) GetPaginatedPhotos(ctx context.Context, params model.PhotoSelectParams, filter *model.PhotoFilter) ([]model.Photo, error) {
+	photos, err := r.photoRepo.GetPaginatedPhotos(ctx, mapping.PhotoSelectParams(params), mapping.PhotoFilter(filter))
 	if err != nil {
 		return nil, err
 	}

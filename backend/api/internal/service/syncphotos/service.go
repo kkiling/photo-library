@@ -96,12 +96,13 @@ func (s *Service) UploadPhoto(ctx context.Context, form *model.SyncPhotoRequest)
 	}
 
 	newPhoto := model.Photo{
-		ID:        uuid.New(),
-		FileName:  fileName,
-		Hash:      form.Hash,
-		UpdateAt:  form.UpdateAt,
-		UploadAt:  time.Now(),
-		Extension: *ex,
+		ID:               uuid.New(),
+		FileName:         fileName,
+		Hash:             form.Hash,
+		UpdateAt:         form.UpdateAt,
+		UploadAt:         time.Now(),
+		Extension:        *ex,
+		ProcessingStatus: model.PhotoProcessingNew,
 	}
 
 	uploadPhotoData := model.UploadPhotoData{

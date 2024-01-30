@@ -5,13 +5,31 @@ import (
 	"time"
 )
 
-type PhotoProcessing string
+type PhotoFilter struct {
+	ProcessingStatusIn []PhotoProcessingStatus
+}
+
+type PhotoSortOrder string
 
 const (
-	PhotoProcessingExifData       PhotoProcessing = "GET_EXIF"
-	PhotoProcessingMetaData       PhotoProcessing = "CALC_META"
-	PhotoProcessingTagsByCatalogs PhotoExtension  = "TAGS_BY_CATALOGS"
-	PhotoProcessingTagsByMeta     PhotoExtension  = "TAGS_BY_META"
+	PhotoSortOrderNone PhotoSortOrder = "NONE"
+)
+
+type PhotoSelectParams struct {
+	Offset     int64
+	Limit      int
+	SortOrder  PhotoSortOrder
+	SortDirect SortDirect
+}
+
+type PhotoProcessingStatus string
+
+const (
+	PhotoProcessingNew         PhotoProcessingStatus = "NEW_PHOTO"
+	PhotoProcessingExifData    PhotoProcessingStatus = "SAVE_EXIF_DATA"
+	PhotoProcessingMetaData    PhotoProcessingStatus = "SAVE_META_DATA"
+	PhotoProcessingTagsByMeta  PhotoProcessingStatus = "CREATE_TAGS_BY_META"
+	PhotoProcessingPhotoVector PhotoProcessingStatus = "SAVE_PHOTO_VECTOR" // Конечная в данный момент
 )
 
 type PhotoExtension string
@@ -24,12 +42,13 @@ const (
 )
 
 type Photo struct {
-	ID        uuid.UUID
-	FileName  string
-	Hash      string
-	UpdateAt  time.Time
-	UploadAt  time.Time
-	Extension PhotoExtension
+	ID               uuid.UUID
+	FileName         string
+	Hash             string
+	UpdateAt         time.Time
+	UploadAt         time.Time
+	Extension        PhotoExtension
+	ProcessingStatus PhotoProcessingStatus
 }
 
 type UploadPhotoData struct {

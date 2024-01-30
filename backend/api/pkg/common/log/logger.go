@@ -25,7 +25,7 @@ type Logger interface {
 
 func NewLogger() Logger {
 	cfg := zap.Config{
-		Level:            zap.NewAtomicLevelAt(zap.DebugLevel),
+		Level:            zap.NewAtomicLevelAt(zap.InfoLevel),
 		DisableCaller:    false,
 		OutputPaths:      []string{"stderr"},
 		ErrorOutputPaths: []string{"stderr"},

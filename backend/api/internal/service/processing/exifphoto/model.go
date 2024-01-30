@@ -1,10 +1,5 @@
 package exifphoto
 
-import "fmt"
-
-var ExifCriticalErr = fmt.Errorf("exif critiacl err")
-var ExifEOFErr = fmt.Errorf("exif eof err")
-
 type dataType int
 
 const (
