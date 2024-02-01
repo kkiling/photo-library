@@ -2,11 +2,12 @@ package processing
 
 import (
 	"context"
+	"sync"
+
 	"github.com/google/uuid"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
-	"sync"
 )
 
 type Config struct {
@@ -128,6 +129,10 @@ func (s *Service) ProcessingPhotos(ctx context.Context, status model.PhotoProces
 
 	wg.Wait()
 	close(errorsChan)
+
+	if len(errorsChan) > 0 {
+		return 0, <-errorsChan
+	}
 
 	return len(photos), nil
 }

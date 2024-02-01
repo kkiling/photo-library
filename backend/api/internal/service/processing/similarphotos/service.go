@@ -3,12 +3,13 @@ package similarphotos
 import (
 	"context"
 	"fmt"
+	"sync"
+
 	"github.com/cheggaaa/pb/v3"
 	"github.com/kkiling/photo-library/backend/api/internal/service"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 	"gonum.org/v1/gonum/floats"
-	"sync"
 )
 
 type Database interface {

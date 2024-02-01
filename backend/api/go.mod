@@ -5,7 +5,6 @@ go 1.21
 require (
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/cheggaaa/pb/v3 v3.1.5
-	github.com/codingsince1985/geo-golang v1.8.3
 	github.com/georgysavva/scany/v2 v2.1.0
 	github.com/go-playground/validator/v10 v10.17.0
 	github.com/golang/protobuf v1.5.3
@@ -36,7 +35,6 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20231201235250-de7065d80cb9 // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect

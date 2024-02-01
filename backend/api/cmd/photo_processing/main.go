@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+
 	"github.com/jessevdk/go-flags"
 	"github.com/kkiling/photo-library/backend/api/internal/app"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
@@ -32,8 +33,11 @@ func main() {
 	statuses := []model.PhotoProcessingStatus{
 		model.PhotoProcessingNew,
 		model.PhotoProcessingExifData,
+		model.PhotoProcessingMetaData,
 		model.PhotoProcessingTagsByMeta,
+		model.PhotoProcessingPhotoVector, // Конечная в данный момент (нет обработчика)
 	}
+	const limit = 100
 	for _, status := range statuses {
 		func(status model.PhotoProcessingStatus, limit int) {
 			application.Logger().Infof("startProcessing photos with status %s", status)
@@ -48,6 +52,6 @@ func main() {
 					break
 				}
 			}
-		}(status, 1000)
+		}(status, limit)
 	}
 }

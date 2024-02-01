@@ -4,14 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/codingsince1985/geo-golang"
-	"github.com/codingsince1985/geo-golang/openstreetmap"
+	"unicode/utf8"
+
 	"github.com/google/uuid"
+	"github.com/kkiling/photo-library/backend/api/internal/adapter/geo"
 	"github.com/kkiling/photo-library/backend/api/internal/service"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/internal/service/tagphoto"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
-	"unicode/utf8"
 )
 
 var ErrMetaNotFound = fmt.Errorf("meta not found")
@@ -40,19 +40,23 @@ type TagPhoto interface {
 	CreateCategory(ctx context.Context, typeCategory, color string) (model.TagCategory, error)
 }
 
+type GeoService interface {
+	ReverseGeocode(ctx context.Context, lat, lng float64) (*geo.Address, error)
+}
+
 type Service struct {
 	logger     log.Logger
 	tagService TagPhoto
 	database   Database
-	geocoder   geo.Geocoder
+	geocoder   GeoService
 }
 
-func NewService(logger log.Logger, tagService TagPhoto, database Database) *Service {
+func NewService(logger log.Logger, tagService TagPhoto, database Database, geoService GeoService) *Service {
 	return &Service{
 		logger:     logger,
 		tagService: tagService,
 		database:   database,
-		geocoder:   openstreetmap.Geocoder(),
+		geocoder:   geoService,
 	}
 }
 
@@ -76,20 +80,9 @@ func (s *Service) getOrCreateTagCategory(ctx context.Context, tagCategory, color
 	return category, nil
 }
 
-// Processing создание и сохранение автоматических тегов (по мета данным или по путям и тд)
-func (s *Service) Processing(ctx context.Context, photo model.Photo, _ []byte) error {
-
-	// По каталогу КАТАЛОГ
-	data, err := s.database.GetUploadPhotoData(ctx, photo.ID)
-	if err != nil {
-		return fmt.Errorf("database.GetUploadPhotoData: %w", err)
-	}
-	if data == nil {
-		return ErrUploadDataNotFound
-	}
-
+func (s *Service) createPhotoCatalogTag(ctx context.Context, photo model.Photo, uploadData *model.UploadPhotoData) error {
 	tags := make(map[string]struct{})
-	for _, path := range data.Paths {
+	for _, path := range uploadData.Paths {
 		dirs := getDirectories(path)
 		for _, dir := range dirs {
 			tags[dir] = struct{}{}
@@ -114,87 +107,129 @@ func (s *Service) Processing(ctx context.Context, photo model.Photo, _ []byte) e
 		}
 	}
 
-	// Мета информация
-	meta, err := s.database.GetMetaData(ctx, photo.ID)
+	return nil
+}
+
+func (s *Service) createYearTag(ctx context.Context, photo model.Photo, metaData *model.MetaData) error {
+	if metaData.DateTime == nil {
+		return nil
+	}
+	yearCategory, err := s.getOrCreateTagCategory(ctx, YearTag, YearTagColor)
+	if err != nil {
+		return fmt.Errorf("getOrCreateTagCategory: %w", err)
+	}
+
+	name := fmt.Sprintf("%d", metaData.DateTime.Year())
+	_, err = s.tagService.AddPhotoTag(ctx, photo.ID, yearCategory.ID, name)
+	if err != nil {
+		if errors.Is(err, tagphoto.ErrTagAlreadyExist) {
+		} else {
+			return fmt.Errorf("tagService.AddPhotoTag: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (s *Service) createCameraModelTag(ctx context.Context, photo model.Photo, metaData *model.MetaData) error {
+	if metaData.ModelInfo == nil || (*metaData.ModelInfo == "") {
+		return nil
+	}
+	cameraCategory, err := s.getOrCreateTagCategory(ctx, CameraModelTag, CameraModelTagColor)
+	if err != nil {
+		return fmt.Errorf("getOrCreateTagCategory: %w", err)
+	}
+
+	_, err = s.tagService.AddPhotoTag(ctx, photo.ID, cameraCategory.ID, *metaData.ModelInfo)
+	if err != nil {
+		if errors.Is(err, tagphoto.ErrTagAlreadyExist) {
+		} else {
+			return fmt.Errorf("tagService.AddPhotoTag: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (s *Service) createLocationTag(ctx context.Context, photo model.Photo, metaData *model.MetaData) error {
+	if metaData.Geo == nil {
+		return nil
+	}
+	locationCategory, err := s.getOrCreateTagCategory(ctx, LocationTag, LocationTagColor)
+	if err != nil {
+		return fmt.Errorf("getOrCreateTagCategory: %w", err)
+	}
+
+	location, err := s.geocoder.ReverseGeocode(ctx, metaData.Geo.Latitude, metaData.Geo.Longitude)
+	if err != nil {
+		return fmt.Errorf("geocoder.ReverseGeocode: %w", err)
+	}
+
+	locationTags := make([]string, 0)
+	if location.State != "" {
+		locationTags = append(locationTags, location.State)
+	}
+	if location.StateDistrict != "" {
+		locationTags = append(locationTags, location.StateDistrict)
+	}
+	if location.County != "" {
+		locationTags = append(locationTags, location.County)
+	}
+	if location.Country != "" {
+		locationTags = append(locationTags, location.Country)
+	}
+	if location.City != "" {
+		locationTags = append(locationTags, location.City)
+	}
+
+	for _, loc := range locationTags {
+		_, err = s.tagService.AddPhotoTag(ctx, photo.ID, locationCategory.ID, loc)
+		if err != nil {
+			if errors.Is(err, tagphoto.ErrTagAlreadyExist) {
+			} else {
+				return fmt.Errorf("tagService.AddPhotoTag: %w", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+// Processing создание и сохранение автоматических тегов (по мета данным или по путям и тд)
+func (s *Service) Processing(ctx context.Context, photo model.Photo, _ []byte) error {
+	uploadData, err := s.database.GetUploadPhotoData(ctx, photo.ID)
+	if err != nil {
+		return fmt.Errorf("database.GetUploadPhotoData: %w", err)
+	}
+
+	if uploadData == nil {
+		return ErrUploadDataNotFound
+	}
+
+	metaData, err := s.database.GetMetaData(ctx, photo.ID)
 	if err != nil {
 		return fmt.Errorf("databases.GetMetaData: %w", err)
 	}
 
-	if meta == nil {
-		s.logger.Debugf("meta for photo (%s) not found", photo.ID)
-		return nil
+	if metaData == nil {
+		return ErrMetaNotFound
 	}
 
-	// По дате формируем тег ГОД
-	if meta.DateTime != nil {
-		yearCategory, err := s.getOrCreateTagCategory(ctx, YearTag, YearTagColor)
-		if err != nil {
-			return fmt.Errorf("getOrCreateTagCategory: %w", err)
-		}
-
-		name := fmt.Sprintf("%d", meta.DateTime.Year())
-		_, err = s.tagService.AddPhotoTag(ctx, photo.ID, yearCategory.ID, name)
-		if err != nil {
-			if errors.Is(err, tagphoto.ErrTagAlreadyExist) {
-			} else {
-				return fmt.Errorf("tagService.AddPhotoTag: %w", err)
-			}
-		}
+	// Теги По каталогу По каталогу КАТАЛОГ
+	if err := s.createPhotoCatalogTag(ctx, photo, uploadData); err != nil {
+		return fmt.Errorf("s.createPhotoCatalogTag: %w", err)
 	}
-
-	// По модели МОДЕЛЬ
-	if meta.ModelInfo != nil && (*meta.ModelInfo != "") {
-		cameraCategory, err := s.getOrCreateTagCategory(ctx, CameraModelTag, CameraModelTagColor)
-		if err != nil {
-			return fmt.Errorf("getOrCreateTagCategory: %w", err)
-		}
-
-		_, err = s.tagService.AddPhotoTag(ctx, photo.ID, cameraCategory.ID, *meta.ModelInfo)
-		if err != nil {
-			if errors.Is(err, tagphoto.ErrTagAlreadyExist) {
-			} else {
-				return fmt.Errorf("tagService.AddPhotoTag: %w", err)
-			}
-		}
+	// Теги По дате формируем тег ГОД
+	if err := s.createYearTag(ctx, photo, metaData); err != nil {
+		return fmt.Errorf("s.createYearTag: %w", err)
 	}
-
-	if meta.Geo != nil {
-		locationCategory, err := s.getOrCreateTagCategory(ctx, LocationTag, LocationTagColor)
-		if err != nil {
-			return fmt.Errorf("getOrCreateTagCategory: %w", err)
-		}
-
-		location, err := s.geocoder.ReverseGeocode(meta.Geo.Latitude, meta.Geo.Longitude)
-		if err != nil {
-			return fmt.Errorf("geocoder.ReverseGeocode: %w", err)
-		}
-
-		locationTags := make([]string, 0)
-		if location.State != "" {
-			locationTags = append(locationTags, location.State)
-		}
-		if location.StateDistrict != "" {
-			locationTags = append(locationTags, location.StateDistrict)
-		}
-		if location.County != "" {
-			locationTags = append(locationTags, location.County)
-		}
-		if location.Country != "" {
-			locationTags = append(locationTags, location.Country)
-		}
-		if location.City != "" {
-			locationTags = append(locationTags, location.City)
-		}
-
-		for _, loc := range locationTags {
-			_, err = s.tagService.AddPhotoTag(ctx, photo.ID, locationCategory.ID, loc)
-			if err != nil {
-				if errors.Is(err, tagphoto.ErrTagAlreadyExist) {
-				} else {
-					return fmt.Errorf("tagService.AddPhotoTag: %w", err)
-				}
-			}
-		}
+	// Теги По модели МОДЕЛЬ
+	if err := s.createCameraModelTag(ctx, photo, metaData); err != nil {
+		return fmt.Errorf("s.createCameraModelTag: %w", err)
+	}
+	// Теги по геолокации
+	if err := s.createLocationTag(ctx, photo, metaData); err != nil {
+		return fmt.Errorf("s.createLocationTag: %w", err)
 	}
 
 	return nil

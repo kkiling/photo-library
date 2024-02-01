@@ -1,9 +1,10 @@
 package config
 
 import (
+	"os"
+
 	"github.com/joho/godotenv"
 	"go.uber.org/config"
-	"os"
 )
 
 type Provider interface {

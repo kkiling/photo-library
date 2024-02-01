@@ -1,10 +1,11 @@
 package systags
 
 import (
-	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"math"
 	"path/filepath"
 	"strings"
+
+	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 )
 
 const earthRadiusKm = 6371.0

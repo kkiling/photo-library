@@ -3,6 +3,10 @@ package server
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/http"
+	"time"
+
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	rn "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
@@ -11,9 +15,6 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/protobuf/encoding/protojson"
-	"net"
-	"net/http"
-	"time"
 )
 
 type Descriptor struct {

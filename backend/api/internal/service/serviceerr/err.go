@@ -2,6 +2,7 @@ package serviceerr
 
 import (
 	"fmt"
+
 	"github.com/kkiling/photo-library/backend/api/pkg/common/utils"
 
 	"github.com/go-playground/validator/v10"

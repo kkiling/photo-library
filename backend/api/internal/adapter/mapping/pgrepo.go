@@ -2,9 +2,10 @@ package mapping
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/entity"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
-	"reflect"
 )
 
 func PhotoEntityToModel(in *entity.Photo) *model.Photo {

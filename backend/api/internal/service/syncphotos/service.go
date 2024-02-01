@@ -1,16 +1,19 @@
 package syncphotos
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"image"
+	"path/filepath"
+	"strings"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/kkiling/photo-library/backend/api/internal/service"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
-	"path/filepath"
-	"strings"
-	"time"
 )
 
 type Storage interface {
@@ -82,6 +85,16 @@ func (s *Service) UploadPhoto(ctx context.Context, form *model.SyncPhotoRequest)
 	if len(form.Paths) == 0 {
 		return nil, serviceerr.InvalidInputError("paths must not be empty")
 	}
+
+	// Проверяем открывается фото
+	reader := bytes.NewReader(form.Body)
+	// Получение размера изображения в пикселях
+	img, f, err := image.DecodeConfig(reader)
+	if err != nil {
+		return nil, serviceerr.InvalidInputError("photo has an invalid format")
+	}
+	fmt.Println(img)
+	fmt.Println(f)
 
 	// Проверка, поддерживается ли расширение
 	ex := s.getPhotoExtension(form.Paths[0])

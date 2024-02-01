@@ -3,9 +3,11 @@ package app
 import (
 	"context"
 	"fmt"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/fsstore"
+	"github.com/kkiling/photo-library/backend/api/internal/adapter/geo"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/pgrepo"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/photoml"
 	"github.com/kkiling/photo-library/backend/api/internal/handler"
@@ -37,6 +39,7 @@ type App struct {
 	// service
 	similarPhotos *similarphotos.Service
 	syncPhoto     *syncphotos.Service
+	geoService    *geo.Service
 	// Processing
 	tagPhoto         *tagphoto.Service
 	exifPhoto        *exifphoto.Service
@@ -90,6 +93,7 @@ func (a *App) Create(ctx context.Context) error {
 	a.pgRepo = pgrepo.NewPhotoRepository(a.pgxPool)
 	a.dbAdapter = adapter.NewDbAdapter(a.pgRepo)
 	a.fsStore = fsstore.NewStore(fsStoreCfg)
+	a.geoService = geo.NewService(a.logger.Named("geo_service"))
 	a.photoML = photoml.NewService(
 		a.logger.Named("photo_ml"),
 		photoMlCfg,
@@ -114,6 +118,7 @@ func (a *App) Create(ctx context.Context) error {
 		a.logger.Named("sync_photo_service_photo"),
 		a.tagPhoto,
 		a.dbAdapter,
+		a.geoService,
 	)
 	a.syncPhotoServer = handler.NewSyncPhotosServiceServer(
 		a.logger.Named("sync_photo_service_photo"),

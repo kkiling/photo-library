@@ -3,7 +3,6 @@ package metaphoto
 import (
 	"bytes"
 	"fmt"
-	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"image"
 	_ "image/gif"
 	_ "image/jpeg"
@@ -12,6 +11,8 @@ import (
 	"regexp"
 	"strconv"
 	"time"
+
+	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 )
 
 func getImageDetails(photoBody []byte) (width int, height int, err error) {
