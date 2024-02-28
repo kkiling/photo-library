@@ -2,13 +2,13 @@ package mapping
 
 import (
 	"fmt"
+	entity2 "github.com/kkiling/photo-library/backend/api/internal/adapter/storage/entity"
 	"reflect"
 
-	"github.com/kkiling/photo-library/backend/api/internal/adapter/entity"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 )
 
-func PhotoEntityToModel(in *entity.Photo) *model.Photo {
+func PhotoEntityToModel(in *entity2.Photo) *model.Photo {
 	if in == nil {
 		return nil
 	}
@@ -17,32 +17,30 @@ func PhotoEntityToModel(in *entity.Photo) *model.Photo {
 		FileName:         in.FileName,
 		Hash:             in.Hash,
 		UpdateAt:         in.UpdateAt,
-		UploadAt:         in.UploadAt,
 		Extension:        model.PhotoExtension(in.Extension),
 		ProcessingStatus: model.PhotoProcessingStatus(in.ProcessingStatus),
 	}
 }
 
-func PhotoModelToEntity(in *model.Photo) *entity.Photo {
+func PhotoModelToEntity(in *model.Photo) *entity2.Photo {
 	if in == nil {
 		return nil
 	}
-	return &entity.Photo{
+	return &entity2.Photo{
 		ID:               in.ID,
 		FileName:         in.FileName,
 		Hash:             in.Hash,
 		UpdateAt:         in.UpdateAt,
-		UploadAt:         in.UploadAt,
 		Extension:        string(in.Extension),
 		ProcessingStatus: string(in.ProcessingStatus),
 	}
 }
 
-func UploadPhotoDataModelToEntity(in *model.UploadPhotoData) *entity.UploadPhotoData {
+func PhotoUploadDataModelToEntity(in *model.PhotoUploadData) *entity2.PhotoUploadData {
 	if in == nil {
 		return nil
 	}
-	return &entity.UploadPhotoData{
+	return &entity2.PhotoUploadData{
 		PhotoID:  in.PhotoID,
 		Paths:    in.Paths,
 		UploadAt: in.UploadAt,
@@ -50,11 +48,11 @@ func UploadPhotoDataModelToEntity(in *model.UploadPhotoData) *entity.UploadPhoto
 	}
 }
 
-func UploadPhotoDataEntityToModel(in *entity.UploadPhotoData) *model.UploadPhotoData {
+func PhotoUploadDataEntityToModel(in *entity2.PhotoUploadData) *model.PhotoUploadData {
 	if in == nil {
 		return nil
 	}
-	return &model.UploadPhotoData{
+	return &model.PhotoUploadData{
 		PhotoID:  in.PhotoID,
 		Paths:    in.Paths,
 		UploadAt: in.UploadAt,
@@ -95,18 +93,18 @@ func mapExifData(in interface{}, outTemplate interface{}) interface{} {
 	return outTemplate
 }
 
-func ExifEntityToModel(in *entity.ExifData) *model.ExifData {
+func ExifPhotoDataEntityToModel(in *entity2.ExifPhotoData) *model.ExifPhotoData {
 	if in == nil {
 		return nil
 	}
-	return mapExifData(in, &model.ExifData{}).(*model.ExifData)
+	return mapExifData(in, &model.ExifPhotoData{}).(*model.ExifPhotoData)
 }
 
-func ExifModelToExif(in *model.ExifData) *entity.ExifData {
-	return mapExifData(in, &entity.ExifData{}).(*entity.ExifData)
+func ExifPhotoDataModelToEntity(in *model.ExifPhotoData) *entity2.ExifPhotoData {
+	return mapExifData(in, &entity2.ExifPhotoData{}).(*entity2.ExifPhotoData)
 }
 
-func MetaDataModelToEntity(in *model.MetaData) *entity.MetaData {
+func PhotoMetadataModelToEntity(in *model.PhotoMetadata) *entity2.PhotoMetadata {
 	if in == nil {
 		return nil
 	}
@@ -118,7 +116,7 @@ func MetaDataModelToEntity(in *model.MetaData) *entity.MetaData {
 		geoLatitude = &in.Geo.Latitude
 		geoLongitude = &in.Geo.Longitude
 	}
-	return &entity.MetaData{
+	return &entity2.PhotoMetadata{
 		PhotoID:      in.PhotoID,
 		ModelInfo:    in.ModelInfo,
 		SizeBytes:    in.SizeBytes,
@@ -131,7 +129,7 @@ func MetaDataModelToEntity(in *model.MetaData) *entity.MetaData {
 	}
 }
 
-func MetaDataDataEntityToModel(in *entity.MetaData) *model.MetaData {
+func PhotoMetadataEntityToModel(in *entity2.PhotoMetadata) *model.PhotoMetadata {
 	if in == nil {
 		return nil
 	}
@@ -143,7 +141,7 @@ func MetaDataDataEntityToModel(in *entity.MetaData) *model.MetaData {
 		}
 	}
 
-	return &model.MetaData{
+	return &model.PhotoMetadata{
 		PhotoID:     in.PhotoID,
 		ModelInfo:   in.ModelInfo,
 		SizeBytes:   in.SizeBytes,
@@ -155,7 +153,7 @@ func MetaDataDataEntityToModel(in *entity.MetaData) *model.MetaData {
 	}
 }
 
-func TagEntityToModel(in *entity.Tag) *model.Tag {
+func TagEntityToModel(in *entity2.Tag) *model.Tag {
 	if in == nil {
 		return nil
 	}
@@ -167,11 +165,11 @@ func TagEntityToModel(in *entity.Tag) *model.Tag {
 	}
 }
 
-func TagModelToEntity(in *model.Tag) *entity.Tag {
+func TagModelToEntity(in *model.Tag) *entity2.Tag {
 	if in == nil {
 		return nil
 	}
-	return &entity.Tag{
+	return &entity2.Tag{
 		ID:         in.ID,
 		CategoryID: in.CategoryID,
 		PhotoID:    in.PhotoID,
@@ -179,7 +177,7 @@ func TagModelToEntity(in *model.Tag) *entity.Tag {
 	}
 }
 
-func TagCategoryEntityToModel(in *entity.TagCategory) *model.TagCategory {
+func TagCategoryEntityToModel(in *entity2.TagCategory) *model.TagCategory {
 	if in == nil {
 		return nil
 	}
@@ -190,18 +188,18 @@ func TagCategoryEntityToModel(in *entity.TagCategory) *model.TagCategory {
 	}
 }
 
-func TagCategoryModelToEntity(in *model.TagCategory) *entity.TagCategory {
+func TagCategoryModelToEntity(in *model.TagCategory) *entity2.TagCategory {
 	if in == nil {
 		return nil
 	}
-	return &entity.TagCategory{
+	return &entity2.TagCategory{
 		ID:    in.ID,
 		Type:  in.Type,
 		Color: in.Color,
 	}
 }
 
-func PhotoVectorEntityToModel(in *entity.PhotoVector) *model.PhotoVector {
+func PhotoVectorEntityToModel(in *entity2.PhotoVector) *model.PhotoVector {
 	if in == nil {
 		return nil
 	}
@@ -212,46 +210,46 @@ func PhotoVectorEntityToModel(in *entity.PhotoVector) *model.PhotoVector {
 	}
 }
 
-func PhotoVectorModelToEntity(in *model.PhotoVector) *entity.PhotoVector {
+func PhotoVectorModelToEntity(in *model.PhotoVector) *entity2.PhotoVector {
 	if in == nil {
 		return nil
 	}
-	return &entity.PhotoVector{
+	return &entity2.PhotoVector{
 		PhotoID: in.PhotoID,
 		Vector:  in.Vector,
 		Norm:    in.Norm,
 	}
 }
 
-func PhotosSimilarCoefficientEntityToModel(in *entity.PhotosSimilarCoefficient) *model.PhotosSimilarCoefficient {
+func CoeffSimilarPhotoEntityToModel(in *entity2.CoeffSimilarPhoto) *model.CoeffSimilarPhoto {
 	if in == nil {
 		return nil
 	}
-	return &model.PhotosSimilarCoefficient{
+	return &model.CoeffSimilarPhoto{
 		PhotoID1:    in.PhotoID1,
 		PhotoID2:    in.PhotoID2,
 		Coefficient: in.Coefficient,
 	}
 }
 
-func PhotosSimilarCoefficientModelToEntity(in *model.PhotosSimilarCoefficient) *entity.PhotosSimilarCoefficient {
+func CoeffSimilarPhotoModelToEntity(in *model.CoeffSimilarPhoto) *entity2.CoeffSimilarPhoto {
 	if in == nil {
 		return nil
 	}
-	return &entity.PhotosSimilarCoefficient{
+	return &entity2.CoeffSimilarPhoto{
 		PhotoID1:    in.PhotoID1,
 		PhotoID2:    in.PhotoID2,
 		Coefficient: in.Coefficient,
 	}
 }
 
-func PhotoFilter(in *model.PhotoFilter) *entity.PhotoFilter {
+func PhotoFilter(in *model.PhotoFilter) *entity2.PhotoFilter {
 	if in == nil {
 		return nil
 	}
 
-	var filter *entity.PhotoFilter = nil
-	filter = &entity.PhotoFilter{}
+	var filter *entity2.PhotoFilter = nil
+	filter = &entity2.PhotoFilter{}
 	filter.ProcessingStatusIn = make([]string, 0, len(in.ProcessingStatusIn))
 	for _, s := range in.ProcessingStatusIn {
 		filter.ProcessingStatusIn = append(filter.ProcessingStatusIn, string(s))
@@ -260,11 +258,11 @@ func PhotoFilter(in *model.PhotoFilter) *entity.PhotoFilter {
 	return filter
 }
 
-func PhotoSelectParams(in model.PhotoSelectParams) entity.PhotoSelectParams {
-	return entity.PhotoSelectParams{
+func PhotoSelectParams(in model.PhotoSelectParams) entity2.PhotoSelectParams {
+	return entity2.PhotoSelectParams{
 		Offset:     in.Offset,
 		Limit:      in.Limit,
-		SortOrder:  entity.PhotoSortOrder(in.SortOrder),
-		SortDirect: entity.SortDirect(in.SortOrder),
+		SortOrder:  entity2.PhotoSortOrder(in.SortOrder),
+		SortDirect: entity2.SortDirect(in.SortOrder),
 	}
 }

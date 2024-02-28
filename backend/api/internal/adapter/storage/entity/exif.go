@@ -2,7 +2,7 @@ package entity
 
 import "github.com/google/uuid"
 
-type ExifData struct {
+type ExifPhotoData struct {
 	PhotoID                          uuid.UUID `db:"photo_id"`
 	Sharpness                        *int      `db:"sharpness"`
 	MakerNote                        *string   `db:"maker_note"`

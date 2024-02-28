@@ -1,26 +1,23 @@
 package syncphotos
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"image"
-	"path/filepath"
-	"strings"
-	"time"
-
 	"github.com/google/uuid"
 	"github.com/kkiling/photo-library/backend/api/internal/service"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
+	"path/filepath"
+	"strings"
+	"time"
 )
 
 type Storage interface {
 	service.Transactor
 	GetPhotoByHash(ctx context.Context, hash string) (*model.Photo, error)
 	SavePhoto(ctx context.Context, photo model.Photo) error
-	SaveUploadPhotoData(ctx context.Context, data model.UploadPhotoData) error
+	SaveUploadPhotoData(ctx context.Context, data model.PhotoUploadData) error
 }
 
 type FileStore interface {
@@ -66,11 +63,9 @@ func (s *Service) getPhotoExtension(path string) *model.PhotoExtension {
 }
 
 func (s *Service) UploadPhoto(ctx context.Context, form *model.SyncPhotoRequest) (*model.SyncPhotoResponse, error) {
-
 	// Проверяем загружено ли фото
 	findPhoto, err := s.storage.GetPhotoByHash(ctx, form.Hash)
 	if err != nil {
-		// TODO:  ошибка
 		return nil, serviceerr.RuntimeError(err, s.storage.GetPhotoByHash)
 	}
 
@@ -78,7 +73,6 @@ func (s *Service) UploadPhoto(ctx context.Context, form *model.SyncPhotoRequest)
 		return &model.SyncPhotoResponse{
 			HasBeenUploadedBefore: true,
 			Hash:                  findPhoto.Hash,
-			UploadAt:              findPhoto.UploadAt,
 		}, nil
 	}
 
@@ -86,42 +80,34 @@ func (s *Service) UploadPhoto(ctx context.Context, form *model.SyncPhotoRequest)
 		return nil, serviceerr.InvalidInputError("paths must not be empty")
 	}
 
-	// Проверяем открывается фото
-	reader := bytes.NewReader(form.Body)
-	// Получение размера изображения в пикселях
-	img, f, err := image.DecodeConfig(reader)
-	if err != nil {
-		return nil, serviceerr.InvalidInputError("photo has an invalid format")
-	}
-	fmt.Println(img)
-	fmt.Println(f)
-
 	// Проверка, поддерживается ли расширение
 	ex := s.getPhotoExtension(form.Paths[0])
 	if ex == nil {
 		return nil, serviceerr.InvalidInputError("photo extension not found")
 	}
 
+	photoID := uuid.New()
+	uploadAt := time.Now()
+
 	// Сохранить файл и получить url
-	fileName := fmt.Sprintf("%s.%s", uuid.New(), strings.ToLower(string(*ex)))
+	fileName := fmt.Sprintf("%s.%s", photoID, strings.ToLower(string(*ex)))
 	if err := s.fileStorage.SaveFileBody(ctx, fileName, form.Body); err != nil {
 		return nil, serviceerr.RuntimeError(err, s.fileStorage.SaveFileBody)
 	}
 
 	newPhoto := model.Photo{
-		ID:               uuid.New(),
+		ID:               photoID,
 		FileName:         fileName,
 		Hash:             form.Hash,
 		UpdateAt:         form.UpdateAt,
-		UploadAt:         time.Now(),
 		Extension:        *ex,
-		ProcessingStatus: model.PhotoProcessingNew,
+		ProcessingStatus: model.NewPhoto,
 	}
 
-	uploadPhotoData := model.UploadPhotoData{
-		PhotoID:  newPhoto.ID,
+	uploadPhotoData := model.PhotoUploadData{
+		PhotoID:  photoID,
+		UploadAt: uploadAt,
 		Paths:    form.Paths,
-		UploadAt: newPhoto.UploadAt,
 		ClientId: form.ClientId,
 	}
 
@@ -151,6 +137,5 @@ func (s *Service) UploadPhoto(ctx context.Context, form *model.SyncPhotoRequest)
 	return &model.SyncPhotoResponse{
 		HasBeenUploadedBefore: false,
 		Hash:                  newPhoto.Hash,
-		UploadAt:              newPhoto.UploadAt,
 	}, nil
 }

@@ -54,8 +54,9 @@ func (p *SyncPhotosServiceServer) crateServerInterceptors() ([]grpc.UnaryServerI
 	}
 
 	return []grpc.UnaryServerInterceptor{
+		NewPanicRecoverInterceptor(p.logger),
+		NewLoggerInterceptor(p.logger),
 		NewAuthInterceptor(p.logger, descriptors),
-		NewPanicRecoverInterceptor(),
 	}, nil
 }
 

@@ -1,4 +1,4 @@
-package exifphoto
+package exifphotodata
 
 import (
 	"bytes"
@@ -14,26 +14,26 @@ import (
 	"github.com/rwcarlsen/goexif/tiff"
 )
 
-type Database interface {
+type Storage interface {
 	service.Transactor
 	GetPhotoById(ctx context.Context, id uuid.UUID) (*model.Photo, error)
-	SaveOrUpdateExif(ctx context.Context, data *model.ExifData) error
+	SaveOrUpdateExif(ctx context.Context, data *model.ExifPhotoData) error
 }
 
 type Service struct {
-	logger   log.Logger
-	database Database
+	logger  log.Logger
+	storage Storage
 }
 
-func NewService(logger log.Logger, storage Database) *Service {
+func NewService(logger log.Logger, storage Storage) *Service {
 	return &Service{
-		logger:   logger,
-		database: storage,
+		logger:  logger,
+		storage: storage,
 	}
 }
 
 type write struct {
-	data model.ExifData
+	data model.ExifPhotoData
 }
 
 func ratToFloat(tag *tiff.Tag, i int) (float64, error) {
@@ -157,7 +157,7 @@ func (s *Service) Processing(ctx context.Context, photo model.Photo, photoBody [
 	}
 
 	var p = write{
-		data: model.ExifData{
+		data: model.ExifPhotoData{
 			PhotoID: photo.ID,
 		},
 	}
@@ -165,10 +165,10 @@ func (s *Service) Processing(ctx context.Context, photo model.Photo, photoBody [
 		return fmt.Errorf("exif.Walk: %w", err)
 	}
 
-	err = s.database.SaveOrUpdateExif(ctx, &p.data)
+	err = s.storage.SaveOrUpdateExif(ctx, &p.data)
 
 	if err != nil {
-		return fmt.Errorf("database.SaveOrUpdateExif: %w", err)
+		return fmt.Errorf("storage.SaveOrUpdateExif: %w", err)
 	}
 
 	return nil

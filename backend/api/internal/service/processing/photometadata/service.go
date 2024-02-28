@@ -1,4 +1,4 @@
-package metaphoto
+package photometadata
 
 import (
 	"context"
@@ -14,29 +14,27 @@ import (
 const timeLayout = "2006:01:02 15:04:05"
 const invalidTime = "0000:00:00 00:00:00"
 
-var errInvalidDateFormat = fmt.Errorf("invalid date format")
-
-type Database interface {
+type Storage interface {
 	service.Transactor
 	GetPhotoById(ctx context.Context, id uuid.UUID) (*model.Photo, error)
-	SaveOrUpdateMetaData(ctx context.Context, data model.MetaData) error
-	GetExif(ctx context.Context, photoID uuid.UUID) (*model.ExifData, error)
-	GetUploadPhotoData(ctx context.Context, photoID uuid.UUID) (*model.UploadPhotoData, error)
+	SaveOrUpdateMetaData(ctx context.Context, data model.PhotoMetadata) error
+	GetExif(ctx context.Context, photoID uuid.UUID) (*model.ExifPhotoData, error)
+	GetUploadPhotoData(ctx context.Context, photoID uuid.UUID) (*model.PhotoUploadData, error)
 }
 
 type Service struct {
-	logger   log.Logger
-	database Database
+	logger  log.Logger
+	storage Storage
 }
 
-func NewService(logger log.Logger, storage Database) *Service {
+func NewService(logger log.Logger, storage Storage) *Service {
 	return &Service{
-		logger:   logger,
-		database: storage,
+		logger:  logger,
+		storage: storage,
 	}
 }
 
-func (s *Service) getDateTime(ctx context.Context, exif *model.ExifData, photoID uuid.UUID) (*time.Time, error) {
+func (s *Service) getDateTime(ctx context.Context, exif *model.ExifPhotoData, photoID uuid.UUID) (*time.Time, error) {
 	if exif == nil {
 		return nil, nil
 	}
@@ -52,9 +50,9 @@ func (s *Service) getDateTime(ctx context.Context, exif *model.ExifData, photoID
 			dateTime = &d
 		}
 	} else {
-		uploadData, err := s.database.GetUploadPhotoData(ctx, photoID)
+		uploadData, err := s.storage.GetUploadPhotoData(ctx, photoID)
 		if err != nil {
-			return nil, fmt.Errorf("database.GetUploadPhotoData: %w", err)
+			return nil, fmt.Errorf("storage.GetPhotoUploadData: %w", err)
 		}
 
 		if uploadData == nil {
@@ -74,7 +72,7 @@ func (s *Service) getDateTime(ctx context.Context, exif *model.ExifData, photoID
 	return dateTime, nil
 }
 
-func (s *Service) getGeo(exif *model.ExifData) (*model.Geo, error) {
+func (s *Service) getGeo(exif *model.ExifPhotoData) (*model.Geo, error) {
 	if exif != nil && exif.GPSLongitude != nil && exif.GPSLatitude != nil {
 		geo, err := convertToGeo(exif.GPSLatitude, exif.GPSLongitude)
 		if err != nil {
@@ -86,7 +84,7 @@ func (s *Service) getGeo(exif *model.ExifData) (*model.Geo, error) {
 	return nil, nil
 }
 
-func (s *Service) getModelInfo(exif *model.ExifData) *string {
+func (s *Service) getModelInfo(exif *model.ExifPhotoData) *string {
 	if exif != nil && (exif.Model != nil || exif.Make != nil) {
 		modelInfo := ""
 		if exif.Model != nil && exif.Make != nil {
@@ -104,9 +102,9 @@ func (s *Service) getModelInfo(exif *model.ExifData) *string {
 
 // Processing рассчитывает meta данные фотографии и сохраняет в базу
 func (s *Service) Processing(ctx context.Context, photo model.Photo, photoBody []byte) error {
-	exif, err := s.database.GetExif(ctx, photo.ID)
+	exif, err := s.storage.GetExif(ctx, photo.ID)
 	if err != nil {
-		return fmt.Errorf("database.GetExif: %w", err)
+		return fmt.Errorf("storage.GetExif: %w", err)
 	}
 
 	dateTime, err := s.getDateTime(ctx, exif, photo.ID)
@@ -125,7 +123,7 @@ func (s *Service) Processing(ctx context.Context, photo model.Photo, photoBody [
 		return fmt.Errorf("getImageDetails: %w", err)
 	}
 
-	meta := model.MetaData{
+	meta := model.PhotoMetadata{
 		PhotoID:     photo.ID,
 		ModelInfo:   modelInfo,
 		SizeBytes:   len(photoBody),
@@ -136,10 +134,10 @@ func (s *Service) Processing(ctx context.Context, photo model.Photo, photoBody [
 		Geo:         geo,
 	}
 
-	err = s.database.SaveOrUpdateMetaData(ctx, meta)
+	err = s.storage.SaveOrUpdateMetaData(ctx, meta)
 	if err != nil {
 		// TODO:  ошибка
-		return fmt.Errorf("database.SaveOrUpdateMeta: %w", err)
+		return fmt.Errorf("storage.SaveOrUpdateMeta: %w", err)
 	}
 
 	return nil

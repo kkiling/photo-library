@@ -9,6 +9,9 @@ import (
 	"github.com/pkg/errors"
 )
 
+var ErrTagAlreadyExist = errors.New("tag already exist")
+var ErrPhotoIsNotValid = errors.New("photo is not valid")
+
 // ErrorServiceType типы ошибок сервисов
 type ErrorServiceType int
 

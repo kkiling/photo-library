@@ -1,8 +1,11 @@
-package metaphoto
+package photometadata
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"github.com/kkiling/photo-library/backend/api/internal/adapter/photoml"
+	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
 	"image"
 	_ "image/gif"
 	_ "image/jpeg"
@@ -20,7 +23,9 @@ func getImageDetails(photoBody []byte) (width int, height int, err error) {
 	// Получение размера изображения в пикселях
 	img, _, err := image.DecodeConfig(reader)
 	if err != nil {
-		return 0, 0, err
+		if errors.Is(err, photoml.ErrInternalServerError) {
+			return 0, 0, errors.Join(fmt.Errorf("image.DecodeConfig: %w", err), serviceerr.ErrPhotoIsNotValid)
+		}
 	}
 
 	return img.Width, img.Height, nil
@@ -28,7 +33,7 @@ func getImageDetails(photoBody []byte) (width int, height int, err error) {
 
 func parseDate(s string) (time.Time, error) {
 	if s == invalidTime {
-		return time.Time{}, errInvalidDateFormat
+		return time.Time{}, fmt.Errorf("invalid date format")
 	}
 
 	t, err := time.Parse(timeLayout, s)

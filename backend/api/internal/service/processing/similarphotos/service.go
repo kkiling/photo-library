@@ -12,22 +12,22 @@ import (
 	"gonum.org/v1/gonum/floats"
 )
 
-type Database interface {
+type Storage interface {
 	service.Transactor
 	GetPhotosCount(ctx context.Context, filter *model.PhotoFilter) (int64, error)
 	GetPaginatedPhotosVector(ctx context.Context, offset int64, limit int) ([]model.PhotoVector, error)
-	SaveSimilarPhotoCoefficient(ctx context.Context, sim model.PhotosSimilarCoefficient) error
+	SaveSimilarPhotoCoefficient(ctx context.Context, sim model.CoeffSimilarPhoto) error
 }
 
 type Service struct {
-	logger   log.Logger
-	database Database
+	logger  log.Logger
+	storage Storage
 }
 
-func NewService(logger log.Logger, database Database) *Service {
+func NewService(logger log.Logger, storage Storage) *Service {
 	return &Service{
-		logger:   logger,
-		database: database,
+		logger:  logger,
+		storage: storage,
 	}
 }
 
@@ -41,9 +41,9 @@ func (s *Service) SavePhotoSimilarCoefficient(ctx context.Context) error {
 	const maxGoroutines = 20
 	const minSimilarCoefficient = 0.8
 
-	countPhotos, err := s.database.GetPhotosCount(ctx, nil)
+	countPhotos, err := s.storage.GetPhotosCount(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("database.GetPhotosCount: %w", err)
+		return fmt.Errorf("storage.GetPhotosCount: %w", err)
 	}
 
 	var offset int64
@@ -53,9 +53,9 @@ func (s *Service) SavePhotoSimilarCoefficient(ctx context.Context) error {
 	errorsChan := make(chan error, maxGoroutines)
 
 	for offset = 0; offset < countPhotos; offset += limit {
-		vectors, err := s.database.GetPaginatedPhotosVector(ctx, offset, limit)
+		vectors, err := s.storage.GetPaginatedPhotosVector(ctx, offset, limit)
 		if err != nil {
-			return fmt.Errorf("database.GetPaginatedPhotosVector: %w", err)
+			return fmt.Errorf("storage.GetPaginatedPhotoVectors: %w", err)
 		}
 		photoVectors = append(photoVectors, vectors...)
 	}
@@ -87,13 +87,13 @@ func (s *Service) SavePhotoSimilarCoefficient(ctx context.Context) error {
 						if id1.String() > id2.String() {
 							id1, id2 = id2, id1
 						}
-						err := s.database.SaveSimilarPhotoCoefficient(ctx, model.PhotosSimilarCoefficient{
+						err := s.storage.SaveSimilarPhotoCoefficient(ctx, model.CoeffSimilarPhoto{
 							PhotoID1:    id1,
 							PhotoID2:    id2,
 							Coefficient: coefficient,
 						})
 						if err != nil {
-							errorsChan <- fmt.Errorf("database.SaveSimilarPhotoCoefficient: %w", err)
+							errorsChan <- fmt.Errorf("storage.SaveCoeffSimilarPhoto: %w", err)
 							return
 						}
 					}

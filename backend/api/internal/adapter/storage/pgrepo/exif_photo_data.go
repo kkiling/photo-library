@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/entity"
 	"reflect"
 	"strings"
 
@@ -11,7 +12,6 @@ import (
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/kkiling/photo-library/backend/api/internal/adapter/entity"
 )
 
 func structToMapDBTag(obj interface{}) map[string]interface{} {
@@ -56,8 +56,9 @@ func structToMapDBTag(obj interface{}) map[string]interface{} {
 	return m
 }
 
-func (r *PhotoRepository) SaveOrUpdateExif(ctx context.Context, data *entity.ExifData) error {
+func (r *PhotoRepository) SaveOrUpdateExif(ctx context.Context, data *entity.ExifPhotoData) error {
 	conn := r.getConn(ctx)
+
 	fields := structToMapDBTag(data)
 	updateParts := make([]string, 0, len(fields))
 	for column := range fields {
@@ -69,7 +70,7 @@ func (r *PhotoRepository) SaveOrUpdateExif(ctx context.Context, data *entity.Exi
 	updateStr := strings.Join(updateParts, ", ")
 
 	query, args, err := sq.
-		Insert("exif_data").
+		Insert("exif_photo_data").
 		SetMap(fields).
 		Suffix("ON CONFLICT (photo_id) DO UPDATE SET " + updateStr).
 		PlaceholderFormat(sq.Dollar).
@@ -86,12 +87,12 @@ func (r *PhotoRepository) SaveOrUpdateExif(ctx context.Context, data *entity.Exi
 	return nil
 }
 
-func (r *PhotoRepository) GetExif(ctx context.Context, photoId uuid.UUID) (*entity.ExifData, error) {
+func (r *PhotoRepository) GetExif(ctx context.Context, photoId uuid.UUID) (*entity.ExifPhotoData, error) {
 	conn := r.getConn(ctx)
 
-	var exif entity.ExifData
+	var exif entity.ExifPhotoData
 
-	err := pgxscan.Get(ctx, conn, &exif, `SELECT * FROM exif_data WHERE photo_id = $1`, photoId)
+	err := pgxscan.Get(ctx, conn, &exif, `SELECT * FROM exif_photo_data WHERE photo_id = $1`, photoId)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil

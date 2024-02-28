@@ -8,7 +8,7 @@ type PhotoVector struct {
 	Norm    float64
 }
 
-type PhotosSimilarCoefficient struct {
+type CoeffSimilarPhoto struct {
 	PhotoID1    uuid.UUID
 	PhotoID2    uuid.UUID
 	Coefficient float64

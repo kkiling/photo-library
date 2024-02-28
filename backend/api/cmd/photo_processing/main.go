@@ -31,11 +31,11 @@ func main() {
 
 	processingPhotos := application.GetProcessingPhotos()
 	statuses := []model.PhotoProcessingStatus{
-		model.PhotoProcessingNew,
-		model.PhotoProcessingExifData,
-		model.PhotoProcessingMetaData,
-		model.PhotoProcessingTagsByMeta,
-		model.PhotoProcessingPhotoVector, // Конечная в данный момент (нет обработчика)
+		model.NewPhoto,
+		model.ExifDataSaved,
+		model.MetaDataSaved,
+		model.SystemTagsSaved,
+		model.PhotoVectorSaved, // Конечная в данный момент (нет обработчика)
 	}
 	const limit = 100
 	for _, status := range statuses {
@@ -43,11 +43,11 @@ func main() {
 			application.Logger().Infof("startProcessing photos with status %s", status)
 			// Производим обработку
 			for {
-				count, getError := processingPhotos.ProcessingPhotos(ctx, status, limit)
+				count, totalCount, getError := processingPhotos.ProcessingPhotos(ctx, status, limit)
 				if getError != nil {
 					panic(getError)
 				}
-				application.Logger().Infof("%d photos with %s status processed", count, status)
+				application.Logger().Infof("%d/%d photos with %s status processed", count, totalCount, status)
 				if count == 0 {
 					break
 				}

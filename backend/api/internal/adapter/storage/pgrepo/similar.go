@@ -3,16 +3,16 @@ package pgrepo
 import (
 	"context"
 	"errors"
+	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/entity"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/kkiling/photo-library/backend/api/internal/adapter/entity"
 )
 
 func (r *PhotoRepository) SaveOrUpdatePhotoVector(ctx context.Context, photoVector entity.PhotoVector) error {
 	conn := r.getConn(ctx)
 	const query = `
-		INSERT INTO photo_vector (photo_id, vector, norm)
+		INSERT INTO photo_vectors (photo_id, vector, norm)
 		VALUES ($1, $2, $3)
 		ON CONFLICT (photo_id) 
 			DO UPDATE SET 
@@ -33,7 +33,7 @@ func (r *PhotoRepository) ExistPhotoVector(ctx context.Context, photoID uuid.UUI
 
 	const query = `
 		SELECT count(*)
-		FROM photo_vector
+		FROM photo_vectors
 		WHERE photo_id = $1
 		LIMIT 1
 	`
@@ -46,12 +46,12 @@ func (r *PhotoRepository) ExistPhotoVector(ctx context.Context, photoID uuid.UUI
 	return counter > 0, nil
 }
 
-func (r *PhotoRepository) GetPaginatedPhotosVector(ctx context.Context, offset int64, limit int) ([]entity.PhotoVector, error) {
+func (r *PhotoRepository) GetPaginatedPhotoVectors(ctx context.Context, offset int64, limit int) ([]entity.PhotoVector, error) {
 	conn := r.getConn(ctx)
 
 	const query = `
 		SELECT photo_id, vector, norm
-		FROM photo_vector
+		FROM photo_vectors
 		OFFSET $1
 		LIMIT $2
 	`
@@ -88,10 +88,10 @@ func (r *PhotoRepository) GetPaginatedPhotosVector(ctx context.Context, offset i
 	return result, nil
 }
 
-func (r *PhotoRepository) SaveSimilarPhotoCoefficient(ctx context.Context, sim entity.PhotosSimilarCoefficient) error {
+func (r *PhotoRepository) SaveCoeffSimilarPhoto(ctx context.Context, sim entity.CoeffSimilarPhoto) error {
 	conn := r.getConn(ctx)
 	const query = `
-		INSERT INTO photos_similar_coefficient (photo_id1, photo_id2, coefficient)
+		INSERT INTO coeffs_similar_photos (photo_id1, photo_id2, coefficient)
 		VALUES ($1, $2, $3)
 		ON CONFLICT (photo_id1, photo_id2) 
 			DO UPDATE SET 

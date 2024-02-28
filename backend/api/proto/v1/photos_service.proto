@@ -41,6 +41,4 @@ message UploadPhotoResponse {
   bool has_been_uploaded_before = 1;
   // Хеш фотографии
   string hash = 3;
-  // Дата когда фотография была загружена на сервер
-  google.protobuf.Timestamp uploaded_at = 4;
 }

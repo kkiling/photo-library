@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE meta_data (
+CREATE TABLE photo_metadata (
   photo_id UUID PRIMARY KEY,
   model_info TEXT,
   size_bytes INTEGER NOT NULL,
@@ -16,5 +16,5 @@ CREATE TABLE meta_data (
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE meta_data;
+DROP TABLE photo_metadata;
 -- +goose StatementEnd

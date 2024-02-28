@@ -16,11 +16,3 @@ func printError(err error) error {
 	}
 	return err
 }
-
-func toArrayInterface[T any](array []T) []interface{} {
-	var res = make([]interface{}, 0, len(array))
-	for _, i := range array {
-		res = append(res, i)
-	}
-	return res
-}

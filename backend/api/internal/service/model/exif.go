@@ -2,7 +2,7 @@ package model
 
 import "github.com/google/uuid"
 
-type ExifData struct {
+type ExifPhotoData struct {
 	PhotoID                          uuid.UUID
 	Sharpness                        *int
 	MakerNote                        *string

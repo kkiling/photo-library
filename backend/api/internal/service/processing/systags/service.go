@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
 	"unicode/utf8"
 
 	"github.com/google/uuid"
@@ -13,9 +14,6 @@ import (
 	"github.com/kkiling/photo-library/backend/api/internal/service/tagphoto"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 )
-
-var ErrMetaNotFound = fmt.Errorf("meta not found")
-var ErrUploadDataNotFound = fmt.Errorf("upload data not found")
 
 const (
 	YearTag              = "year"
@@ -28,10 +26,10 @@ const (
 	LocationTagColor     = "#00ecff"
 )
 
-type Database interface {
+type Storage interface {
 	service.Transactor
-	GetMetaData(ctx context.Context, photoID uuid.UUID) (*model.MetaData, error)
-	GetUploadPhotoData(ctx context.Context, photoID uuid.UUID) (*model.UploadPhotoData, error)
+	GetMetaData(ctx context.Context, photoID uuid.UUID) (*model.PhotoMetadata, error)
+	GetUploadPhotoData(ctx context.Context, photoID uuid.UUID) (*model.PhotoUploadData, error)
 }
 
 type TagPhoto interface {
@@ -47,15 +45,15 @@ type GeoService interface {
 type Service struct {
 	logger     log.Logger
 	tagService TagPhoto
-	database   Database
+	storage    Storage
 	geocoder   GeoService
 }
 
-func NewService(logger log.Logger, tagService TagPhoto, database Database, geoService GeoService) *Service {
+func NewService(logger log.Logger, tagService TagPhoto, storage Storage, geoService GeoService) *Service {
 	return &Service{
 		logger:     logger,
 		tagService: tagService,
-		database:   database,
+		storage:    storage,
 		geocoder:   geoService,
 	}
 }
@@ -80,7 +78,7 @@ func (s *Service) getOrCreateTagCategory(ctx context.Context, tagCategory, color
 	return category, nil
 }
 
-func (s *Service) createPhotoCatalogTag(ctx context.Context, photo model.Photo, uploadData *model.UploadPhotoData) error {
+func (s *Service) createPhotoCatalogTag(ctx context.Context, photo model.Photo, uploadData *model.PhotoUploadData) error {
 	tags := make(map[string]struct{})
 	for _, path := range uploadData.Paths {
 		dirs := getDirectories(path)
@@ -100,7 +98,7 @@ func (s *Service) createPhotoCatalogTag(ctx context.Context, photo model.Photo, 
 		}
 		_, err = s.tagService.AddPhotoTag(ctx, photo.ID, photoCatalog.ID, tag)
 		if err != nil {
-			if errors.Is(err, tagphoto.ErrTagAlreadyExist) {
+			if errors.Is(err, serviceerr.ErrTagAlreadyExist) {
 				continue
 			}
 			return fmt.Errorf("tagService.AddPhotoTag: %w", err)
@@ -110,7 +108,7 @@ func (s *Service) createPhotoCatalogTag(ctx context.Context, photo model.Photo, 
 	return nil
 }
 
-func (s *Service) createYearTag(ctx context.Context, photo model.Photo, metaData *model.MetaData) error {
+func (s *Service) createYearTag(ctx context.Context, photo model.Photo, metaData *model.PhotoMetadata) error {
 	if metaData.DateTime == nil {
 		return nil
 	}
@@ -122,7 +120,7 @@ func (s *Service) createYearTag(ctx context.Context, photo model.Photo, metaData
 	name := fmt.Sprintf("%d", metaData.DateTime.Year())
 	_, err = s.tagService.AddPhotoTag(ctx, photo.ID, yearCategory.ID, name)
 	if err != nil {
-		if errors.Is(err, tagphoto.ErrTagAlreadyExist) {
+		if errors.Is(err, serviceerr.ErrTagAlreadyExist) {
 		} else {
 			return fmt.Errorf("tagService.AddPhotoTag: %w", err)
 		}
@@ -131,7 +129,7 @@ func (s *Service) createYearTag(ctx context.Context, photo model.Photo, metaData
 	return nil
 }
 
-func (s *Service) createCameraModelTag(ctx context.Context, photo model.Photo, metaData *model.MetaData) error {
+func (s *Service) createCameraModelTag(ctx context.Context, photo model.Photo, metaData *model.PhotoMetadata) error {
 	if metaData.ModelInfo == nil || (*metaData.ModelInfo == "") {
 		return nil
 	}
@@ -142,7 +140,7 @@ func (s *Service) createCameraModelTag(ctx context.Context, photo model.Photo, m
 
 	_, err = s.tagService.AddPhotoTag(ctx, photo.ID, cameraCategory.ID, *metaData.ModelInfo)
 	if err != nil {
-		if errors.Is(err, tagphoto.ErrTagAlreadyExist) {
+		if errors.Is(err, serviceerr.ErrTagAlreadyExist) {
 		} else {
 			return fmt.Errorf("tagService.AddPhotoTag: %w", err)
 		}
@@ -151,7 +149,7 @@ func (s *Service) createCameraModelTag(ctx context.Context, photo model.Photo, m
 	return nil
 }
 
-func (s *Service) createLocationTag(ctx context.Context, photo model.Photo, metaData *model.MetaData) error {
+func (s *Service) createLocationTag(ctx context.Context, photo model.Photo, metaData *model.PhotoMetadata) error {
 	if metaData.Geo == nil {
 		return nil
 	}
@@ -185,7 +183,7 @@ func (s *Service) createLocationTag(ctx context.Context, photo model.Photo, meta
 	for _, loc := range locationTags {
 		_, err = s.tagService.AddPhotoTag(ctx, photo.ID, locationCategory.ID, loc)
 		if err != nil {
-			if errors.Is(err, tagphoto.ErrTagAlreadyExist) {
+			if errors.Is(err, serviceerr.ErrTagAlreadyExist) {
 			} else {
 				return fmt.Errorf("tagService.AddPhotoTag: %w", err)
 			}
@@ -197,22 +195,22 @@ func (s *Service) createLocationTag(ctx context.Context, photo model.Photo, meta
 
 // Processing создание и сохранение автоматических тегов (по мета данным или по путям и тд)
 func (s *Service) Processing(ctx context.Context, photo model.Photo, _ []byte) error {
-	uploadData, err := s.database.GetUploadPhotoData(ctx, photo.ID)
+	uploadData, err := s.storage.GetUploadPhotoData(ctx, photo.ID)
 	if err != nil {
-		return fmt.Errorf("database.GetUploadPhotoData: %w", err)
+		return fmt.Errorf("storage.GetPhotoUploadData: %w", err)
 	}
 
 	if uploadData == nil {
-		return ErrUploadDataNotFound
+		return fmt.Errorf("upload data not found")
 	}
 
-	metaData, err := s.database.GetMetaData(ctx, photo.ID)
+	metaData, err := s.storage.GetMetaData(ctx, photo.ID)
 	if err != nil {
-		return fmt.Errorf("databases.GetMetaData: %w", err)
+		return fmt.Errorf("storage.GetPhotoMetadata: %w", err)
 	}
 
 	if metaData == nil {
-		return ErrMetaNotFound
+		return fmt.Errorf("meta not found")
 	}
 
 	// Теги По каталогу По каталогу КАТАЛОГ

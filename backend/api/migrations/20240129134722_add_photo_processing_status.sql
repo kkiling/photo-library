@@ -2,10 +2,10 @@
 -- +goose StatementBegin
 CREATE TYPE photo_processing_status AS ENUM (
     'NEW_PHOTO',
-    'SAVE_EXIF_DATA',
-    'SAVE_META_DATA',
-    'CREATE_TAGS_BY_META',
-    'SAVE_PHOTO_VECTOR'
+    'EXIF_DATA_SAVED',
+    'META_DATA_SAVED',
+    'SYSTEM_TAGS_SAVED',
+    'PHOTO_VECTOR_SAVED'
 );
 
 ALTER TABLE photos ADD COLUMN processing_status photo_processing_status DEFAULT 'NEW_PHOTO';

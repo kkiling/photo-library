@@ -1,9 +1,8 @@
-from flask import Flask, request, jsonify
 import numpy as np
+from io import BytesIO
+from flask import Flask, request, jsonify
 from keras.applications import vgg16
 from keras.preprocessing.image import load_img, img_to_array
-from io import BytesIO
-from gevent.pywsgi import WSGIServer
 
 app = Flask(__name__)
 

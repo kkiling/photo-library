@@ -1,4 +1,4 @@
-package exifphoto
+package exifphotodata
 
 import (
 	"fmt"

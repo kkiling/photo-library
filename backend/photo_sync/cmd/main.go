@@ -87,7 +87,7 @@ func main() {
 	)
 
 	if err != nil {
-		fmt.Errorf("failed to connect to gRPC server: %v", err)
+		fmt.Printf("failed to connect to gRPC server: %v", err)
 		return
 	}
 	defer conn.Close()

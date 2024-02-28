@@ -2,9 +2,9 @@ package app
 
 import (
 	"fmt"
+	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/pgrepo"
 
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/fsstore"
-	"github.com/kkiling/photo-library/backend/api/internal/adapter/pgrepo"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/photoml"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/server"

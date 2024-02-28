@@ -3,18 +3,18 @@ package app
 import (
 	"context"
 	"fmt"
+	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage"
+	pgrepo2 "github.com/kkiling/photo-library/backend/api/internal/adapter/storage/pgrepo"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/kkiling/photo-library/backend/api/internal/adapter"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/fsstore"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/geo"
-	"github.com/kkiling/photo-library/backend/api/internal/adapter/pgrepo"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/photoml"
 	"github.com/kkiling/photo-library/backend/api/internal/handler"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing"
-	"github.com/kkiling/photo-library/backend/api/internal/service/processing/exifphoto"
-	"github.com/kkiling/photo-library/backend/api/internal/service/processing/metaphoto"
+	"github.com/kkiling/photo-library/backend/api/internal/service/processing/exifphotodata"
+	"github.com/kkiling/photo-library/backend/api/internal/service/processing/photometadata"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing/similarphotos"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing/systags"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing/vectorphoto"
@@ -30,10 +30,10 @@ type App struct {
 	// connect
 	pgxPool *pgxpool.Pool
 	// adapter
-	dbAdapter *adapter.DbAdapter
-	pgRepo    *pgrepo.PhotoRepository
-	fsStore   *fsstore.Store
-	photoML   *photoml.Service
+	storageAdapter *storage.Adapter
+	pgRepo         *pgrepo2.PhotoRepository
+	fsStore        *fsstore.Store
+	photoML        *photoml.Service
 	// handler
 	syncPhotoServer *handler.SyncPhotosServiceServer
 	// service
@@ -42,8 +42,8 @@ type App struct {
 	geoService    *geo.Service
 	// Processing
 	tagPhoto         *tagphoto.Service
-	exifPhoto        *exifphoto.Service
-	metaPhoto        *metaphoto.Service
+	exifPhoto        *exifphotodata.Service
+	metaPhoto        *photometadata.Service
 	sysTagPhoto      *systags.Service
 	vectorPhoto      *vectorphoto.Service
 	processingPhotos *processing.Service
@@ -83,15 +83,15 @@ func (a *App) Create(ctx context.Context) error {
 		return fmt.Errorf("getProcessingPhotosConfig: %w", err)
 	}
 
-	pool, err := pgrepo.NewPgConn(ctx, pgCfg)
+	pool, err := pgrepo2.NewPgConn(ctx, pgCfg)
 	if err != nil {
 		return fmt.Errorf("newPgConn: %w", err)
 	}
 
 	a.pgxPool = pool
 	a.logger = log.NewLogger()
-	a.pgRepo = pgrepo.NewPhotoRepository(a.pgxPool)
-	a.dbAdapter = adapter.NewDbAdapter(a.pgRepo)
+	a.pgRepo = pgrepo2.NewPhotoRepository(a.pgxPool)
+	a.storageAdapter = storage.NewStorageAdapter(a.pgRepo)
 	a.fsStore = fsstore.NewStore(fsStoreCfg)
 	a.geoService = geo.NewService(a.logger.Named("geo_service"))
 	a.photoML = photoml.NewService(
@@ -99,25 +99,25 @@ func (a *App) Create(ctx context.Context) error {
 		photoMlCfg,
 	)
 	a.tagPhoto = tagphoto.NewService(
-		a.dbAdapter,
+		a.storageAdapter,
 	)
 	a.syncPhoto = syncphotos.NewService(
 		a.logger.Named("sync_photo"),
-		a.dbAdapter,
+		a.storageAdapter,
 		a.fsStore,
 	)
-	a.exifPhoto = exifphoto.NewService(
+	a.exifPhoto = exifphotodata.NewService(
 		a.logger.Named("exif_photo"),
-		a.dbAdapter,
+		a.storageAdapter,
 	)
-	a.metaPhoto = metaphoto.NewService(
+	a.metaPhoto = photometadata.NewService(
 		a.logger.Named("meta_photo"),
-		a.dbAdapter,
+		a.storageAdapter,
 	)
 	a.sysTagPhoto = systags.NewService(
 		a.logger.Named("sync_photo_service_photo"),
 		a.tagPhoto,
-		a.dbAdapter,
+		a.storageAdapter,
 		a.geoService,
 	)
 	a.syncPhotoServer = handler.NewSyncPhotosServiceServer(
@@ -127,24 +127,24 @@ func (a *App) Create(ctx context.Context) error {
 	)
 	a.vectorPhoto = vectorphoto.NewService(
 		a.logger.Named("vector_photo"),
-		a.dbAdapter,
+		a.storageAdapter,
 		a.photoML,
 	)
 	a.similarPhotos = similarphotos.NewService(
 		a.logger.Named("similar_photos"),
-		a.dbAdapter,
+		a.storageAdapter,
 	)
 	a.processingPhotos = processing.NewService(
 		a.logger.Named("processing_photos"),
 		processingPhotosCfg,
-		a.dbAdapter,
+		a.storageAdapter,
 		a.fsStore,
 		map[model.PhotoProcessingStatus]processing.PhotoProcessor{
-			model.PhotoProcessingNew:         nil, // Стартовая точка каждой фотографии
-			model.PhotoProcessingExifData:    a.exifPhoto,
-			model.PhotoProcessingMetaData:    a.metaPhoto,
-			model.PhotoProcessingTagsByMeta:  a.sysTagPhoto,
-			model.PhotoProcessingPhotoVector: a.vectorPhoto,
+			model.NewPhoto:         nil, // Стартовая точка каждой фотографии
+			model.ExifDataSaved:    a.exifPhoto,
+			model.MetaDataSaved:    a.metaPhoto,
+			model.SystemTagsSaved:  a.sysTagPhoto,
+			model.PhotoVectorSaved: a.vectorPhoto,
 		},
 	)
 

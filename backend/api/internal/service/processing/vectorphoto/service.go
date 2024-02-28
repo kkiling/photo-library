@@ -2,7 +2,10 @@ package vectorphoto
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"github.com/kkiling/photo-library/backend/api/internal/adapter/photoml"
+	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
 
 	"github.com/google/uuid"
 	"github.com/kkiling/photo-library/backend/api/internal/service"
@@ -11,7 +14,7 @@ import (
 	"gonum.org/v1/gonum/floats"
 )
 
-type Database interface {
+type Storage interface {
 	service.Transactor
 	ExistPhotoVector(ctx context.Context, photoID uuid.UUID) (bool, error)
 	SaveOrUpdatePhotoVector(ctx context.Context, photoVector model.PhotoVector) error
@@ -22,39 +25,42 @@ type PhotoML interface {
 }
 
 type Service struct {
-	logger   log.Logger
-	database Database
-	photoML  PhotoML
+	logger  log.Logger
+	storage Storage
+	photoML PhotoML
 }
 
-func NewService(logger log.Logger, database Database, photoML PhotoML) *Service {
+func NewService(logger log.Logger, storage Storage, photoML PhotoML) *Service {
 	return &Service{
-		logger:   logger,
-		database: database,
-		photoML:  photoML,
+		logger:  logger,
+		storage: storage,
+		photoML: photoML,
 	}
 }
 
 // Processing рассчитывает и сохраняет вектора фотографий, для расчета похожих фото
 func (s *Service) Processing(ctx context.Context, photo model.Photo, photoBody []byte) error {
-	if exist, err := s.database.ExistPhotoVector(ctx, photo.ID); err != nil {
-		return fmt.Errorf("database.ExistPhotoVector: %e", err)
+	if exist, err := s.storage.ExistPhotoVector(ctx, photo.ID); err != nil {
+		return fmt.Errorf("storage.ExistPhotoVector: %e", err)
 	} else if exist {
 		return nil
 	}
 
 	vector, err := s.photoML.GetImageVector(ctx, photoBody)
 	if err != nil {
-		return fmt.Errorf("photoML.GetImageVector: %e", err)
+		if errors.Is(err, photoml.ErrInternalServerError) {
+			return errors.Join(err, serviceerr.ErrPhotoIsNotValid)
+		}
+		return fmt.Errorf("photoML.GetImageVector: %w", err)
 	}
 
 	norm := floats.Norm(vector, 2)
-	if err := s.database.SaveOrUpdatePhotoVector(ctx, model.PhotoVector{
+	if err := s.storage.SaveOrUpdatePhotoVector(ctx, model.PhotoVector{
 		PhotoID: photo.ID,
 		Vector:  vector,
 		Norm:    norm,
 	}); err != nil {
-		return fmt.Errorf("database.SaveOrUpdatePhotoVector: %e", err)
+		return fmt.Errorf("storage.SaveOrUpdatePhotoVector: %e", err)
 	}
 
 	return nil

@@ -2,6 +2,8 @@ package handler
 
 import (
 	"context"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/server"
@@ -37,7 +39,7 @@ func NewAuthInterceptor(logger log.Logger, descriptors method_descriptor.MethodD
 	}
 }
 
-func NewPanicRecoverInterceptor() grpc.UnaryServerInterceptor {
+func NewPanicRecoverInterceptor(logger log.Logger) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 		defer func() {
 			if r := recover(); r != nil {
@@ -46,6 +48,22 @@ func NewPanicRecoverInterceptor() grpc.UnaryServerInterceptor {
 		}()
 
 		resp, err = handler(ctx, req)
+		return resp, err
+	}
+}
+
+func NewLoggerInterceptor(logger log.Logger) grpc.UnaryServerInterceptor {
+	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+		resp, err = handler(ctx, req)
+		if err == nil {
+			return resp, err
+		}
+		switch status.Code(err) {
+		case codes.Internal:
+			logger.Errorf(err.Error())
+		default:
+			logger.Warnf(err.Error())
+		}
 		return resp, err
 	}
 }

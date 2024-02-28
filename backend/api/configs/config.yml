@@ -16,4 +16,4 @@ photo_ml:
   url: "http://127.0.0.1:5000"
 
 processing_photo:
-  max_goroutines: 32
+  max_goroutines: 1

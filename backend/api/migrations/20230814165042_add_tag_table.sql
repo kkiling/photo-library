@@ -1,23 +1,23 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE tag_category (
+CREATE TABLE tags_category (
   id UUID PRIMARY KEY,
   type VARCHAR(128) NOT NULL,
   color VARCHAR(7) NOT NULL
 );
 
-CREATE TABLE tag (
+CREATE TABLE tags (
  id UUID PRIMARY KEY,
  category_id UUID NOT NULL,
  photo_id UUID NOT NULL,
  name VARCHAR(128) NOT NULL
 );
 
-ALTER TABLE tag
+ALTER TABLE tags
     ADD CONSTRAINT fk_tag_category_id
-        FOREIGN KEY (category_id) REFERENCES tag_category(id) ON DELETE CASCADE;
+        FOREIGN KEY (category_id) REFERENCES tags_category(id) ON DELETE CASCADE;
 
-ALTER TABLE tag
+ALTER TABLE tags
     ADD CONSTRAINT fk_tag_photo_id
         FOREIGN KEY (photo_id) REFERENCES photos(id) ON DELETE CASCADE;
 
@@ -25,6 +25,6 @@ ALTER TABLE tag
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE tag;
-DROP TABLE tag_category;
+DROP TABLE tags;
+DROP TABLE tags_category;
 -- +goose StatementEnd

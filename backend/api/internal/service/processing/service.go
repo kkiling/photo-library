@@ -2,6 +2,8 @@ package processing
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/google/uuid"
@@ -15,6 +17,7 @@ type Config struct {
 }
 
 type Storage interface {
+	GetPhotosCount(ctx context.Context, filter *model.PhotoFilter) (int64, error)
 	GetPaginatedPhotos(ctx context.Context, params model.PhotoSelectParams, filter *model.PhotoFilter) ([]model.Photo, error)
 	UpdatePhotosProcessingStatus(ctx context.Context, id uuid.UUID, newProcessingStatus model.PhotoProcessingStatus) error
 }
@@ -51,18 +54,18 @@ func NewService(logger log.Logger,
 }
 
 func (s *Service) processingPhoto(ctx context.Context, photo model.Photo) error {
-	nextStatus := model.PhotoProcessingNew
+	nextStatus := model.NewPhoto
 
 	switch photo.ProcessingStatus {
-	case model.PhotoProcessingNew:
-		nextStatus = model.PhotoProcessingExifData
-	case model.PhotoProcessingExifData:
-		nextStatus = model.PhotoProcessingMetaData
-	case model.PhotoProcessingMetaData:
-		nextStatus = model.PhotoProcessingTagsByMeta
-	case model.PhotoProcessingTagsByMeta:
-		nextStatus = model.PhotoProcessingPhotoVector
-	case model.PhotoProcessingPhotoVector:
+	case model.NewPhoto:
+		nextStatus = model.ExifDataSaved
+	case model.ExifDataSaved:
+		nextStatus = model.MetaDataSaved
+	case model.MetaDataSaved:
+		nextStatus = model.SystemTagsSaved
+	case model.SystemTagsSaved:
+		nextStatus = model.PhotoVectorSaved
+	case model.PhotoVectorSaved:
 		// Конечный стутус в данный момент
 		return nil
 	}
@@ -88,15 +91,21 @@ func (s *Service) processingPhoto(ctx context.Context, photo model.Photo) error 
 	return nil
 }
 
-func (s *Service) ProcessingPhotos(ctx context.Context, status model.PhotoProcessingStatus, limit int) (int, error) {
-	photos, err := s.storage.GetPaginatedPhotos(ctx, model.PhotoSelectParams{
-		Limit: limit,
-	}, &model.PhotoFilter{
+func (s *Service) ProcessingPhotos(ctx context.Context,
+	status model.PhotoProcessingStatus, limit int) (processedCount int, totalCount int64, err error) {
+
+	filter := model.PhotoFilter{
 		ProcessingStatusIn: []model.PhotoProcessingStatus{status},
-	})
+	}
+	photos, err := s.storage.GetPaginatedPhotos(ctx, model.PhotoSelectParams{Limit: limit}, &filter)
 
 	if err != nil {
-		return 0, serviceerr.RuntimeError(err, s.storage.GetPaginatedPhotos)
+		return 0, 0, serviceerr.RuntimeError(err, s.storage.GetPaginatedPhotos)
+	}
+
+	totalCount, err = s.storage.GetPhotosCount(ctx, &filter)
+	if err != nil {
+		return 0, 0, serviceerr.RuntimeError(err, s.storage.GetPhotosCount)
 	}
 
 	photoChan := make(chan model.Photo)
@@ -108,20 +117,31 @@ func (s *Service) ProcessingPhotos(ctx context.Context, status model.PhotoProces
 		close(photoChan)
 	}()
 
-	for _, photo := range photos {
-		if err := s.processingPhoto(ctx, photo); err != nil {
-			return 0, serviceerr.RuntimeError(err, s.processingPhoto)
-		}
-	}
-
 	var wg sync.WaitGroup
 	for i := 0; i < s.cfg.MaxGoroutines; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for photo := range photoChan {
-				if err := s.processingPhoto(ctx, photo); err != nil {
-					errorsChan <- serviceerr.RuntimeError(err, s.processingPhoto)
+			for ctx.Err() == nil {
+				select {
+				case <-ctx.Done():
+					// Время выполнения истекло
+					errorsChan <- ctx.Err()
+					return
+				case photo, ok := <-photoChan:
+					// Получили результат
+					if !ok {
+						return
+					}
+					if processedErr := s.processingPhoto(ctx, photo); processedErr != nil {
+						if errors.Is(processedErr, serviceerr.ErrPhotoIsNotValid) {
+							// TODO: пометить что фото не валидно
+							fmt.Println(processedErr.Error())
+						}
+						errorsChan <- serviceerr.RuntimeError(processedErr, s.processingPhoto)
+						// TODO: остановить все гроутины
+						return
+					}
 				}
 			}
 		}()
@@ -131,8 +151,8 @@ func (s *Service) ProcessingPhotos(ctx context.Context, status model.PhotoProces
 	close(errorsChan)
 
 	if len(errorsChan) > 0 {
-		return 0, <-errorsChan
+		return 0, 0, <-errorsChan
 	}
 
-	return len(photos), nil
+	return len(photos), totalCount, nil
 }

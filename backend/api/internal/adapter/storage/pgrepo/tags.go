@@ -3,10 +3,10 @@ package pgrepo
 import (
 	"context"
 	"errors"
+	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/entity"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/kkiling/photo-library/backend/api/internal/adapter/entity"
 )
 
 func (r *PhotoRepository) GetTagCategory(ctx context.Context, categoryID uuid.UUID) (*entity.TagCategory, error) {
@@ -14,7 +14,7 @@ func (r *PhotoRepository) GetTagCategory(ctx context.Context, categoryID uuid.UU
 
 	const query = `
 		SELECT id, type, color
-		FROM tag_category
+		FROM tags_category
 		WHERE id = $1
 		LIMIT 1
 	`
@@ -38,7 +38,7 @@ func (r *PhotoRepository) GetTagCategoryByType(ctx context.Context, typeCategory
 
 	const query = `
 		SELECT id, type, color
-		FROM tag_category
+		FROM tags_category
 		WHERE type = $1
 		LIMIT 1
 	`
@@ -61,7 +61,7 @@ func (r *PhotoRepository) SaveTagCategory(ctx context.Context, category entity.T
 	conn := r.getConn(ctx)
 
 	const query = `
-		INSERT INTO tag_category (id, type, color)
+		INSERT INTO tags_category (id, type, color)
 		VALUES ($1, $2, $3)
 	`
 
@@ -78,7 +78,7 @@ func (r *PhotoRepository) GetTagByName(ctx context.Context, photoID uuid.UUID, n
 
 	const query = `
 		SELECT id, category_id, photo_id, name
-		FROM tag
+		FROM tags
 		WHERE photo_id = $1 AND name = $2
 		LIMIT 1
 	`
@@ -101,7 +101,7 @@ func (r *PhotoRepository) SaveTag(ctx context.Context, tag entity.Tag) error {
 	conn := r.getConn(ctx)
 
 	const query = `
-		INSERT INTO tag (id, category_id, photo_id, name)
+		INSERT INTO tags (id, category_id, photo_id, name)
 		VALUES ($1, $2, $3, $4)
 	`
 

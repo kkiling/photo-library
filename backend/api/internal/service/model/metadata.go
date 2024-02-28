@@ -11,7 +11,7 @@ type Geo struct {
 	Longitude float64
 }
 
-type MetaData struct {
+type PhotoMetadata struct {
 	PhotoID     uuid.UUID
 	ModelInfo   *string
 	SizeBytes   int

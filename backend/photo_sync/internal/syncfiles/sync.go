@@ -276,9 +276,10 @@ func (s *SyncPhotos) uploadFile(ctx context.Context, data model.UploadData) erro
 		return ErrFileIsEmptyBody
 	}
 
+	// TODO: обрабатывать ошибки от сервера и падать только при internal
 	res, err := s.client.UploadPhoto(ctx, data, body)
 	if err != nil {
-		return fmt.Errorf("failed UploadPhoto: %v", err)
+		return fmt.Errorf("failed UploadPhoto: %w", err)
 	}
 
 	if err := s.storage.SaveUploadFileResponse(ctx, res.Hash, res.UploadedAt, err == nil); err != nil {
@@ -294,7 +295,7 @@ func (s *SyncPhotos) uploadFiles(ctx context.Context, uploadDataList []model.Upl
 
 	uploadChan := make(chan model.UploadData)
 	errorsChan := make(chan error, len(uploadDataList))
-	warningsChan := make(chan error)
+	// warningsChan := make(chan error, len(uploadDataList))
 	go func() {
 		defer close(uploadChan)
 		for _, data := range uploadDataList {
@@ -315,14 +316,14 @@ func (s *SyncPhotos) uploadFiles(ctx context.Context, uploadDataList []model.Upl
 
 				if err := s.uploadFile(ctx, data); err != nil {
 					if errors.Is(err, ErrFileIsEmptyBody) {
-						warningsChan <- fmt.Errorf("empty body: %s", data.MainPath)
+						// warningsChan <- fmt.Errorf("empty body: %s", data.MainPath)
 					} else {
+						fmt.Println("err")
 						errorsChan <- fmt.Errorf("fileRead.GetFileBody: %w", err)
-						bar.Increment()
-						continue
+						return
 					}
 				}
-
+				fmt.Println("ok")
 				bar.Increment()
 			}
 		}()
@@ -330,6 +331,7 @@ func (s *SyncPhotos) uploadFiles(ctx context.Context, uploadDataList []model.Upl
 
 	wg.Wait()
 	close(errorsChan)
+	// close(warningsChan)
 
 	if len(errorsChan) > 0 {
 		// returning the first error, you might want to handle or log all errors
@@ -337,9 +339,9 @@ func (s *SyncPhotos) uploadFiles(ctx context.Context, uploadDataList []model.Upl
 	}
 
 	// Выводим все warning для информации
-	for warning := range warningsChan {
+	/*for warning := range warningsChan {
 		fmt.Println(warning.Error())
-	}
+	}*/
 
 	return nil
 }

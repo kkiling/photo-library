@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE photos_similar_coefficient (
+CREATE TABLE coeffs_similar_photos (
     photo_id1 UUID NOT NULL REFERENCES photos(id),
     photo_id2 UUID NOT NULL REFERENCES photos(id),
     coefficient FLOAT NOT NULL,
@@ -10,5 +10,5 @@ CREATE TABLE photos_similar_coefficient (
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE photos_similar_coefficient;
+DROP TABLE coeffs_similar_photos;
 -- +goose StatementEnd

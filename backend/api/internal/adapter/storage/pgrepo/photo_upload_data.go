@@ -3,17 +3,17 @@ package pgrepo
 import (
 	"context"
 	"errors"
+	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/entity"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/kkiling/photo-library/backend/api/internal/adapter/entity"
 )
 
-func (r *PhotoRepository) SaveUploadPhotoData(ctx context.Context, data entity.UploadPhotoData) error {
+func (r *PhotoRepository) SavePhotoUploadData(ctx context.Context, data entity.PhotoUploadData) error {
 	conn := r.getConn(ctx)
 
 	const query = `
-		INSERT INTO upload_photo_data (photo_id, paths, upload_at, client_id)
+		INSERT INTO photo_upload_data (photo_id, paths, upload_at, client_id)
 		VALUES ($1, $2, $3, $4)
 	`
 
@@ -25,19 +25,19 @@ func (r *PhotoRepository) SaveUploadPhotoData(ctx context.Context, data entity.U
 	return nil
 }
 
-func (r *PhotoRepository) GetUploadPhotoData(ctx context.Context, photoID uuid.UUID) (*entity.UploadPhotoData, error) {
+func (r *PhotoRepository) GetPhotoUploadData(ctx context.Context, photoID uuid.UUID) (*entity.PhotoUploadData, error) {
 	conn := r.getConn(ctx)
 
 	const query = `
 		SELECT photo_id, paths, upload_at, client_id
-		FROM upload_photo_data
+		FROM photo_upload_data
 		WHERE photo_id = $1
 		LIMIT 1
 	`
 
 	row := conn.QueryRow(ctx, query, photoID)
 
-	var uploadData entity.UploadPhotoData
+	var uploadData entity.PhotoUploadData
 	err := row.Scan(&uploadData.PhotoID, &uploadData.Paths, &uploadData.UploadAt, &uploadData.ClientId)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

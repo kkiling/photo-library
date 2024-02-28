@@ -28,14 +28,13 @@ type Photo struct {
 	FileName         string
 	Hash             string
 	UpdateAt         time.Time
-	UploadAt         time.Time
 	Extension        string
 	ProcessingStatus string
 }
 
-type UploadPhotoData struct {
+type PhotoUploadData struct {
 	PhotoID  uuid.UUID
-	Paths    []string
 	UploadAt time.Time
+	Paths    []string
 	ClientId string
 }

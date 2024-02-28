@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE exif_data (
+CREATE TABLE exif_photo_data (
    photo_id UUID PRIMARY KEY,
    sharpness INT,
    maker_note VARCHAR(256),
@@ -94,5 +94,5 @@ CREATE TABLE exif_data (
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE exif_data;
+DROP TABLE exif_photo_data;
 -- +goose StatementEnd

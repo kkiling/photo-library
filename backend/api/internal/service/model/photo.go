@@ -26,11 +26,11 @@ type PhotoSelectParams struct {
 type PhotoProcessingStatus string
 
 const (
-	PhotoProcessingNew         PhotoProcessingStatus = "NEW_PHOTO"
-	PhotoProcessingExifData    PhotoProcessingStatus = "SAVE_EXIF_DATA"
-	PhotoProcessingMetaData    PhotoProcessingStatus = "SAVE_META_DATA"
-	PhotoProcessingTagsByMeta  PhotoProcessingStatus = "CREATE_TAGS_BY_META"
-	PhotoProcessingPhotoVector PhotoProcessingStatus = "SAVE_PHOTO_VECTOR" // Конечная в данный момент
+	NewPhoto         PhotoProcessingStatus = "NEW_PHOTO"
+	ExifDataSaved    PhotoProcessingStatus = "EXIF_DATA_SAVED"
+	MetaDataSaved    PhotoProcessingStatus = "META_DATA_SAVED"
+	SystemTagsSaved  PhotoProcessingStatus = "SYSTEM_TAGS_SAVED"
+	PhotoVectorSaved PhotoProcessingStatus = "PHOTO_VECTOR_SAVED" // Конечная в данный момент
 )
 
 type PhotoExtension string
@@ -47,14 +47,13 @@ type Photo struct {
 	FileName         string
 	Hash             string
 	UpdateAt         time.Time
-	UploadAt         time.Time
 	Extension        PhotoExtension
 	ProcessingStatus PhotoProcessingStatus
 }
 
-type UploadPhotoData struct {
+type PhotoUploadData struct {
 	PhotoID  uuid.UUID
-	Paths    []string
 	UploadAt time.Time
+	Paths    []string
 	ClientId string
 }
