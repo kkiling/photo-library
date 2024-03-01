@@ -127,11 +127,6 @@
         "hash": {
           "type": "string",
           "title": "Хеш фотографии"
-        },
-        "uploaded_at": {
-          "type": "string",
-          "format": "date-time",
-          "title": "Дата когда фотография была загружена на сервер"
         }
       }
     }

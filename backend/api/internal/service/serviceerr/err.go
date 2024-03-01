@@ -2,121 +2,43 @@ package serviceerr
 
 import (
 	"fmt"
+	"go.uber.org/multierr"
 
-	"github.com/kkiling/photo-library/backend/api/pkg/common/utils"
-
-	"github.com/go-playground/validator/v10"
 	"github.com/pkg/errors"
 )
 
 var ErrTagAlreadyExist = errors.New("tag already exist")
 var ErrPhotoIsNotValid = errors.New("photo is not valid")
 
-// ErrorServiceType типы ошибок сервисов
-type ErrorServiceType int
+var ErrNotFound = errors.New("not found error")
+var ErrInvalidInput = errors.New("invalid input")
+var ErrConflict = errors.New("conflict err")
 
-// .
-const (
-	InvalidInputDataErrorType ErrorServiceType = 0
-	RuntimeErrorType          ErrorServiceType = 1
-	NotFoundErrorType         ErrorServiceType = 2
-	ConflictErrorType         ErrorServiceType = 3
-)
-
-type FieldViolation struct {
-	Field    string
-	ErrorMsg string
-}
-
-type ErrorInfo struct {
-	Description     string
-	FieldViolations []FieldViolation
-}
-
-// ErrorService ошибка сервиса
-type ErrorService struct {
-	Type    ErrorServiceType
-	Err     error
-	ErrInfo ErrorInfo
-}
-
-func (r *ErrorService) Error() string {
-	if r == nil || r.Err == nil {
-		return ""
-	}
-	return r.Err.Error()
-}
-
-// InvalidInputValidatorError создание InvalidInputDataErrorType
-func InvalidInputValidatorError(validatorError error, description string) error {
-	if description == "" {
-		description = "Data validation error"
-	}
-	var ve validator.ValidationErrors
-	fv := make([]FieldViolation, 0)
-	if errors.As(validatorError, &ve) {
-		for _, fe := range ve {
-			fv = append(fv, FieldViolation{
-				Field:    fe.Field(),
-				ErrorMsg: fmt.Sprintf("failed on the '%s' tag", fe.Tag()),
-			})
-		}
-	}
-
-	// , description string
-	return &ErrorService{
-		Type: InvalidInputDataErrorType,
-		Err:  fmt.Errorf("fail validate data"+" :%w", validatorError),
-		ErrInfo: ErrorInfo{
-			Description:     description,
-			FieldViolations: fv,
-		},
-	}
-}
-
-// InvalidInputError создание NotFoundErrorType
+// InvalidInputError создание ErrInvalidInput
 func InvalidInputError(description string, a ...any) error {
 	err := fmt.Errorf(description, a...)
-	return &ErrorService{
-		Type: NotFoundErrorType,
-		Err:  err,
-		ErrInfo: ErrorInfo{
-			Description: err.Error(),
-		},
-	}
+	return multierr.Append(err, ErrInvalidInput)
+}
+
+// InvalidInputErr создание ErrInvalidInput
+func InvalidInputErr(err error, method string) error {
+	err2 := fmt.Errorf(method+": %w", err)
+	return multierr.Append(err2, ErrInvalidInput)
 }
 
 // NotFoundError создание NotFoundErrorType
 func NotFoundError(description string, a ...any) error {
 	err := fmt.Errorf(description, a...)
-	return &ErrorService{
-		Type: NotFoundErrorType,
-		Err:  err,
-		ErrInfo: ErrorInfo{
-			Description: err.Error(),
-		},
-	}
+	return multierr.Append(err, ErrNotFound)
 }
 
-// ConflictError создание ConflictErrorType
+// ConflictError создание NotFoundErrorType
 func ConflictError(description string, a ...any) error {
 	err := fmt.Errorf(description, a...)
-	return &ErrorService{
-		Type: ConflictErrorType,
-		Err:  err,
-		ErrInfo: ErrorInfo{
-			Description: err.Error(),
-		},
-	}
+	return multierr.Append(err, ErrConflict)
 }
 
-// RuntimeError создание RuntimeErrorType
-func RuntimeError(err error, method any) error {
-	return &ErrorService{
-		Err:  fmt.Errorf(utils.GetFunctionName(method)+": %w", err),
-		Type: RuntimeErrorType,
-		ErrInfo: ErrorInfo{
-			Description: "Unknown runtime error",
-		},
-	}
+// MakeErr создание RuntimeErrorType
+func MakeErr(err error, method string) error {
+	return fmt.Errorf(method+": %w", err)
 }

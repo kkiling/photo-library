@@ -282,7 +282,7 @@ func (s *SyncPhotos) uploadFile(ctx context.Context, data model.UploadData) erro
 		return fmt.Errorf("failed UploadPhoto: %w", err)
 	}
 
-	if err := s.storage.SaveUploadFileResponse(ctx, res.Hash, res.UploadedAt, err == nil); err != nil {
+	if err := s.storage.SaveUploadFileResponse(ctx, res.Hash, time.Now(), err == nil); err != nil {
 		return fmt.Errorf("storage.SaveUploadFileResponse: %w", err)
 	}
 
@@ -318,12 +318,10 @@ func (s *SyncPhotos) uploadFiles(ctx context.Context, uploadDataList []model.Upl
 					if errors.Is(err, ErrFileIsEmptyBody) {
 						// warningsChan <- fmt.Errorf("empty body: %s", data.MainPath)
 					} else {
-						fmt.Println("err")
 						errorsChan <- fmt.Errorf("fileRead.GetFileBody: %w", err)
 						return
 					}
 				}
-				fmt.Println("ok")
 				bar.Increment()
 			}
 		}()

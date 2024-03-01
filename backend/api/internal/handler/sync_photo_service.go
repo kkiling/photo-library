@@ -97,7 +97,7 @@ func (p *SyncPhotosServiceServer) UploadPhoto(ctx context.Context, request *desc
 	response, err := p.syncPhoto.UploadPhoto(ctx, mapper.UploadPhotoRequest(request))
 
 	if err != nil {
-		return nil, handleError(err, p.syncPhoto.UploadPhoto)
+		return nil, handleError(err, "p.syncPhoto.UploadPhoto")
 	}
 
 	return mapper.UploadPhotoResponse(response), nil

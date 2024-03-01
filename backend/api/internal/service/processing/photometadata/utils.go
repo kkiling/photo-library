@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/photoml"
 	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
+	"go.uber.org/multierr"
 	"image"
 	_ "image/gif"
 	_ "image/jpeg"
@@ -24,7 +25,7 @@ func getImageDetails(photoBody []byte) (width int, height int, err error) {
 	img, _, err := image.DecodeConfig(reader)
 	if err != nil {
 		if errors.Is(err, photoml.ErrInternalServerError) {
-			return 0, 0, errors.Join(fmt.Errorf("image.DecodeConfig: %w", err), serviceerr.ErrPhotoIsNotValid)
+			return 0, 0, multierr.Append(serviceerr.MakeErr(err, "image.DecodeConfig"), serviceerr.ErrPhotoIsNotValid)
 		}
 	}
 

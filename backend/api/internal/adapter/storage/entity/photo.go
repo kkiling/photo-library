@@ -7,13 +7,19 @@ import (
 )
 
 type PhotoFilter struct {
-	ProcessingStatusIn []string
 }
 
 type PhotoSortOrder string
 
 const (
 	PhotoSortOrderNone PhotoSortOrder = "NONE"
+)
+
+type PhotoStatus string
+
+const (
+	NewPhotoStatus PhotoStatus = "NEW_PHOTO"
+	NotValidStatus PhotoStatus = "NOT_VALID"
 )
 
 type PhotoSelectParams struct {
@@ -24,12 +30,11 @@ type PhotoSelectParams struct {
 }
 
 type Photo struct {
-	ID               uuid.UUID
-	FileName         string
-	Hash             string
-	UpdateAt         time.Time
-	Extension        string
-	ProcessingStatus string
+	ID        uuid.UUID
+	FileName  string
+	Hash      string
+	UpdateAt  time.Time
+	Extension string
 }
 
 type PhotoUploadData struct {

@@ -33,9 +33,6 @@ mock:
 migrate-create\:%:
 	goose -dir=./migrations create $* sql
 
-migrate-create\:%:
-	goose -dir=./migrations create $* sql
-
 .PHONY: migrate-up
 migrate-up:
 	goose -dir=./migrations postgres "postgresql://root:q9ckMfi6xQUc1@10.10.10.201:5501/photos?sslmode=disable" up

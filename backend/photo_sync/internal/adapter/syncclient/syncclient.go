@@ -38,7 +38,7 @@ func (c *Client) UploadPhoto(ctx context.Context, data model.UploadData, body []
 		return model.UploadResult{}, fmt.Errorf("client.UploadPhoto: %w", err)
 	}
 	return model.UploadResult{
-		UploadedAt: res.UploadedAt.AsTime(),
-		Hash:       res.Hash,
+		HasBeenUploadedBefore: res.HasBeenUploadedBefore,
+		Hash:                  res.Hash,
 	}, nil
 }

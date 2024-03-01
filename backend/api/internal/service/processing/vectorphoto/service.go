@@ -3,11 +3,10 @@ package vectorphoto
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/photoml"
 	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
+	"go.uber.org/multierr"
 
-	"github.com/google/uuid"
 	"github.com/kkiling/photo-library/backend/api/internal/service"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
@@ -16,7 +15,6 @@ import (
 
 type Storage interface {
 	service.Transactor
-	ExistPhotoVector(ctx context.Context, photoID uuid.UUID) (bool, error)
 	SaveOrUpdatePhotoVector(ctx context.Context, photoVector model.PhotoVector) error
 }
 
@@ -39,19 +37,13 @@ func NewService(logger log.Logger, storage Storage, photoML PhotoML) *Service {
 }
 
 // Processing рассчитывает и сохраняет вектора фотографий, для расчета похожих фото
-func (s *Service) Processing(ctx context.Context, photo model.Photo, photoBody []byte) error {
-	if exist, err := s.storage.ExistPhotoVector(ctx, photo.ID); err != nil {
-		return fmt.Errorf("storage.ExistPhotoVector: %e", err)
-	} else if exist {
-		return nil
-	}
-
+func (s *Service) Processing(ctx context.Context, photo model.Photo, photoBody []byte) (bool, error) {
 	vector, err := s.photoML.GetImageVector(ctx, photoBody)
 	if err != nil {
 		if errors.Is(err, photoml.ErrInternalServerError) {
-			return errors.Join(err, serviceerr.ErrPhotoIsNotValid)
+			return false, multierr.Append(err, serviceerr.ErrPhotoIsNotValid)
 		}
-		return fmt.Errorf("photoML.GetImageVector: %w", err)
+		return false, serviceerr.MakeErr(err, "photoML.GetImageVector")
 	}
 
 	norm := floats.Norm(vector, 2)
@@ -60,8 +52,8 @@ func (s *Service) Processing(ctx context.Context, photo model.Photo, photoBody [
 		Vector:  vector,
 		Norm:    norm,
 	}); err != nil {
-		return fmt.Errorf("storage.SaveOrUpdatePhotoVector: %e", err)
+		return false, serviceerr.MakeErr(err, "storage.SaveOrUpdatePhotoVector")
 	}
 
-	return nil
+	return true, nil
 }

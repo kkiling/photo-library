@@ -5,7 +5,6 @@ import (
 	"errors"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/entity"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -24,26 +23,6 @@ func (r *PhotoRepository) SaveOrUpdatePhotoVector(ctx context.Context, photoVect
 		return printError(err)
 	}
 	return nil
-}
-
-func (r *PhotoRepository) ExistPhotoVector(ctx context.Context, photoID uuid.UUID) (bool, error) {
-	conn := r.getConn(ctx)
-
-	var counter int64
-
-	const query = `
-		SELECT count(*)
-		FROM photo_vectors
-		WHERE photo_id = $1
-		LIMIT 1
-	`
-
-	err := conn.QueryRow(ctx, query, photoID).Scan(&counter)
-	if err != nil {
-		return false, printError(err)
-	}
-
-	return counter > 0, nil
 }
 
 func (r *PhotoRepository) GetPaginatedPhotoVectors(ctx context.Context, offset int64, limit int) ([]entity.PhotoVector, error) {

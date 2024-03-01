@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
 	"strings"
 
 	"github.com/google/uuid"
@@ -141,18 +142,18 @@ func (p *write) Walk(name exif.FieldName, tag *tiff.Tag) error {
 }
 
 // Processing рассчитывает exif данные фотографии и сохраняет в базу
-func (s *Service) Processing(ctx context.Context, photo model.Photo, photoBody []byte) error {
+func (s *Service) Processing(ctx context.Context, photo model.Photo, photoBody []byte) (bool, error) {
 	reader := bytes.NewReader(photoBody)
 	x, err := exif.Decode(reader)
 
 	if err != nil {
 		if err.Error() == "EOF" {
 			s.logger.Debugf("photo (%s) exif decode error: %v", photo.ID, err)
-			return nil
+			return false, nil
 		}
 		if exif.IsCriticalError(err) {
 			s.logger.Debugf("photo (%s) exif decode error: %v", photo.ID, err)
-			return nil
+			return false, nil
 		}
 	}
 
@@ -162,14 +163,14 @@ func (s *Service) Processing(ctx context.Context, photo model.Photo, photoBody [
 		},
 	}
 	if err := x.Walk(&p); err != nil {
-		return fmt.Errorf("exif.Walk: %w", err)
+		return false, serviceerr.MakeErr(err, "exif.Walk")
 	}
 
 	err = s.storage.SaveOrUpdateExif(ctx, &p.data)
 
 	if err != nil {
-		return fmt.Errorf("storage.SaveOrUpdateExif: %w", err)
+		return false, serviceerr.MakeErr(err, "storage.SaveOrUpdateExif")
 	}
 
-	return nil
+	return true, nil
 }

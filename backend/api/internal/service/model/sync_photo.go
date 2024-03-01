@@ -21,6 +21,4 @@ type SyncPhotoResponse struct {
 	HasBeenUploadedBefore bool
 	// Рассчитанный на клиенте хеш фотографии
 	Hash string
-	// Дата когда фотография была загружена на сервер
-	UploadAt time.Time
 }

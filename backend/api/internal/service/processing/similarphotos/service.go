@@ -2,7 +2,7 @@ package similarphotos
 
 import (
 	"context"
-	"fmt"
+	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
 	"sync"
 
 	"github.com/cheggaaa/pb/v3"
@@ -43,7 +43,7 @@ func (s *Service) SavePhotoSimilarCoefficient(ctx context.Context) error {
 
 	countPhotos, err := s.storage.GetPhotosCount(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("storage.GetPhotosCount: %w", err)
+		return serviceerr.MakeErr(err, "storage.GetPhotosCount")
 	}
 
 	var offset int64
@@ -55,7 +55,7 @@ func (s *Service) SavePhotoSimilarCoefficient(ctx context.Context) error {
 	for offset = 0; offset < countPhotos; offset += limit {
 		vectors, err := s.storage.GetPaginatedPhotosVector(ctx, offset, limit)
 		if err != nil {
-			return fmt.Errorf("storage.GetPaginatedPhotoVectors: %w", err)
+			return serviceerr.MakeErr(err, "storage.GetPaginatedPhotoVectors")
 		}
 		photoVectors = append(photoVectors, vectors...)
 	}
@@ -93,7 +93,7 @@ func (s *Service) SavePhotoSimilarCoefficient(ctx context.Context) error {
 							Coefficient: coefficient,
 						})
 						if err != nil {
-							errorsChan <- fmt.Errorf("storage.SaveCoeffSimilarPhoto: %w", err)
+							errorsChan <- serviceerr.MakeErr(err, "storage.SaveCoeffSimilarPhoto")
 							return
 						}
 					}

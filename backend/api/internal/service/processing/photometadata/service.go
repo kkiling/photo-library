@@ -3,6 +3,7 @@ package photometadata
 import (
 	"context"
 	"fmt"
+	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
 	"time"
 
 	"github.com/google/uuid"
@@ -52,11 +53,11 @@ func (s *Service) getDateTime(ctx context.Context, exif *model.ExifPhotoData, ph
 	} else {
 		uploadData, err := s.storage.GetUploadPhotoData(ctx, photoID)
 		if err != nil {
-			return nil, fmt.Errorf("storage.GetPhotoUploadData: %w", err)
+			return nil, serviceerr.MakeErr(err, "storage.GetPhotoUploadData")
 		}
 
 		if uploadData == nil {
-			return nil, fmt.Errorf("not found upload data for photo: %s", photoID)
+			return nil, serviceerr.NotFoundError("not found upload data for photo: %s", photoID)
 		}
 
 		for _, path := range uploadData.Paths {
@@ -76,7 +77,7 @@ func (s *Service) getGeo(exif *model.ExifPhotoData) (*model.Geo, error) {
 	if exif != nil && exif.GPSLongitude != nil && exif.GPSLatitude != nil {
 		geo, err := convertToGeo(exif.GPSLatitude, exif.GPSLongitude)
 		if err != nil {
-			return nil, fmt.Errorf("convertToGeo: %w", err)
+			return nil, serviceerr.MakeErr(err, "convertToGeo")
 		}
 		return geo, nil
 	}
@@ -101,26 +102,31 @@ func (s *Service) getModelInfo(exif *model.ExifPhotoData) *string {
 }
 
 // Processing рассчитывает meta данные фотографии и сохраняет в базу
-func (s *Service) Processing(ctx context.Context, photo model.Photo, photoBody []byte) error {
+func (s *Service) Processing(ctx context.Context, photo model.Photo, photoBody []byte) (bool, error) {
 	exif, err := s.storage.GetExif(ctx, photo.ID)
 	if err != nil {
-		return fmt.Errorf("storage.GetExif: %w", err)
+		return false, serviceerr.MakeErr(err, "storage.GetExif")
+	}
+
+	if exif == nil {
+		return false, nil
 	}
 
 	dateTime, err := s.getDateTime(ctx, exif, photo.ID)
 	if err != nil {
-		return fmt.Errorf("getDateTime: %w", err)
+		return false, serviceerr.MakeErr(err, "getDateTime")
 	}
+
 	geo, err := s.getGeo(exif)
 	if err != nil {
-		return fmt.Errorf("getGeo: %w", err)
+		return false, serviceerr.MakeErr(err, "getGeo")
 	}
 
 	modelInfo := s.getModelInfo(exif)
 
 	widthPixel, heightPixel, err := getImageDetails(photoBody)
 	if err != nil {
-		return fmt.Errorf("getImageDetails: %w", err)
+		return false, serviceerr.MakeErr(err, "getImageDetails")
 	}
 
 	meta := model.PhotoMetadata{
@@ -136,9 +142,8 @@ func (s *Service) Processing(ctx context.Context, photo model.Photo, photoBody [
 
 	err = s.storage.SaveOrUpdateMetaData(ctx, meta)
 	if err != nil {
-		// TODO:  ошибка
-		return fmt.Errorf("storage.SaveOrUpdateMeta: %w", err)
+		return false, serviceerr.MakeErr(err, "storage.SaveOrUpdateMeta")
 	}
 
-	return nil
+	return true, nil
 }

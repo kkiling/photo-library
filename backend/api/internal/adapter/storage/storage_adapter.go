@@ -36,6 +36,10 @@ func (r *Adapter) SavePhoto(ctx context.Context, photo model.Photo) error {
 	return r.photoRepo.SavePhoto(ctx, *in)
 }
 
+func (r *Adapter) MakeNotValidPhoto(ctx context.Context, photoID uuid.UUID, error string) error {
+	return r.photoRepo.MakeNotValidPhoto(ctx, photoID, error)
+}
+
 func (r *Adapter) GetPhotoById(ctx context.Context, id uuid.UUID) (*model.Photo, error) {
 	res, err := r.photoRepo.GetPhotoById(ctx, id)
 	if err != nil {
@@ -48,8 +52,25 @@ func (r *Adapter) GetPhotosCount(ctx context.Context, filter *model.PhotoFilter)
 	return r.photoRepo.GetPhotosCount(ctx, mapping.PhotoFilter(filter))
 }
 
-func (r *Adapter) UpdatePhotosProcessingStatus(ctx context.Context, id uuid.UUID, newProcessingStatus model.PhotoProcessingStatus) error {
-	return r.photoRepo.UpdatePhotosProcessingStatus(ctx, id, string(newProcessingStatus))
+func (r *Adapter) AddPhotosProcessingStatus(ctx context.Context, photoID uuid.UUID, status model.PhotoProcessingStatus, success bool) error {
+	return r.photoRepo.AddPhotosProcessingStatus(ctx, photoID, string(status), success)
+}
+
+func (r *Adapter) GetUnprocessedPhotoIDs(ctx context.Context, lastProcessingStatus model.PhotoProcessingStatus, limit int64) ([]uuid.UUID, error) {
+	return r.photoRepo.GetUnprocessedPhotoIDs(ctx, string(lastProcessingStatus), limit)
+}
+
+func (r *Adapter) GetPhotoProcessingStatuses(ctx context.Context, photoID uuid.UUID) ([]model.PhotoProcessingStatus, error) {
+	statuses, err := r.photoRepo.GetPhotoProcessingStatuses(ctx, photoID)
+	if err != nil {
+		return nil, err
+	}
+
+	var result = make([]model.PhotoProcessingStatus, 0, len(statuses))
+	for _, s := range statuses {
+		result = append(result, model.PhotoProcessingStatus(s))
+	}
+	return result, nil
 }
 
 func (r *Adapter) GetPaginatedPhotos(ctx context.Context, params model.PhotoSelectParams, filter *model.PhotoFilter) ([]model.Photo, error) {
@@ -140,10 +161,6 @@ func (r *Adapter) SaveTag(ctx context.Context, tag model.Tag) error {
 func (r *Adapter) SaveOrUpdatePhotoVector(ctx context.Context, photoVector model.PhotoVector) error {
 	in := mapping.PhotoVectorModelToEntity(&photoVector)
 	return r.photoRepo.SaveOrUpdatePhotoVector(ctx, *in)
-}
-
-func (r *Adapter) ExistPhotoVector(ctx context.Context, photoID uuid.UUID) (bool, error) {
-	return r.photoRepo.ExistPhotoVector(ctx, photoID)
 }
 
 func (r *Adapter) GetPaginatedPhotosVector(ctx context.Context, offset int64, limit int) ([]model.PhotoVector, error) {

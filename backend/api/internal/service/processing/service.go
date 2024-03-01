@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/samber/lo"
 	"sync"
 
 	"github.com/google/uuid"
@@ -17,9 +18,11 @@ type Config struct {
 }
 
 type Storage interface {
-	GetPhotosCount(ctx context.Context, filter *model.PhotoFilter) (int64, error)
-	GetPaginatedPhotos(ctx context.Context, params model.PhotoSelectParams, filter *model.PhotoFilter) ([]model.Photo, error)
-	UpdatePhotosProcessingStatus(ctx context.Context, id uuid.UUID, newProcessingStatus model.PhotoProcessingStatus) error
+	GetPhotoById(ctx context.Context, id uuid.UUID) (*model.Photo, error)
+	GetPhotoProcessingStatuses(ctx context.Context, photoID uuid.UUID) ([]model.PhotoProcessingStatus, error)
+	GetUnprocessedPhotoIDs(ctx context.Context, lastProcessingStatus model.PhotoProcessingStatus, limit int64) ([]uuid.UUID, error)
+	AddPhotosProcessingStatus(ctx context.Context, photoID uuid.UUID, status model.PhotoProcessingStatus, success bool) error
+	MakeNotValidPhoto(ctx context.Context, photoID uuid.UUID, error string) error
 }
 
 type FileStore interface {
@@ -27,7 +30,7 @@ type FileStore interface {
 }
 
 type PhotoProcessor interface {
-	Processing(ctx context.Context, photo model.Photo, photoBody []byte) error
+	Processing(ctx context.Context, photo model.Photo, photoBody []byte) (bool, error)
 }
 
 type Service struct {
@@ -53,106 +56,115 @@ func NewService(logger log.Logger,
 	}
 }
 
-func (s *Service) processingPhoto(ctx context.Context, photo model.Photo) error {
-	nextStatus := model.NewPhoto
-
-	switch photo.ProcessingStatus {
-	case model.NewPhoto:
-		nextStatus = model.ExifDataSaved
-	case model.ExifDataSaved:
-		nextStatus = model.MetaDataSaved
-	case model.MetaDataSaved:
-		nextStatus = model.SystemTagsSaved
-	case model.SystemTagsSaved:
-		nextStatus = model.PhotoVectorSaved
-	case model.PhotoVectorSaved:
-		// Конечный стутус в данный момент
-		return nil
+func (s *Service) processingPhoto(ctx context.Context, photoID uuid.UUID) error {
+	// TODO: Тут нужно ставить лок на обработку фотографии
+	photo, err := s.storage.GetPhotoById(ctx, photoID)
+	if err != nil {
+		return serviceerr.NotFoundError("photo not found")
 	}
 
-	processor, ok := s.photoProcessors[nextStatus]
-	if !ok {
-		return serviceerr.NotFoundError("not found processing service for photo status: %s", string(nextStatus))
+	actualPhotoProcessingStatuses, err := s.storage.GetPhotoProcessingStatuses(ctx, photoID)
+	if err != nil {
+		return serviceerr.MakeErr(err, "s.storage.GetPhotoProcessingStatuses")
 	}
 
 	photoBody, err := s.fileStorage.GetFileBody(ctx, photo.FileName)
 	if err != nil {
-		return serviceerr.RuntimeError(err, s.fileStorage.GetFileBody)
+		return serviceerr.MakeErr(err, "s.fileStorage.GetFileBody")
 	}
 
-	if err := processor.Processing(ctx, photo, photoBody); err != nil {
-		return serviceerr.RuntimeError(err, processor.Processing)
-	}
+	for _, nextStatus := range model.PhotoProcessingStatuses {
+		if lo.Contains(actualPhotoProcessingStatuses, nextStatus) {
+			continue
+		}
 
-	if err := s.storage.UpdatePhotosProcessingStatus(ctx, photo.ID, nextStatus); err != nil {
-		return serviceerr.RuntimeError(err, s.storage.UpdatePhotosProcessingStatus)
+		processor, ok := s.photoProcessors[nextStatus]
+		if !ok {
+			return serviceerr.NotFoundError("not found processing service for photo status: %s", string(nextStatus))
+		}
+
+		success, err := processor.Processing(ctx, *photo, photoBody)
+		if err != nil {
+			return serviceerr.MakeErr(fmt.Errorf("status %s: %w", nextStatus, err), "processor.Processing")
+		}
+
+		if err := s.storage.AddPhotosProcessingStatus(ctx, photo.ID, nextStatus, success); err != nil {
+			return serviceerr.MakeErr(fmt.Errorf("status %s: %w", nextStatus, err), "s.storage.UpdatePhotosProcessingStatus")
+		}
 	}
 
 	return nil
 }
 
-func (s *Service) ProcessingPhotos(ctx context.Context,
-	status model.PhotoProcessingStatus, limit int) (processedCount int, totalCount int64, err error) {
-
-	filter := model.PhotoFilter{
-		ProcessingStatusIn: []model.PhotoProcessingStatus{status},
-	}
-	photos, err := s.storage.GetPaginatedPhotos(ctx, model.PhotoSelectParams{Limit: limit}, &filter)
-
+func (s *Service) ProcessingPhotos(ctx context.Context, limit int64) (bool, error) {
+	photoIDs, err := s.storage.GetUnprocessedPhotoIDs(ctx, model.LastProcessingStatus, limit)
 	if err != nil {
-		return 0, 0, serviceerr.RuntimeError(err, s.storage.GetPaginatedPhotos)
+		return false, serviceerr.MakeErr(err, "s.storage.GetUnprocessedPhotoIDs")
 	}
 
-	totalCount, err = s.storage.GetPhotosCount(ctx, &filter)
-	if err != nil {
-		return 0, 0, serviceerr.RuntimeError(err, s.storage.GetPhotosCount)
+	if len(photoIDs) == 0 {
+		return false, nil
 	}
 
-	photoChan := make(chan model.Photo)
-	errorsChan := make(chan error, s.cfg.MaxGoroutines)
+	var photoIDsChan = make(chan uuid.UUID)
 	go func() {
-		for _, photo := range photos {
-			photoChan <- photo
+		defer close(photoIDsChan)
+		for _, id := range photoIDs {
+			photoIDsChan <- id
 		}
-		close(photoChan)
 	}()
 
+	var returnErr error
+	var mu = sync.Mutex{}
 	var wg sync.WaitGroup
+
 	for i := 0; i < s.cfg.MaxGoroutines; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+
 			for ctx.Err() == nil {
+
+				mu.Lock()
+				if returnErr != nil {
+					mu.Unlock()
+					break
+				}
+				mu.Unlock()
+
 				select {
 				case <-ctx.Done():
 					// Время выполнения истекло
-					errorsChan <- ctx.Err()
 					return
-				case photo, ok := <-photoChan:
-					// Получили результат
+				case photoID, ok := <-photoIDsChan:
 					if !ok {
-						return
+						return // Канал закрыт
 					}
-					if processedErr := s.processingPhoto(ctx, photo); processedErr != nil {
-						if errors.Is(processedErr, serviceerr.ErrPhotoIsNotValid) {
-							// TODO: пометить что фото не валидно
-							fmt.Println(processedErr.Error())
+
+					processedErr := s.processingPhoto(ctx, photoID)
+					if processedErr == nil {
+						continue
+					}
+
+					fmt.Printf("%v: %v\n", photoID, processedErr)
+
+					mu.Lock()
+					// Необходимо сделать фото невалидным
+					if errors.Is(processedErr, serviceerr.ErrPhotoIsNotValid) {
+						if notValidErr := s.storage.MakeNotValidPhoto(ctx, photoID, processedErr.Error()); notValidErr != nil {
+							returnErr = notValidErr
+							return
 						}
-						errorsChan <- serviceerr.RuntimeError(processedErr, s.processingPhoto)
-						// TODO: остановить все гроутины
-						return
+					} else {
+						returnErr = serviceerr.MakeErr(processedErr, "s.processingPhoto")
 					}
+					mu.Unlock()
 				}
 			}
 		}()
 	}
 
 	wg.Wait()
-	close(errorsChan)
 
-	if len(errorsChan) > 0 {
-		return 0, 0, <-errorsChan
-	}
-
-	return len(photos), totalCount, nil
+	return true, returnErr
 }

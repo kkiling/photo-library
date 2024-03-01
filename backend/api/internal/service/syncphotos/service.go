@@ -66,7 +66,7 @@ func (s *Service) UploadPhoto(ctx context.Context, form *model.SyncPhotoRequest)
 	// Проверяем загружено ли фото
 	findPhoto, err := s.storage.GetPhotoByHash(ctx, form.Hash)
 	if err != nil {
-		return nil, serviceerr.RuntimeError(err, s.storage.GetPhotoByHash)
+		return nil, serviceerr.MakeErr(err, "s.storage.GetPhotoByHash")
 	}
 
 	if findPhoto != nil {
@@ -92,16 +92,15 @@ func (s *Service) UploadPhoto(ctx context.Context, form *model.SyncPhotoRequest)
 	// Сохранить файл и получить url
 	fileName := fmt.Sprintf("%s.%s", photoID, strings.ToLower(string(*ex)))
 	if err := s.fileStorage.SaveFileBody(ctx, fileName, form.Body); err != nil {
-		return nil, serviceerr.RuntimeError(err, s.fileStorage.SaveFileBody)
+		return nil, serviceerr.MakeErr(err, "s.fileStorage.SaveFileBody")
 	}
 
 	newPhoto := model.Photo{
-		ID:               photoID,
-		FileName:         fileName,
-		Hash:             form.Hash,
-		UpdateAt:         form.UpdateAt,
-		Extension:        *ex,
-		ProcessingStatus: model.NewPhoto,
+		ID:        photoID,
+		FileName:  fileName,
+		Hash:      form.Hash,
+		UpdateAt:  form.UpdateAt,
+		Extension: *ex,
 	}
 
 	uploadPhotoData := model.PhotoUploadData{
@@ -131,7 +130,7 @@ func (s *Service) UploadPhoto(ctx context.Context, form *model.SyncPhotoRequest)
 		if delErr := s.fileStorage.DeleteFile(ctx, newPhoto.FileName); delErr != nil {
 			s.logger.Errorf("fail fileStorage.DeleteFile %s: %v", newPhoto.FileName, delErr)
 		}
-		return nil, serviceerr.RuntimeError(err, s.storage.RunTransaction)
+		return nil, serviceerr.MakeErr(err, "s.storage.RunTransaction")
 	}
 
 	return &model.SyncPhotoResponse{

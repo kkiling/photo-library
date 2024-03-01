@@ -1,11 +1,8 @@
-package systags
+package metatags
 
 import (
-	"math"
-	"path/filepath"
-	"strings"
-
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
+	"math"
 )
 
 const earthRadiusKm = 6371.0
@@ -23,12 +20,6 @@ func haversine(lat1, lon1, lat2, lon2 float64) float64 {
 	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
 
 	return earthRadiusKm * c
-}
-
-func getDirectories(path string) []string {
-	catalogs := filepath.Dir(path)
-	parts := strings.Split(catalogs, string(filepath.Separator))
-	return parts
 }
 
 func distance(a, b model.Geo) float64 {

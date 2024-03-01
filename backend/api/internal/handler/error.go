@@ -4,13 +4,11 @@ import (
 	"fmt"
 
 	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
-	pbv1 "github.com/kkiling/photo-library/backend/api/pkg/common/gen/proto/v1"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/server"
-	"github.com/kkiling/photo-library/backend/api/pkg/common/utils"
 	"github.com/pkg/errors"
 )
 
-func mapFieldViolation(fieldViolations []serviceerr.FieldViolation) []*pbv1.FieldViolation {
+/*func mapFieldViolation(fieldViolations []serviceerr.FieldViolation) []*pbv1.FieldViolation {
 	res := make([]*pbv1.FieldViolation, 0, len(fieldViolations))
 	for _, f := range fieldViolations {
 		res = append(res, &pbv1.FieldViolation{
@@ -19,13 +17,12 @@ func mapFieldViolation(fieldViolations []serviceerr.FieldViolation) []*pbv1.Fiel
 		})
 	}
 	return res
-}
+}*/
 
-func handleError(err2 error, method any) error {
-	functionName := utils.GetFunctionName(method)
-	newErr := fmt.Errorf("%s: %w", functionName, err2)
+func handleError(err2 error, description any) error {
+	newErr := fmt.Errorf("%s: %w", description, err2)
 
-	info := pbv1.ErrorInfo{
+	/*info := pbv1.ErrorInfo{
 		Description: "Unhandled error",
 	}
 
@@ -49,5 +46,16 @@ func handleError(err2 error, method any) error {
 		// ErrTooManyRequests
 	}
 
-	return server.ErrInternal(newErr, &info)
+	return server.ErrInternal(newErr, &info)*/
+
+	switch {
+	case errors.Is(newErr, serviceerr.ErrNotFound):
+		return server.ErrNotFound(newErr)
+	case errors.Is(newErr, serviceerr.ErrInvalidInput):
+		return server.ErrInvalidArgument(newErr)
+	case errors.Is(newErr, serviceerr.ErrConflict):
+		return server.ErrAlreadyExists(newErr)
+	}
+
+	return server.ErrInternal(newErr)
 }

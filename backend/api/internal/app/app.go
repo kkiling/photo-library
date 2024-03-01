@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage"
 	pgrepo2 "github.com/kkiling/photo-library/backend/api/internal/adapter/storage/pgrepo"
+	"github.com/kkiling/photo-library/backend/api/internal/service/processing/catalogtags"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/fsstore"
@@ -14,9 +15,9 @@ import (
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing/exifphotodata"
+	"github.com/kkiling/photo-library/backend/api/internal/service/processing/metatags"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing/photometadata"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing/similarphotos"
-	"github.com/kkiling/photo-library/backend/api/internal/service/processing/systags"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing/vectorphoto"
 	"github.com/kkiling/photo-library/backend/api/internal/service/syncphotos"
 	"github.com/kkiling/photo-library/backend/api/internal/service/tagphoto"
@@ -44,7 +45,8 @@ type App struct {
 	tagPhoto         *tagphoto.Service
 	exifPhoto        *exifphotodata.Service
 	metaPhoto        *photometadata.Service
-	sysTagPhoto      *systags.Service
+	metaTagsPhoto    *metatags.Service
+	catalogTagsPhoto *catalogtags.Service
 	vectorPhoto      *vectorphoto.Service
 	processingPhotos *processing.Service
 }
@@ -114,11 +116,16 @@ func (a *App) Create(ctx context.Context) error {
 		a.logger.Named("meta_photo"),
 		a.storageAdapter,
 	)
-	a.sysTagPhoto = systags.NewService(
-		a.logger.Named("sync_photo_service_photo"),
+	a.metaTagsPhoto = metatags.NewService(
+		a.logger.Named("meta_photo_service_photo"),
 		a.tagPhoto,
 		a.storageAdapter,
 		a.geoService,
+	)
+	a.catalogTagsPhoto = catalogtags.NewService(
+		a.logger.Named("catalog_photo_service_photo"),
+		a.tagPhoto,
+		a.storageAdapter,
 	)
 	a.syncPhotoServer = handler.NewSyncPhotosServiceServer(
 		a.logger.Named("sync_photo_service_photo"),
@@ -140,11 +147,11 @@ func (a *App) Create(ctx context.Context) error {
 		a.storageAdapter,
 		a.fsStore,
 		map[model.PhotoProcessingStatus]processing.PhotoProcessor{
-			model.NewPhoto:         nil, // Стартовая точка каждой фотографии
-			model.ExifDataSaved:    a.exifPhoto,
-			model.MetaDataSaved:    a.metaPhoto,
-			model.SystemTagsSaved:  a.sysTagPhoto,
-			model.PhotoVectorSaved: a.vectorPhoto,
+			model.ExifDataProcessing:    a.exifPhoto,
+			model.MetaDataProcessing:    a.metaPhoto,
+			model.CatalogTagsProcessing: a.catalogTagsPhoto,
+			model.MetaTagsProcessing:    a.metaTagsPhoto,
+			model.PhotoVectorProcessing: a.vectorPhoto,
 		},
 	)
 

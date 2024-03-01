@@ -1,18 +1,26 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TYPE photo_processing_status AS ENUM (
-    'NEW_PHOTO',
-    'EXIF_DATA_SAVED',
-    'META_DATA_SAVED',
-    'SYSTEM_TAGS_SAVED',
-    'PHOTO_VECTOR_SAVED'
+    'EXIF_DATA',
+    'META_DATA',
+    'CATALOG_TAGS',
+    'META_TAGS',
+    'PHOTO_VECTOR'
 );
 
-ALTER TABLE photos ADD COLUMN processing_status photo_processing_status DEFAULT 'NEW_PHOTO';
+CREATE TABLE photo_processing_statuses (
+    photo_id UUID,
+    processed_at TIMESTAMP NOT NULL,
+    status photo_processing_status
+);
+
+ALTER TABLE photo_processing_statuses
+    ADD CONSTRAINT fk_photo_processing_statuses_photo_id
+        FOREIGN KEY (photo_id) REFERENCES photos(id);
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-ALTER TABLE photos DROP COLUMN processing_status;
+DROP TABLE photo_processing_statuses;
 DROP TYPE photo_processing_status;
 -- +goose StatementEnd

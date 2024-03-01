@@ -43,26 +43,23 @@ func validateCreateCategory(typeCategory, color string) error {
 
 	// Валидация имени
 	if err := validate.Var(typeCategory, fmt.Sprintf("min=%d,max=%d", TagCategoryTypeMin, TagCategoryTypeMax)); err != nil {
-		// TODO: ошибка
-
 		var validationErrors validator.ValidationErrors
 		if errors.As(err, &validationErrors) {
-			return fmt.Errorf("invalid typeCategory: %w", validationErrors)
+			return serviceerr.MakeErr(validationErrors, "invalid typeCategory")
 		}
 
-		return fmt.Errorf("invalid typeCategory: %w", err)
+		return serviceerr.MakeErr(err, "invalid typeCategory")
 	}
 
 	// Валидация цвета в формате HEX (например, "#FFFFFF")
 	// Вы можете настроить этот шаблон, если у вас есть другие требования к формату.
 	if err := validate.Var(color, "hexcolor"); err != nil {
-		// TODO: ошибка
 		var validationErrors validator.ValidationErrors
 		if errors.As(err, &validationErrors) {
-			return fmt.Errorf("invalid color: %w", validationErrors)
+			return serviceerr.MakeErr(validationErrors, "invalid color")
 		}
 
-		return fmt.Errorf("invalid color: %w", err)
+		return serviceerr.MakeErr(err, "invalid color")
 	}
 
 	return nil
@@ -71,13 +68,13 @@ func validateCreateCategory(typeCategory, color string) error {
 // CreateCategory создание категории тегов
 func (s *Service) CreateCategory(ctx context.Context, typeCategory, color string) (model.TagCategory, error) {
 	if err := validateCreateCategory(typeCategory, color); err != nil {
-		return model.TagCategory{}, err
+		return model.TagCategory{}, serviceerr.InvalidInputErr(err, "validateCreateCategory")
 	}
 
 	if findCategory, err := s.storage.GetTagCategoryByType(ctx, typeCategory); err != nil {
-		return model.TagCategory{}, fmt.Errorf("storage.GetTagCategoryByName: %w", err)
+		return model.TagCategory{}, serviceerr.MakeErr(err, "storage.GetTagCategoryByName")
 	} else if findCategory != nil {
-		return model.TagCategory{}, fmt.Errorf("category already exist")
+		return model.TagCategory{}, serviceerr.ConflictError("category already exist")
 	}
 
 	newCategory := model.TagCategory{
@@ -87,7 +84,7 @@ func (s *Service) CreateCategory(ctx context.Context, typeCategory, color string
 	}
 
 	if err := s.storage.SaveTagCategory(ctx, newCategory); err != nil {
-		return model.TagCategory{}, fmt.Errorf("storage.SaveTagCategory: %w", err)
+		return model.TagCategory{}, serviceerr.MakeErr(err, "storage.SaveTagCategory")
 	}
 
 	return newCategory, nil
@@ -95,7 +92,7 @@ func (s *Service) CreateCategory(ctx context.Context, typeCategory, color string
 
 func (s *Service) GetCategory(ctx context.Context, typeCategory string) (*model.TagCategory, error) {
 	if findCategory, err := s.storage.GetTagCategoryByType(ctx, typeCategory); err != nil {
-		return nil, fmt.Errorf("storage.GetTagCategoryByName: %w", err)
+		return nil, serviceerr.MakeErr(err, "storage.GetTagCategoryByName")
 	} else if findCategory != nil {
 		// TODO: ошибка
 		return findCategory, nil
@@ -111,10 +108,10 @@ func validateAddPhotoTag(name string) error {
 	if err := validate.Var(name, fmt.Sprintf("min=%d,max=%d", TagNameMin, TagNameMax)); err != nil {
 		var validationErrors validator.ValidationErrors
 		if errors.As(err, &validationErrors) {
-			return fmt.Errorf("invalid name: %w", validationErrors)
+			return serviceerr.MakeErr(validationErrors, "invalid name")
 		}
 
-		return fmt.Errorf("invalid name: %w", err)
+		return serviceerr.MakeErr(validationErrors, "invalid name")
 	}
 
 	return nil
@@ -123,18 +120,17 @@ func validateAddPhotoTag(name string) error {
 // AddPhotoTag добавляет тег для фотографии
 func (s *Service) AddPhotoTag(ctx context.Context, photoID, categoryID uuid.UUID, name string) (model.Tag, error) {
 	if err := validateAddPhotoTag(name); err != nil {
-		return model.Tag{}, err
+		return model.Tag{}, serviceerr.InvalidInputError("validateAddPhotoTag", err)
 	}
 
 	if findCategory, err := s.storage.GetTagCategory(ctx, categoryID); err != nil {
-		return model.Tag{}, fmt.Errorf("storage.GetTypeCategory: %w", err)
+		return model.Tag{}, serviceerr.MakeErr(err, "storage.GetTypeCategory")
 	} else if findCategory == nil {
-		// TODO: ошибка
-		return model.Tag{}, fmt.Errorf("category not exist")
+		return model.Tag{}, serviceerr.NotFoundError("category not exist")
 	}
 
 	if findTag, err := s.storage.GetTagByName(ctx, photoID, name); err != nil {
-		return model.Tag{}, fmt.Errorf("storage.GetTagByName: %w", err)
+		return model.Tag{}, serviceerr.MakeErr(err, "storage.GetTagByName")
 	} else if findTag != nil {
 		return model.Tag{}, serviceerr.ErrTagAlreadyExist
 	}
@@ -147,8 +143,7 @@ func (s *Service) AddPhotoTag(ctx context.Context, photoID, categoryID uuid.UUID
 	}
 
 	if err := s.storage.SaveTag(ctx, tag); err != nil {
-		// TODO: ошибка
-		return model.Tag{}, fmt.Errorf("storage.SaveTag: %w", err)
+		return model.Tag{}, serviceerr.MakeErr(err, "storage.SaveTag")
 	}
 
 	return tag, nil

@@ -10,6 +10,6 @@ type UploadData struct {
 }
 
 type UploadResult struct {
-	UploadedAt time.Time
-	Hash       string
+	HasBeenUploadedBefore bool
+	Hash                  string
 }

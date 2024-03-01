@@ -1,9 +1,9 @@
 -- +goose Up
 -- +goose StatementBegin
-ALTER TABLE photos ADD CONSTRAINT unique_photo_hash UNIQUE (hash);
+ALTER TABLE photos ADD COLUMN error TEXT;
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-ALTER TABLE photos DROP CONSTRAINT unique_photo_hash;
+ALTER TABLE photos DROP COLUMN error;
 -- +goose StatementEnd

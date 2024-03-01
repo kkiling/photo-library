@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
-
 	"github.com/jessevdk/go-flags"
 	"github.com/kkiling/photo-library/backend/api/internal/app"
-	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/config"
 )
+
+const limit = 1000
 
 func main() {
 	var args config.Arguments
@@ -30,28 +30,20 @@ func main() {
 	}
 
 	processingPhotos := application.GetProcessingPhotos()
-	statuses := []model.PhotoProcessingStatus{
-		model.NewPhoto,
-		model.ExifDataSaved,
-		model.MetaDataSaved,
-		model.SystemTagsSaved,
-		model.PhotoVectorSaved, // Конечная в данный момент (нет обработчика)
+
+	application.Logger().Infof("start processing photos")
+
+	for {
+		eof, processingErr := processingPhotos.ProcessingPhotos(ctx, limit)
+		if processingErr != nil {
+			application.Logger().Fatalf("processingPhotos.ProcessingPhotos: %v", processingErr)
+		}
+		if eof == false {
+			break
+		}
+		application.Logger().Infof("processing %d photos", limit)
+
 	}
-	const limit = 100
-	for _, status := range statuses {
-		func(status model.PhotoProcessingStatus, limit int) {
-			application.Logger().Infof("startProcessing photos with status %s", status)
-			// Производим обработку
-			for {
-				count, totalCount, getError := processingPhotos.ProcessingPhotos(ctx, status, limit)
-				if getError != nil {
-					panic(getError)
-				}
-				application.Logger().Infof("%d/%d photos with %s status processed", count, totalCount, status)
-				if count == 0 {
-					break
-				}
-			}
-		}(status, limit)
-	}
+
+	application.Logger().Infof("stop processing photos")
 }
