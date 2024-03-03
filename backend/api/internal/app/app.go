@@ -3,17 +3,16 @@ package app
 import (
 	"context"
 	"fmt"
-	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage"
-	pgrepo2 "github.com/kkiling/photo-library/backend/api/internal/adapter/storage/pgrepo"
-	"github.com/kkiling/photo-library/backend/api/internal/service/processing/catalogtags"
-
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/fsstore"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/geo"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/photoml"
+	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage"
+	pgrepo2 "github.com/kkiling/photo-library/backend/api/internal/adapter/storage/pgrepo"
 	"github.com/kkiling/photo-library/backend/api/internal/handler"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing"
+	"github.com/kkiling/photo-library/backend/api/internal/service/processing/catalogtags"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing/exifphotodata"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing/metatags"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing/photometadata"
@@ -85,6 +84,11 @@ func (a *App) Create(ctx context.Context) error {
 		return fmt.Errorf("getProcessingPhotosConfig: %w", err)
 	}
 
+	getSimilarPhotosCfg, err := a.getSimilarPhotosConfig()
+	if err != nil {
+		return fmt.Errorf("getSimilarPhotosConfig: %w", err)
+	}
+
 	pool, err := pgrepo2.NewPgConn(ctx, pgCfg)
 	if err != nil {
 		return fmt.Errorf("newPgConn: %w", err)
@@ -139,6 +143,7 @@ func (a *App) Create(ctx context.Context) error {
 	)
 	a.similarPhotos = similarphotos.NewService(
 		a.logger.Named("similar_photos"),
+		getSimilarPhotosCfg,
 		a.storageAdapter,
 	)
 	a.processingPhotos = processing.NewService(
@@ -147,11 +152,12 @@ func (a *App) Create(ctx context.Context) error {
 		a.storageAdapter,
 		a.fsStore,
 		map[model.PhotoProcessingStatus]processing.PhotoProcessor{
-			model.ExifDataProcessing:    a.exifPhoto,
-			model.MetaDataProcessing:    a.metaPhoto,
-			model.CatalogTagsProcessing: a.catalogTagsPhoto,
-			model.MetaTagsProcessing:    a.metaTagsPhoto,
-			model.PhotoVectorProcessing: a.vectorPhoto,
+			model.ExifDataProcessing:           a.exifPhoto,
+			model.MetaDataProcessing:           a.metaPhoto,
+			model.CatalogTagsProcessing:        a.catalogTagsPhoto,
+			model.MetaTagsProcessing:           a.metaTagsPhoto,
+			model.PhotoVectorProcessing:        a.vectorPhoto,
+			model.SimilarCoefficientProcessing: a.similarPhotos,
 		},
 	)
 

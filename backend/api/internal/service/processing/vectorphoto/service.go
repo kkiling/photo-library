@@ -36,6 +36,14 @@ func NewService(logger log.Logger, storage Storage, photoML PhotoML) *Service {
 	}
 }
 
+func (s *Service) Init(ctx context.Context) error {
+	return nil
+}
+
+func (s *Service) NeedLoadPhotoBody() bool {
+	return true
+}
+
 // Processing рассчитывает и сохраняет вектора фотографий, для расчета похожих фото
 func (s *Service) Processing(ctx context.Context, photo model.Photo, photoBody []byte) (bool, error) {
 	vector, err := s.photoML.GetImageVector(ctx, photoBody)

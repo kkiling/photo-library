@@ -101,6 +101,14 @@ func (s *Service) getModelInfo(exif *model.ExifPhotoData) *string {
 	return nil
 }
 
+func (s *Service) Init(ctx context.Context) error {
+	return nil
+}
+
+func (s *Service) NeedLoadPhotoBody() bool {
+	return true
+}
+
 // Processing рассчитывает meta данные фотографии и сохраняет в базу
 func (s *Service) Processing(ctx context.Context, photo model.Photo, photoBody []byte) (bool, error) {
 	exif, err := s.storage.GetExif(ctx, photo.ID)

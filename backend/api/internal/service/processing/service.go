@@ -14,7 +14,8 @@ import (
 )
 
 type Config struct {
-	MaxGoroutines int `yaml:"max_goroutines"`
+	MaxGoroutines int   `yaml:"max_goroutines"`
+	Limit         int64 `yaml:"limit"`
 }
 
 type Storage interface {
@@ -30,7 +31,9 @@ type FileStore interface {
 }
 
 type PhotoProcessor interface {
+	Init(ctx context.Context) error
 	Processing(ctx context.Context, photo model.Photo, photoBody []byte) (bool, error)
+	NeedLoadPhotoBody() bool
 }
 
 type Service struct {
@@ -56,6 +59,21 @@ func NewService(logger log.Logger,
 	}
 }
 
+func (s *Service) Init(ctx context.Context) error {
+	for _, nextStatus := range model.PhotoProcessingStatuses {
+		processor, ok := s.photoProcessors[nextStatus]
+		if !ok {
+			return serviceerr.NotFoundError("not found processing service for photo status: %s", string(nextStatus))
+		}
+
+		if err := processor.Init(ctx); err != nil {
+			return serviceerr.MakeErr(fmt.Errorf("status %s: %w", nextStatus, err), "processor.Init")
+		}
+	}
+
+	return nil
+}
+
 func (s *Service) processingPhoto(ctx context.Context, photoID uuid.UUID) error {
 	// TODO: Тут нужно ставить лок на обработку фотографии
 	photo, err := s.storage.GetPhotoById(ctx, photoID)
@@ -68,10 +86,7 @@ func (s *Service) processingPhoto(ctx context.Context, photoID uuid.UUID) error 
 		return serviceerr.MakeErr(err, "s.storage.GetPhotoProcessingStatuses")
 	}
 
-	photoBody, err := s.fileStorage.GetFileBody(ctx, photo.FileName)
-	if err != nil {
-		return serviceerr.MakeErr(err, "s.fileStorage.GetFileBody")
-	}
+	var photoBody []byte
 
 	for _, nextStatus := range model.PhotoProcessingStatuses {
 		if lo.Contains(actualPhotoProcessingStatuses, nextStatus) {
@@ -81,6 +96,14 @@ func (s *Service) processingPhoto(ctx context.Context, photoID uuid.UUID) error 
 		processor, ok := s.photoProcessors[nextStatus]
 		if !ok {
 			return serviceerr.NotFoundError("not found processing service for photo status: %s", string(nextStatus))
+		}
+
+		// Ленивая загрузка фото, если нужно
+		if len(photoBody) == 0 && processor.NeedLoadPhotoBody() {
+			photoBody, err = s.fileStorage.GetFileBody(ctx, photo.FileName)
+			if err != nil {
+				return serviceerr.MakeErr(err, "s.fileStorage.GetFileBody")
+			}
 		}
 
 		success, err := processor.Processing(ctx, *photo, photoBody)
@@ -96,8 +119,8 @@ func (s *Service) processingPhoto(ctx context.Context, photoID uuid.UUID) error 
 	return nil
 }
 
-func (s *Service) ProcessingPhotos(ctx context.Context, limit int64) (bool, error) {
-	photoIDs, err := s.storage.GetUnprocessedPhotoIDs(ctx, model.LastProcessingStatus, limit)
+func (s *Service) ProcessingPhotos(ctx context.Context) (bool, error) {
+	photoIDs, err := s.storage.GetUnprocessedPhotoIDs(ctx, model.LastProcessingStatus, s.cfg.Limit)
 	if err != nil {
 		return false, serviceerr.MakeErr(err, "s.storage.GetUnprocessedPhotoIDs")
 	}

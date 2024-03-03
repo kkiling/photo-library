@@ -3,9 +3,11 @@ package pgrepo
 import (
 	"context"
 	"errors"
-	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/entity"
-
+	"fmt"
+	sq "github.com/Masterminds/squirrel"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/entity"
 )
 
 func (r *PhotoRepository) SaveOrUpdatePhotoVector(ctx context.Context, photoVector entity.PhotoVector) error {
@@ -25,7 +27,7 @@ func (r *PhotoRepository) SaveOrUpdatePhotoVector(ctx context.Context, photoVect
 	return nil
 }
 
-func (r *PhotoRepository) GetPaginatedPhotoVectors(ctx context.Context, offset int64, limit int) ([]entity.PhotoVector, error) {
+func (r *PhotoRepository) GetPaginatedPhotoVectors(ctx context.Context, offset int64, limit int64) ([]entity.PhotoVector, error) {
 	conn := r.getConn(ctx)
 
 	const query = `
@@ -81,4 +83,51 @@ func (r *PhotoRepository) SaveCoeffSimilarPhoto(ctx context.Context, sim entity.
 		return printError(err)
 	}
 	return nil
+}
+
+func (r *PhotoRepository) GetPhotosVectorCount(ctx context.Context) (int64, error) {
+	conn := r.getConn(ctx)
+
+	var counter int64
+
+	builder := sq.
+		Select("count(1)").
+		From("photo_vectors").
+		PlaceholderFormat(sq.Dollar)
+
+	query, args, err := builder.ToSql()
+	if err != nil {
+		return 0, fmt.Errorf("builder.ToSql: %w", err)
+	}
+
+	err = conn.QueryRow(ctx, query, args...).Scan(&counter)
+	if err != nil {
+		return 0, printError(err)
+	}
+
+	return counter, nil
+}
+
+func (r *PhotoRepository) GetPhotoVector(ctx context.Context, photoID uuid.UUID) (*entity.PhotoVector, error) {
+	conn := r.getConn(ctx)
+
+	const query = `
+		SELECT photo_id, vector, norm
+		FROM photo_vectors
+		WHERE photo_id = $1
+		LIMIT 1
+	`
+
+	row := conn.QueryRow(ctx, query, photoID)
+
+	var vector entity.PhotoVector
+	err := row.Scan(&vector.PhotoID, &vector.Vector, &vector.Norm)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, printError(err)
+	}
+
+	return &vector, nil
 }

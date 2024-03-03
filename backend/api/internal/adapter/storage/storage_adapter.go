@@ -163,7 +163,7 @@ func (r *Adapter) SaveOrUpdatePhotoVector(ctx context.Context, photoVector model
 	return r.photoRepo.SaveOrUpdatePhotoVector(ctx, *in)
 }
 
-func (r *Adapter) GetPaginatedPhotosVector(ctx context.Context, offset int64, limit int) ([]model.PhotoVector, error) {
+func (r *Adapter) GetPaginatedPhotosVector(ctx context.Context, offset int64, limit int64) ([]model.PhotoVector, error) {
 	vectors, err := r.photoRepo.GetPaginatedPhotoVectors(ctx, offset, limit)
 	if err != nil {
 		return nil, err
@@ -178,4 +178,16 @@ func (r *Adapter) GetPaginatedPhotosVector(ctx context.Context, offset int64, li
 func (r *Adapter) SaveSimilarPhotoCoefficient(ctx context.Context, sim model.CoeffSimilarPhoto) error {
 	in := mapping.CoeffSimilarPhotoModelToEntity(&sim)
 	return r.photoRepo.SaveCoeffSimilarPhoto(ctx, *in)
+}
+
+func (r *Adapter) GetPhotosVectorCount(ctx context.Context) (int64, error) {
+	return r.photoRepo.GetPhotosVectorCount(ctx)
+}
+
+func (r *Adapter) GetPhotoVector(ctx context.Context, photoID uuid.UUID) (*model.PhotoVector, error) {
+	vector, err := r.photoRepo.GetPhotoVector(ctx, photoID)
+	if err != nil {
+		return nil, err
+	}
+	return mapping.PhotoVectorEntityToModel(vector), nil
 }

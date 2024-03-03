@@ -25,14 +25,15 @@ type PhotoSelectParams struct {
 type PhotoProcessingStatus string
 
 const (
-	ExifDataProcessing    PhotoProcessingStatus = "EXIF_DATA"
-	MetaDataProcessing    PhotoProcessingStatus = "META_DATA"
-	CatalogTagsProcessing PhotoProcessingStatus = "CATALOG_TAGS"
-	MetaTagsProcessing    PhotoProcessingStatus = "META_TAGS"
-	PhotoVectorProcessing PhotoProcessingStatus = "PHOTO_VECTOR"
+	ExifDataProcessing           PhotoProcessingStatus = "EXIF_DATA"
+	MetaDataProcessing           PhotoProcessingStatus = "META_DATA"
+	CatalogTagsProcessing        PhotoProcessingStatus = "CATALOG_TAGS"
+	MetaTagsProcessing           PhotoProcessingStatus = "META_TAGS"
+	PhotoVectorProcessing        PhotoProcessingStatus = "PHOTO_VECTOR"
+	SimilarCoefficientProcessing PhotoProcessingStatus = "SIMILAR_COEFFICIENT"
 )
 
-const LastProcessingStatus = PhotoVectorProcessing
+const LastProcessingStatus = SimilarCoefficientProcessing
 
 var PhotoProcessingStatuses = []PhotoProcessingStatus{
 	ExifDataProcessing,
@@ -40,6 +41,7 @@ var PhotoProcessingStatuses = []PhotoProcessingStatus{
 	CatalogTagsProcessing,
 	MetaTagsProcessing,
 	PhotoVectorProcessing,
+	SimilarCoefficientProcessing,
 }
 
 type PhotoExtension string

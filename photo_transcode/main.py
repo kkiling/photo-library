@@ -26,8 +26,11 @@ def similarity(vector1, vector2):
     d2 = np.linalg.norm(vector2.T, axis=0, keepdims=True)
     return np.dot(vector1, vector2.T) / np.dot(d1, d2)[0][0]
 
-img_path_1 = '/Users/kkiling/photos/f983d019-5776-407e-b51c-0b26d4f4edd4.jpeg'
-img_path_2 = '/Users/kkiling/photos/f565797d-b650-4cfa-aa67-f811fe31c517.jpeg'
+img_path_1 = 'Y:\\documents\\photos_storage\\a0295d5c-09c7-4238-838b-c98e69f9c7bd.jpeg'
+img_path_2 = 'Y:\\documents\\photos_storage\\2dc856ba-fe96-49a6-90fd-1e7c9d44acda.jpeg'
+#img_path_1 = "Y:\photos\Фото\Архив\Юля древний ноут\Москва осень 2014\DSC_9093.JPG"
+#img_path_2 = "Y:\photos\Фото\Архив\Юля древний ноут\Москва осень 2014\DSC_9094.JPG"
+
 v1 = get_vector(img_path_1)
 v2 = get_vector(img_path_2)
 

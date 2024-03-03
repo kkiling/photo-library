@@ -93,6 +93,14 @@ func (s *Service) createPhotoCatalogTag(ctx context.Context, photo model.Photo, 
 	return nil
 }
 
+func (s *Service) Init(ctx context.Context) error {
+	return nil
+}
+
+func (s *Service) NeedLoadPhotoBody() bool {
+	return false
+}
+
 // Processing создание и сохранение автоматических тегов (по мета данным или по путям и тд)
 func (s *Service) Processing(ctx context.Context, photo model.Photo, _ []byte) (bool, error) {
 	uploadData, err := s.storage.GetUploadPhotoData(ctx, photo.ID)

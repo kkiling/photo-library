@@ -141,6 +141,14 @@ func (p *write) Walk(name exif.FieldName, tag *tiff.Tag) error {
 	return nil
 }
 
+func (s *Service) Init(ctx context.Context) error {
+	return nil
+}
+
+func (s *Service) NeedLoadPhotoBody() bool {
+	return true
+}
+
 // Processing рассчитывает exif данные фотографии и сохраняет в базу
 func (s *Service) Processing(ctx context.Context, photo model.Photo, photoBody []byte) (bool, error) {
 	reader := bytes.NewReader(photoBody)

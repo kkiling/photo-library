@@ -7,8 +7,6 @@ import (
 	"github.com/kkiling/photo-library/backend/api/pkg/common/config"
 )
 
-const limit = 1000
-
 func main() {
 	var args config.Arguments
 	_, err := flags.Parse(&args)
@@ -31,17 +29,21 @@ func main() {
 
 	processingPhotos := application.GetProcessingPhotos()
 
-	application.Logger().Infof("start processing photos")
+	application.Logger().Infof("init processing photos")
+	if err := processingPhotos.Init(ctx); err != nil {
+		panic(err)
+	}
 
+	application.Logger().Infof("start processing photos")
 	for {
-		eof, processingErr := processingPhotos.ProcessingPhotos(ctx, limit)
+		eof, processingErr := processingPhotos.ProcessingPhotos(ctx)
 		if processingErr != nil {
 			application.Logger().Fatalf("processingPhotos.ProcessingPhotos: %v", processingErr)
 		}
 		if eof == false {
 			break
 		}
-		application.Logger().Infof("processing %d photos", limit)
+		application.Logger().Infof("processing photos...")
 
 	}
 

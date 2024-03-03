@@ -17,3 +17,8 @@ photo_ml:
 
 processing_photo:
   max_goroutines: 16
+  limit: 100
+
+similar_photo:
+  limit: 1000
+  min_similar_coefficient: 0.75
