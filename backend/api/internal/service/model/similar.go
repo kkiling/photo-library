@@ -15,7 +15,7 @@ type CoeffSimilarPhoto struct {
 }
 
 type PhotoGroup struct {
-	ID      uuid.UUID
-	PhotoID uuid.UUID
-	Index   int
+	ID          uuid.UUID
+	MainPhotoID uuid.UUID
+	PhotoIDs    []uuid.UUID
 }

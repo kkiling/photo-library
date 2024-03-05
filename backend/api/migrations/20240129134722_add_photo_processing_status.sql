@@ -9,9 +9,9 @@ CREATE TYPE photo_processing_status AS ENUM (
 );
 
 CREATE TABLE photo_processing_statuses (
-    photo_id UUID,
+    photo_id UUID NOT NULL,
     processed_at TIMESTAMP NOT NULL,
-    status photo_processing_status
+    status photo_processing_status NOT NULL
 );
 
 ALTER TABLE photo_processing_statuses

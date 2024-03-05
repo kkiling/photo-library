@@ -17,3 +17,10 @@ photo_ml:
 
 processing_photo:
   max_goroutines: 16
+
+similar_photo:
+  limit: 1000
+  min_similar_coefficient: 0.75
+
+photo_group:
+  min_similar_coefficient: 0.95

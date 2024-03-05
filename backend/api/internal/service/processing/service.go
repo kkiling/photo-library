@@ -169,8 +169,6 @@ func (s *Service) ProcessingPhotos(ctx context.Context) (bool, error) {
 						continue
 					}
 
-					fmt.Printf("%v: %v\n", photoID, processedErr)
-
 					mu.Lock()
 					// Необходимо сделать фото невалидным
 					if errors.Is(processedErr, serviceerr.ErrPhotoIsNotValid) {
@@ -180,6 +178,7 @@ func (s *Service) ProcessingPhotos(ctx context.Context) (bool, error) {
 						}
 					} else {
 						returnErr = serviceerr.MakeErr(processedErr, "s.processingPhoto")
+						s.logger.Errorf("%v: %v\n", photoID, processedErr)
 					}
 					mu.Unlock()
 				}

@@ -264,3 +264,14 @@ func PhotoSelectParams(in model.PhotoSelectParams) entity.PhotoSelectParams {
 		SortDirect: entity.SortDirect(in.SortOrder),
 	}
 }
+
+func PhotoGroupEntityToModel(in *entity.PhotoGroup) *model.PhotoGroup {
+	if in == nil {
+		return nil
+	}
+	return &model.PhotoGroup{
+		ID:          in.ID,
+		MainPhotoID: in.MainPhotoID,
+		PhotoIDs:    in.PhotoIDs,
+	}
+}

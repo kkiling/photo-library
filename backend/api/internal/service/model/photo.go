@@ -31,9 +31,10 @@ const (
 	MetaTagsProcessing           PhotoProcessingStatus = "META_TAGS"
 	PhotoVectorProcessing        PhotoProcessingStatus = "PHOTO_VECTOR"
 	SimilarCoefficientProcessing PhotoProcessingStatus = "SIMILAR_COEFFICIENT"
+	PhotoGroupProcessing         PhotoProcessingStatus = "PHOTO_GROUP"
 )
 
-const LastProcessingStatus = SimilarCoefficientProcessing
+const LastProcessingStatus = PhotoGroupProcessing
 
 var PhotoProcessingStatuses = []PhotoProcessingStatus{
 	ExifDataProcessing,
@@ -42,6 +43,7 @@ var PhotoProcessingStatuses = []PhotoProcessingStatus{
 	MetaTagsProcessing,
 	PhotoVectorProcessing,
 	SimilarCoefficientProcessing,
+	PhotoGroupProcessing,
 }
 
 type PhotoExtension string

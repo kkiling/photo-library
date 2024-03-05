@@ -16,9 +16,12 @@ photo_ml:
   url: "http://127.0.0.1:5000"
 
 processing_photo:
-  max_goroutines: 16
+  max_goroutines: 1
   limit: 100
 
 similar_photo:
   limit: 1000
   min_similar_coefficient: 0.75
+
+photo_group:
+  min_similar_coefficient: 0.85

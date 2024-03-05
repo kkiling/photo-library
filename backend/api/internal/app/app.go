@@ -15,6 +15,7 @@ import (
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing/catalogtags"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing/exifphotodata"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing/metatags"
+	"github.com/kkiling/photo-library/backend/api/internal/service/processing/photogroup"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing/photometadata"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing/similarphotos"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing/vectorphoto"
@@ -47,6 +48,7 @@ type App struct {
 	metaTagsPhoto    *metatags.Service
 	catalogTagsPhoto *catalogtags.Service
 	vectorPhoto      *vectorphoto.Service
+	photoGroup       *photogroup.Service
 	processingPhotos *processing.Service
 }
 
@@ -87,6 +89,11 @@ func (a *App) Create(ctx context.Context) error {
 	getSimilarPhotosCfg, err := a.getSimilarPhotosConfig()
 	if err != nil {
 		return fmt.Errorf("getSimilarPhotosConfig: %w", err)
+	}
+
+	photoGroupCfg, err := a.getPhotoGroupConfig()
+	if err != nil {
+		return fmt.Errorf("getPhotoGroupConfig: %w", err)
 	}
 
 	pool, err := pgrepo2.NewPgConn(ctx, pgCfg)
@@ -141,6 +148,12 @@ func (a *App) Create(ctx context.Context) error {
 		a.storageAdapter,
 		a.photoML,
 	)
+	a.photoGroup = photogroup.NewService(
+		a.logger.Named("photo_group"),
+		photoGroupCfg,
+		a.storageAdapter,
+	)
+
 	a.similarPhotos = similarphotos.NewService(
 		a.logger.Named("similar_photos"),
 		getSimilarPhotosCfg,
@@ -158,6 +171,7 @@ func (a *App) Create(ctx context.Context) error {
 			model.MetaTagsProcessing:           a.metaTagsPhoto,
 			model.PhotoVectorProcessing:        a.vectorPhoto,
 			model.SimilarCoefficientProcessing: a.similarPhotos,
+			model.PhotoGroupProcessing:         a.photoGroup,
 		},
 	)
 

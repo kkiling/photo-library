@@ -85,6 +85,47 @@ func (r *PhotoRepository) SaveCoeffSimilarPhoto(ctx context.Context, sim entity.
 	return nil
 }
 
+func (r *PhotoRepository) FindSimilarPhotoCoefficients(ctx context.Context, photoID uuid.UUID) ([]entity.CoeffSimilarPhoto, error) {
+	conn := r.getConn(ctx)
+
+	const query = `
+		SELECT photo_id1, photo_id2, coefficient
+		FROM coeffs_similar_photos
+		WHERE photo_id1 = $1 OR photo_id2 = $2;
+	`
+
+	rows, err := conn.Query(ctx, query, photoID, photoID)
+	if err != nil {
+		return nil, printError(err)
+	}
+	defer rows.Close()
+
+	var result []entity.CoeffSimilarPhoto
+	for rows.Next() {
+		var coefficient entity.CoeffSimilarPhoto
+
+		errScan := rows.Scan(&coefficient.PhotoID1, &coefficient.PhotoID2, &coefficient.Coefficient)
+		if errScan != nil {
+			if errors.Is(errScan, pgx.ErrNoRows) {
+				return nil, nil
+			}
+			return nil, errScan
+		}
+
+		if errScan != nil {
+			return nil, printError(err)
+		}
+
+		result = append(result, coefficient)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, printError(err)
+	}
+
+	return result, nil
+}
+
 func (r *PhotoRepository) GetPhotosVectorCount(ctx context.Context) (int64, error) {
 	conn := r.getConn(ctx)
 

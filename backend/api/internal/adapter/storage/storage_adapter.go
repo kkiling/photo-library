@@ -180,6 +180,20 @@ func (r *Adapter) SaveSimilarPhotoCoefficient(ctx context.Context, sim model.Coe
 	return r.photoRepo.SaveCoeffSimilarPhoto(ctx, *in)
 }
 
+func (r *Adapter) FindSimilarPhotoCoefficients(ctx context.Context, photoID uuid.UUID) ([]model.CoeffSimilarPhoto, error) {
+	res, err := r.photoRepo.FindSimilarPhotoCoefficients(ctx, photoID)
+	if res == nil {
+		return nil, err
+	}
+
+	result := make([]model.CoeffSimilarPhoto, 0, len(res))
+	for _, p := range res {
+		result = append(result, *mapping.CoeffSimilarPhotoEntityToModel(&p))
+	}
+
+	return result, nil
+}
+
 func (r *Adapter) GetPhotosVectorCount(ctx context.Context) (int64, error) {
 	return r.photoRepo.GetPhotosVectorCount(ctx)
 }
@@ -190,4 +204,28 @@ func (r *Adapter) GetPhotoVector(ctx context.Context, photoID uuid.UUID) (*model
 		return nil, err
 	}
 	return mapping.PhotoVectorEntityToModel(vector), nil
+}
+
+func (r *Adapter) FindGroupIDByPhotoID(ctx context.Context, photoID uuid.UUID) (*uuid.UUID, error) {
+	return r.photoRepo.FindGroupIDByPhotoID(ctx, photoID)
+}
+
+func (r *Adapter) FindGroupByPhotoID(ctx context.Context, photoID uuid.UUID) (*model.PhotoGroup, error) {
+	group, err := r.photoRepo.FindGroupByPhotoID(ctx, photoID)
+	if err != nil {
+		return nil, err
+	}
+	return mapping.PhotoGroupEntityToModel(group), nil
+}
+
+func (r *Adapter) CreateGroup(ctx context.Context, mainPhotoID uuid.UUID) (*model.PhotoGroup, error) {
+	group, err := r.photoRepo.CreateGroup(ctx, mainPhotoID)
+	if err != nil {
+		return nil, err
+	}
+	return mapping.PhotoGroupEntityToModel(group), nil
+}
+
+func (r *Adapter) AddPhotoToGroup(ctx context.Context, groupID uuid.UUID, photoIDs []uuid.UUID) error {
+	return r.photoRepo.AddPhotoToGroup(ctx, groupID, photoIDs)
 }
