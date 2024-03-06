@@ -26,7 +26,7 @@ func getDescriptor(descriptors method_descriptor.MethodDescriptorMap, fullName s
 
 func NewAuthInterceptor(logger log.Logger, descriptors method_descriptor.MethodDescriptorMap) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		logger = logger.WithCtx(ctx, "middleware", "NewTestTestInterceptor")
+		logger = logger.WithCtx(ctx, "middleware", "NewAuthInterceptor")
 
 		ds := getDescriptor(descriptors, info.FullMethod)
 		if ds == nil {
@@ -34,6 +34,7 @@ func NewAuthInterceptor(logger log.Logger, descriptors method_descriptor.MethodD
 		}
 
 		// TODO: логика авторизации
+		logger.Infof("auth method: %s", info.FullMethod)
 
 		return handler(ctx, req)
 	}

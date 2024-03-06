@@ -33,7 +33,7 @@ func main() {
 	}
 
 	go func() {
-		err = application.StartSyncPhotosServer(ctx)
+		err = application.StartPhotosServer(ctx)
 		if err != nil {
 			application.Logger().Fatalf("fail start app: %v", err)
 		}
@@ -49,6 +49,6 @@ func main() {
 
 	<-ctx.Done()
 	application.Logger().Infof("--- stopped application ---")
-	application.StopSyncPhotosServer()
+	application.StopPhotosServer()
 	application.Logger().Infof("--- stop application ---")
 }

@@ -78,7 +78,7 @@ func (p *SyncPhotosServiceServer) Start(ctx context.Context) error {
 		return fmt.Errorf("server.Register: %w", err)
 	}
 
-	if err := p.server.Start(); err != nil {
+	if err := p.server.Start("sync_photos_service"); err != nil {
 		return fmt.Errorf("server.Start: %w", err)
 	}
 

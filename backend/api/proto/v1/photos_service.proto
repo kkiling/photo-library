@@ -8,37 +8,57 @@ import "google/api/annotations.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 import "google/protobuf/timestamp.proto";
 
-service SyncPhotosService {
-  rpc UploadPhoto(UploadPhotoRequest) returns (UploadPhotoResponse) {
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "Photo library API";
+    version: "0.1";
+  };
+  schemes: HTTP;
+  security_definitions: {
+    security: {
+      key: "Bearer"
+      value: {
+        type: TYPE_API_KEY;
+        in: IN_HEADER;
+        name: "Authorization"
+      }
+    };
+  };
+  host: "localhost:8080";
+  consumes: "application/json";
+  produces: "application/json";
+};
+
+service PhotosService {
+  rpc GetPhotoGroups(GetPhotoGroupsRequest) returns (GetPhotoGroupsResponse) {
     option (google.api.http) = {
-      post: "/v1/sync-syncphotos/upload";
+      post: "/v1/photos/groups";
       body: "*";
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      tags: ["sync-photo"]
-      summary: "Загрузка новой фотографии";
+      tags: ["photo"]
+      summary: "Получение списка групп фотографий";
     };
   };
 }
 
-message UploadPhotoRequest {
-  // Пути фотографий которые загружаем (может быть несколько если фото одинаковые)
-  repeated string paths = 1;
-  // Рассчитанный на клиенте хеш фотографии
-  string hash = 2;
-  // Данные фото
-  bytes body = 3;
-  // Информация о последнем изменении фото
-  google.protobuf.Timestamp update_at = 4;
-  // Идентификатор клиента
-  string client_id = 5;
-  // Ключ доступа
-  string access_key = 6;
+message GetPhotoGroupsRequest {
+  int32 offset = 1;
+  int32 limit = 2;
 }
 
-message UploadPhotoResponse {
-  // Фото было загружено ранее
-  bool has_been_uploaded_before = 1;
-  // Хеш фотографии
-  string hash = 3;
+message Photo {
+  string id = 1;
+  string url = 2;
+}
+
+message PhotoGroup {
+  string id = 1;
+  Photo main_photo = 2;
+  repeated Photo photos = 3;
+}
+
+message GetPhotoGroupsResponse {
+  repeated PhotoGroup items = 1;
+  int32 total_items = 2;
 }

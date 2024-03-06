@@ -19,87 +19,87 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	SyncPhotosService_UploadPhoto_FullMethodName = "/pb.v1.SyncPhotosService/UploadPhoto"
+	PhotosService_GetPhotoGroups_FullMethodName = "/pb.v1.PhotosService/GetPhotoGroups"
 )
 
-// SyncPhotosServiceClient is the client API for SyncPhotosService service.
+// PhotosServiceClient is the client API for PhotosService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type SyncPhotosServiceClient interface {
-	UploadPhoto(ctx context.Context, in *UploadPhotoRequest, opts ...grpc.CallOption) (*UploadPhotoResponse, error)
+type PhotosServiceClient interface {
+	GetPhotoGroups(ctx context.Context, in *GetPhotoGroupsRequest, opts ...grpc.CallOption) (*GetPhotoGroupsResponse, error)
 }
 
-type syncPhotosServiceClient struct {
+type photosServiceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewSyncPhotosServiceClient(cc grpc.ClientConnInterface) SyncPhotosServiceClient {
-	return &syncPhotosServiceClient{cc}
+func NewPhotosServiceClient(cc grpc.ClientConnInterface) PhotosServiceClient {
+	return &photosServiceClient{cc}
 }
 
-func (c *syncPhotosServiceClient) UploadPhoto(ctx context.Context, in *UploadPhotoRequest, opts ...grpc.CallOption) (*UploadPhotoResponse, error) {
-	out := new(UploadPhotoResponse)
-	err := c.cc.Invoke(ctx, SyncPhotosService_UploadPhoto_FullMethodName, in, out, opts...)
+func (c *photosServiceClient) GetPhotoGroups(ctx context.Context, in *GetPhotoGroupsRequest, opts ...grpc.CallOption) (*GetPhotoGroupsResponse, error) {
+	out := new(GetPhotoGroupsResponse)
+	err := c.cc.Invoke(ctx, PhotosService_GetPhotoGroups_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// SyncPhotosServiceServer is the server API for SyncPhotosService service.
-// All implementations should embed UnimplementedSyncPhotosServiceServer
+// PhotosServiceServer is the server API for PhotosService service.
+// All implementations should embed UnimplementedPhotosServiceServer
 // for forward compatibility
-type SyncPhotosServiceServer interface {
-	UploadPhoto(context.Context, *UploadPhotoRequest) (*UploadPhotoResponse, error)
+type PhotosServiceServer interface {
+	GetPhotoGroups(context.Context, *GetPhotoGroupsRequest) (*GetPhotoGroupsResponse, error)
 }
 
-// UnimplementedSyncPhotosServiceServer should be embedded to have forward compatible implementations.
-type UnimplementedSyncPhotosServiceServer struct {
+// UnimplementedPhotosServiceServer should be embedded to have forward compatible implementations.
+type UnimplementedPhotosServiceServer struct {
 }
 
-func (UnimplementedSyncPhotosServiceServer) UploadPhoto(context.Context, *UploadPhotoRequest) (*UploadPhotoResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UploadPhoto not implemented")
+func (UnimplementedPhotosServiceServer) GetPhotoGroups(context.Context, *GetPhotoGroupsRequest) (*GetPhotoGroupsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPhotoGroups not implemented")
 }
 
-// UnsafeSyncPhotosServiceServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to SyncPhotosServiceServer will
+// UnsafePhotosServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to PhotosServiceServer will
 // result in compilation errors.
-type UnsafeSyncPhotosServiceServer interface {
-	mustEmbedUnimplementedSyncPhotosServiceServer()
+type UnsafePhotosServiceServer interface {
+	mustEmbedUnimplementedPhotosServiceServer()
 }
 
-func RegisterSyncPhotosServiceServer(s grpc.ServiceRegistrar, srv SyncPhotosServiceServer) {
-	s.RegisterService(&SyncPhotosService_ServiceDesc, srv)
+func RegisterPhotosServiceServer(s grpc.ServiceRegistrar, srv PhotosServiceServer) {
+	s.RegisterService(&PhotosService_ServiceDesc, srv)
 }
 
-func _SyncPhotosService_UploadPhoto_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UploadPhotoRequest)
+func _PhotosService_GetPhotoGroups_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPhotoGroupsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(SyncPhotosServiceServer).UploadPhoto(ctx, in)
+		return srv.(PhotosServiceServer).GetPhotoGroups(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: SyncPhotosService_UploadPhoto_FullMethodName,
+		FullMethod: PhotosService_GetPhotoGroups_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SyncPhotosServiceServer).UploadPhoto(ctx, req.(*UploadPhotoRequest))
+		return srv.(PhotosServiceServer).GetPhotoGroups(ctx, req.(*GetPhotoGroupsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// SyncPhotosService_ServiceDesc is the grpc.ServiceDesc for SyncPhotosService service.
+// PhotosService_ServiceDesc is the grpc.ServiceDesc for PhotosService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var SyncPhotosService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "pb.v1.SyncPhotosService",
-	HandlerType: (*SyncPhotosServiceServer)(nil),
+var PhotosService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "pb.v1.PhotosService",
+	HandlerType: (*PhotosServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "UploadPhoto",
-			Handler:    _SyncPhotosService_UploadPhoto_Handler,
+			MethodName: "GetPhotoGroups",
+			Handler:    _PhotosService_GetPhotoGroups_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

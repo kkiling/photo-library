@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	httpSwagger "github.com/swaggo/http-swagger"
 	"net"
 	"net/http"
 	"time"
@@ -41,8 +42,8 @@ func NewServer(logger log.Logger, cfg Config, interceptor ...grpc.UnaryServerInt
 		UnmarshalOptions: protojson.UnmarshalOptions{},
 	})
 
-	r := http.NewServeMux()
-	r.Handle("/app.swagger.json", http.FileServer(http.Dir(".")))
+	//r := http.NewServeMux()
+	// r.Handle("/app.swagger.json", http.FileServer(http.Dir(".")))
 
 	return &Server{
 		logger: logger,
@@ -92,7 +93,7 @@ func (s *Server) Register(ctx context.Context, descriptor Descriptor) error {
 	return nil
 }
 
-func (s *Server) Start() error {
+func (s *Server) Start(name string) error {
 	// Запуск grpc сервера
 	go func(logger log.Logger) {
 		netAddress := fmt.Sprintf("%s:%d", s.cfg.Host, s.cfg.GrpcPort)
@@ -112,9 +113,12 @@ func (s *Server) Start() error {
 
 		httpMux := http.NewServeMux()
 		// OpenApi спецификация апи
-		httpMux.Handle("/api.swagger.json", http.FileServer(http.Dir("./swagger")))
+		swagger := fmt.Sprintf("/%s.swagger.json", name)
+		httpMux.Handle(swagger, http.FileServer(http.Dir("./swagger")))
 		// Swagger в браузере
-		httpMux.Handle("/swagger/", http.StripPrefix("/swagger/", http.FileServer(http.Dir("./swagger/"))))
+		httpMux.Handle("/swagger/", httpSwagger.Handler(
+			httpSwagger.URL(swagger),
+		))
 		// Метрики
 		httpMux.Handle("/metrics", promhttp.Handler())
 		// Обрабатываем остальные запросы через gRPC-Gateway

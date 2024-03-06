@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package pb.v1;
+
+option go_package = "github.com/kkiling/photo-library/backend/sync_photos_server/pkg/common/gen/pbv1";
+
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "Sync photos API";
+    version: "0.1";
+  };
+  schemes: HTTP;
+  host: "localhost:8080";
+  consumes: "application/json";
+  produces: "application/json";
+};
+
+service SyncPhotosService {
+  rpc UploadPhoto(UploadPhotoRequest) returns (UploadPhotoResponse) {
+    option (google.api.http) = {
+      post: "/v1/sync-photos/upload";
+      body: "*";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: ["sync-photo"]
+      summary: "Загрузка новой фотографии";
+    };
+  };
+}
+
+message UploadPhotoRequest {
+  // Пути фотографий которые загружаем (может быть несколько если фото одинаковые)
+  repeated string paths = 1;
+  // Рассчитанный на клиенте хеш фотографии
+  string hash = 2;
+  // Данные фото
+  bytes body = 3;
+  // Информация о последнем изменении фото
+  google.protobuf.Timestamp update_at = 4;
+  // Идентификатор клиента
+  string client_id = 5;
+  // Ключ доступа
+  string access_key = 6;
+}
+
+message UploadPhotoResponse {
+  // Фото было загружено ранее
+  bool has_been_uploaded_before = 1;
+  // Хеш фотографии
+  string hash = 3;
+}

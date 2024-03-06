@@ -37,6 +37,7 @@ type App struct {
 	photoML        *photoml.Service
 	// handler
 	syncPhotoServer *handler.SyncPhotosServiceServer
+	photosServer    *handler.PhotosServiceServer
 	// service
 	similarPhotos *similarphotos.Service
 	syncPhoto     *syncphotos.Service
@@ -143,6 +144,11 @@ func (a *App) Create(ctx context.Context) error {
 		a.syncPhoto,
 		serverCfg,
 	)
+	a.photosServer = handler.NewPhotosServiceServer(
+		a.logger.Named("sync_photo_service_photo"),
+		"todo",
+		serverCfg,
+	)
 	a.vectorPhoto = vectorphoto.NewService(
 		a.logger.Named("vector_photo"),
 		a.storageAdapter,
@@ -178,12 +184,20 @@ func (a *App) Create(ctx context.Context) error {
 	return nil
 }
 
-func (a *App) StartSyncPhotoServer(ctx context.Context) error {
+func (a *App) StartSyncPhotosServer(ctx context.Context) error {
 	return a.syncPhotoServer.Start(ctx)
 }
 
-func (a *App) StopSyncPhotoServer() {
+func (a *App) StopSyncPhotosServer() {
 	a.syncPhotoServer.Stop()
+}
+
+func (a *App) StartPhotosServer(ctx context.Context) error {
+	return a.photosServer.Start(ctx)
+}
+
+func (a *App) StopPhotosServer() {
+	a.photosServer.Stop()
 }
 
 func (a *App) GetProcessingPhotos() *processing.Service {

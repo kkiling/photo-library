@@ -13,9 +13,3 @@ type CoeffSimilarPhoto struct {
 	PhotoID2    uuid.UUID
 	Coefficient float64
 }
-
-type PhotoGroup struct {
-	ID          uuid.UUID
-	MainPhotoID uuid.UUID
-	PhotoIDs    []uuid.UUID
-}
