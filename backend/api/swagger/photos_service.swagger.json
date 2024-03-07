@@ -21,7 +21,7 @@
   ],
   "paths": {
     "/v1/photos/groups": {
-      "post": {
+      "get": {
         "summary": "Получение списка групп фотографий",
         "operationId": "PhotosService_GetPhotoGroups",
         "responses": {
@@ -40,12 +40,18 @@
         },
         "parameters": [
           {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/GetPhotoGroupsRequest"
-            }
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
           }
         ],
         "tags": [
@@ -53,15 +59,15 @@
         ]
       }
     },
-    "/v1/photos/{url}": {
+    "/v1/photos/groups/{group_id}": {
       "get": {
-        "summary": "Загрузка фотографии",
-        "operationId": "PhotosService_GetImage",
+        "summary": "Получение группы фотографий",
+        "operationId": "PhotosService_GetPhotoGroup",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/GetImageResponse"
+              "$ref": "#/definitions/GetPhotoGroupResponse"
             }
           },
           "default": {
@@ -73,7 +79,7 @@
         },
         "parameters": [
           {
-            "name": "url",
+            "name": "group_id",
             "in": "path",
             "required": true,
             "type": "string"
@@ -95,25 +101,34 @@
       },
       "additionalProperties": {}
     },
-    "GetImageResponse": {
+    "Geo": {
       "type": "object",
       "properties": {
-        "image": {
-          "type": "string",
-          "format": "byte"
+        "Latitude": {
+          "type": "number",
+          "format": "double"
+        },
+        "Longitude": {
+          "type": "number",
+          "format": "double"
         }
       }
     },
-    "GetPhotoGroupsRequest": {
+    "GetPhotoGroupResponse": {
       "type": "object",
       "properties": {
-        "page": {
-          "type": "integer",
-          "format": "int32"
+        "id": {
+          "type": "string"
         },
-        "per_page": {
-          "type": "integer",
-          "format": "int32"
+        "main_photo": {
+          "$ref": "#/definitions/PhotoWithData"
+        },
+        "photos": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/PhotoWithData"
+          }
         }
       }
     },
@@ -130,6 +145,37 @@
         "total_items": {
           "type": "integer",
           "format": "int32"
+        }
+      }
+    },
+    "Metadata": {
+      "type": "object",
+      "properties": {
+        "model_info": {
+          "type": "string"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "width_pixel": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "height_pixel": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data_time": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "update_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "geo": {
+          "$ref": "#/definitions/Geo"
         }
       }
     },
@@ -159,6 +205,27 @@
         }
       }
     },
+    "PhotoWithData": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "meta_data": {
+          "$ref": "#/definitions/Metadata"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1.Tag"
+          }
+        }
+      }
+    },
     "Status": {
       "type": "object",
       "properties": {
@@ -175,6 +242,23 @@
             "type": "object",
             "$ref": "#/definitions/Any"
           }
+        }
+      }
+    },
+    "v1.Tag": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "color": {
+          "type": "string"
         }
       }
     }

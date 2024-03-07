@@ -32,12 +32,20 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
 service PhotosService {
   rpc GetPhotoGroups(GetPhotoGroupsRequest) returns (GetPhotoGroupsResponse) {
     option (google.api.http) = {
-      post: "/v1/photos/groups";
-      body: "*";
+      get: "/v1/photos/groups";
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       tags: ["photo"]
       summary: "Получение списка групп фотографий";
+    };
+  };
+  rpc GetPhotoGroup(GetPhotoGroupRequest) returns (GetPhotoGroupResponse) {
+    option (google.api.http) = {
+      get: "/v1/photos/groups/{group_id}";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      tags: ["photo"]
+      summary: "Получение группы фотографий";
     };
   };
 }
@@ -45,6 +53,50 @@ service PhotosService {
 message GetPhotoGroupsRequest {
   int32 page = 1;
   int32 per_page = 2;
+}
+
+message GetPhotoGroupsResponse {
+  repeated PhotoGroup items = 1;
+  int32 total_items = 2;
+}
+
+message GetPhotoGroupRequest {
+  string group_id = 1;
+}
+
+message GetPhotoGroupResponse {
+  string id = 1;
+  PhotoWithData main_photo = 2;
+  repeated PhotoWithData photos = 3;
+}
+
+message PhotoWithData {
+  string id = 1;
+  string url = 2;
+  Metadata meta_data = 3;
+  repeated Tag tags = 4;
+}
+
+message Geo {
+  double Latitude = 1;
+  double Longitude = 2;
+}
+
+message Metadata {
+  optional string model_info = 1;
+  int32 size_bytes = 2;
+  int32 width_pixel = 3;
+  int32 height_pixel = 4;
+  google.protobuf.Timestamp data_time = 5;
+  google.protobuf.Timestamp update_at = 6;
+  Geo geo = 7;
+}
+
+message Tag {
+  string id = 1;
+  string name = 2;
+  string type = 3;
+  string color = 4;
 }
 
 message Photo {
@@ -56,9 +108,4 @@ message PhotoGroup {
   string id = 1;
   Photo main_photo = 2;
   int32 photos_count = 3;
-}
-
-message GetPhotoGroupsResponse {
-  repeated PhotoGroup items = 1;
-  int32 total_items = 2;
 }

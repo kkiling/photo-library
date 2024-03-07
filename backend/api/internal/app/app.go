@@ -124,8 +124,9 @@ func (a *App) Create(ctx context.Context) error {
 		a.storageAdapter,
 	)
 	a.photos = photos.NewService(
-		a.logger.Named("photo_ml"),
+		a.logger.Named("photos"),
 		photosCfg,
+		a.tagPhoto,
 		a.fsStore,
 		a.storageAdapter,
 	)

@@ -26,6 +26,7 @@ type Storage interface {
 	SaveTagCategory(ctx context.Context, category model.TagCategory) error
 	GetTagByName(ctx context.Context, photoID uuid.UUID, name string) (*model.Tag, error)
 	SaveTag(ctx context.Context, tag model.Tag) error
+	GetTags(ctx context.Context, photoID uuid.UUID) ([]model.Tag, error)
 }
 
 type Service struct {
@@ -91,6 +92,7 @@ func (s *Service) CreateCategory(ctx context.Context, typeCategory, color string
 }
 
 func (s *Service) GetCategory(ctx context.Context, typeCategory string) (*model.TagCategory, error) {
+	// TODO: кешировать
 	if findCategory, err := s.storage.GetTagCategoryByType(ctx, typeCategory); err != nil {
 		return nil, serviceerr.MakeErr(err, "storage.GetTagCategoryByName")
 	} else if findCategory != nil {
@@ -98,6 +100,25 @@ func (s *Service) GetCategory(ctx context.Context, typeCategory string) (*model.
 	}
 
 	return nil, nil
+}
+
+func (s *Service) GetCategoryByID(ctx context.Context, categoryID uuid.UUID) (*model.TagCategory, error) {
+	// TODO: кешировать
+	if findCategory, err := s.storage.GetTagCategory(ctx, categoryID); err != nil {
+		return nil, serviceerr.MakeErr(err, "storage.GetTagCategory")
+	} else if findCategory != nil {
+		return findCategory, nil
+	}
+
+	return nil, nil
+}
+
+func (s *Service) GetTags(ctx context.Context, photoID uuid.UUID) ([]model.Tag, error) {
+	tags, err := s.storage.GetTags(ctx, photoID)
+	if err != nil {
+		return nil, serviceerr.MakeErr(err, "storage.GetTagCategoryByName")
+	}
+	return tags, nil
 }
 
 func validateAddPhotoTag(name string) error {

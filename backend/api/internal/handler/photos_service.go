@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/kkiling/photo-library/backend/api/internal/handler/mapper"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/internal/service/photos"
@@ -40,6 +41,9 @@ func (p *PhotosServiceServer) crateServerInterceptors() ([]grpc.UnaryServerInter
 		[]method_descriptor.Descriptor{
 			&customDescriptor{
 				method: (*PhotosServiceServer).GetPhotoGroups,
+			},
+			&customDescriptor{
+				method: (*PhotosServiceServer).GetPhotoGroup,
 			},
 		},
 	)
@@ -124,14 +128,29 @@ func (p *PhotosServiceServer) Stop() {
 type PhotosService interface {
 	GetPhotoGroups(ctx context.Context, req *photos.GetPhotoGroupsRequest) (*photos.GetPhotoGroupsResponse, error)
 	GetPhotoContent(ctx context.Context, fileName string) (*photos.PhotoContent, error)
+	GetPhotoGroup(ctx context.Context, groupID uuid.UUID) (*photos.PhotoGroupData, error)
+}
+
+func (p *PhotosServiceServer) GetPhotoGroup(ctx context.Context, req *desc.GetPhotoGroupRequest) (*desc.GetPhotoGroupResponse, error) {
+	groupID, err := uuid.ParseBytes([]byte(req.GroupId))
+	if err != nil {
+		return nil, server.ErrInvalidArgument(err)
+	}
+
+	response, err := p.photosService.GetPhotoGroup(ctx, groupID)
+	if err != nil {
+		return nil, handleError(err, "p.photosService.GetPhotoGroup")
+	}
+
+	return mapper.GetPhotoGroupResponse(response), nil
 }
 
 func (p *PhotosServiceServer) GetPhotoGroups(ctx context.Context, request *desc.GetPhotoGroupsRequest) (*desc.GetPhotoGroupsResponse, error) {
 	response, err := p.photosService.GetPhotoGroups(ctx, mapper.GetPhotoGroupsRequest(request))
 
 	if err != nil {
-		return nil, handleError(err, "p.photoGroupService.GetPhotoGroups")
+		return nil, handleError(err, "p.photosService.GetPhotoGroups")
 	}
 
-	return mapper.GetPhotoGroupResponse(response), nil
+	return mapper.GetPhotoGroupsResponse(response), nil
 }

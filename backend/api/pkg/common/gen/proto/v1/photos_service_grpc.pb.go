@@ -20,7 +20,7 @@ const _ = grpc.SupportPackageIsVersion7
 
 const (
 	PhotosService_GetPhotoGroups_FullMethodName = "/pb.v1.PhotosService/GetPhotoGroups"
-	PhotosService_GetImage_FullMethodName       = "/pb.v1.PhotosService/GetImage"
+	PhotosService_GetPhotoGroup_FullMethodName  = "/pb.v1.PhotosService/GetPhotoGroup"
 )
 
 // PhotosServiceClient is the client API for PhotosService service.
@@ -28,7 +28,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type PhotosServiceClient interface {
 	GetPhotoGroups(ctx context.Context, in *GetPhotoGroupsRequest, opts ...grpc.CallOption) (*GetPhotoGroupsResponse, error)
-	GetImage(ctx context.Context, in *GetImageRequest, opts ...grpc.CallOption) (*GetImageResponse, error)
+	GetPhotoGroup(ctx context.Context, in *GetPhotoGroupRequest, opts ...grpc.CallOption) (*GetPhotoGroupResponse, error)
 }
 
 type photosServiceClient struct {
@@ -48,9 +48,9 @@ func (c *photosServiceClient) GetPhotoGroups(ctx context.Context, in *GetPhotoGr
 	return out, nil
 }
 
-func (c *photosServiceClient) GetImage(ctx context.Context, in *GetImageRequest, opts ...grpc.CallOption) (*GetImageResponse, error) {
-	out := new(GetImageResponse)
-	err := c.cc.Invoke(ctx, PhotosService_GetImage_FullMethodName, in, out, opts...)
+func (c *photosServiceClient) GetPhotoGroup(ctx context.Context, in *GetPhotoGroupRequest, opts ...grpc.CallOption) (*GetPhotoGroupResponse, error) {
+	out := new(GetPhotoGroupResponse)
+	err := c.cc.Invoke(ctx, PhotosService_GetPhotoGroup_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func (c *photosServiceClient) GetImage(ctx context.Context, in *GetImageRequest,
 // for forward compatibility
 type PhotosServiceServer interface {
 	GetPhotoGroups(context.Context, *GetPhotoGroupsRequest) (*GetPhotoGroupsResponse, error)
-	GetImage(context.Context, *GetImageRequest) (*GetImageResponse, error)
+	GetPhotoGroup(context.Context, *GetPhotoGroupRequest) (*GetPhotoGroupResponse, error)
 }
 
 // UnimplementedPhotosServiceServer should be embedded to have forward compatible implementations.
@@ -72,8 +72,8 @@ type UnimplementedPhotosServiceServer struct {
 func (UnimplementedPhotosServiceServer) GetPhotoGroups(context.Context, *GetPhotoGroupsRequest) (*GetPhotoGroupsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPhotoGroups not implemented")
 }
-func (UnimplementedPhotosServiceServer) GetImage(context.Context, *GetImageRequest) (*GetImageResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetImage not implemented")
+func (UnimplementedPhotosServiceServer) GetPhotoGroup(context.Context, *GetPhotoGroupRequest) (*GetPhotoGroupResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPhotoGroup not implemented")
 }
 
 // UnsafePhotosServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -105,20 +105,20 @@ func _PhotosService_GetPhotoGroups_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PhotosService_GetImage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetImageRequest)
+func _PhotosService_GetPhotoGroup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPhotoGroupRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PhotosServiceServer).GetImage(ctx, in)
+		return srv.(PhotosServiceServer).GetPhotoGroup(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: PhotosService_GetImage_FullMethodName,
+		FullMethod: PhotosService_GetPhotoGroup_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PhotosServiceServer).GetImage(ctx, req.(*GetImageRequest))
+		return srv.(PhotosServiceServer).GetPhotoGroup(ctx, req.(*GetPhotoGroupRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -135,8 +135,8 @@ var PhotosService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _PhotosService_GetPhotoGroups_Handler,
 		},
 		{
-			MethodName: "GetImage",
-			Handler:    _PhotosService_GetImage_Handler,
+			MethodName: "GetPhotoGroup",
+			Handler:    _PhotosService_GetPhotoGroup_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

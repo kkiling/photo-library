@@ -10,6 +10,12 @@ type Photo struct {
 	Url string
 }
 
+type PhotoWithData struct {
+	Photo
+	Metadata *model.PhotoMetadata
+	Tags     []Tag
+}
+
 type PhotoGroup struct {
 	ID         uuid.UUID
 	MainPhoto  Photo
@@ -28,4 +34,17 @@ type GetPhotoGroupsResponse struct {
 type PhotoContent struct {
 	PhotoBody []byte
 	Extension model.PhotoExtension
+}
+
+type Tag struct {
+	ID    uuid.UUID
+	Name  string
+	Type  string
+	Color string
+}
+
+type PhotoGroupData struct {
+	ID        uuid.UUID
+	MainPhoto PhotoWithData
+	Photos    []PhotoWithData
 }

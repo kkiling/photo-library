@@ -53,8 +53,6 @@ func NewService(logger log.Logger, tagService TagPhoto, storage Storage, geoServ
 }
 
 func (s *Service) getOrCreateTagCategory(ctx context.Context, tagCategory, color string) (model.TagCategory, error) {
-	// TODO: кешировать
-
 	findCategory, err := s.tagService.GetCategory(ctx, tagCategory)
 	if err != nil {
 		return model.TagCategory{}, serviceerr.MakeErr(err, "tagService.GetCategory")

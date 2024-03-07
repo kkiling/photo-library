@@ -40,7 +40,7 @@ func (r *PhotoRepository) GetPhotoMetadata(ctx context.Context, photoID uuid.UUI
 	conn := r.getConn(ctx)
 
 	const query = `
-		SELECT photo_id, model_info, size_bytes, width_pixel, height_pixel, date_time, geo_latitude, geo_longitude
+		SELECT photo_id, model_info, size_bytes, width_pixel, height_pixel, date_time, update_at, geo_latitude, geo_longitude
 		FROM photo_metadata
 		WHERE photo_id = $1
 		LIMIT 1
@@ -50,7 +50,7 @@ func (r *PhotoRepository) GetPhotoMetadata(ctx context.Context, photoID uuid.UUI
 
 	var meta entity.PhotoMetadata
 	err := row.Scan(&meta.PhotoID, &meta.ModelInfo, &meta.SizeBytes, &meta.WidthPixel,
-		&meta.HeightPixel, &meta.DateTime, &meta.GeoLatitude, &meta.GeoLongitude)
+		&meta.HeightPixel, &meta.DateTime, &meta.UpdateAt, &meta.GeoLatitude, &meta.GeoLongitude)
 	if err != nil {
 
 		if errors.Is(err, pgx.ErrNoRows) {

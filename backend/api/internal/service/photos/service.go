@@ -17,6 +17,12 @@ type Storage interface {
 	GetPaginatedPhotoGroups(ctx context.Context, paginator model.Pagination) ([]model.PhotoGroup, error)
 	GetPhotoById(ctx context.Context, id uuid.UUID) (*model.Photo, error)
 	GetPhotoByFilename(ctx context.Context, fileName string) (*model.Photo, error)
+	GetGroupByID(ctx context.Context, id uuid.UUID) (*model.PhotoGroup, error)
+	GetMetaData(ctx context.Context, photoID uuid.UUID) (*model.PhotoMetadata, error)
+}
+type TagPhoto interface {
+	GetTags(ctx context.Context, photoID uuid.UUID) ([]model.Tag, error)
+	GetCategoryByID(ctx context.Context, categoryID uuid.UUID) (*model.TagCategory, error)
 }
 
 type FileStore interface {
@@ -31,13 +37,15 @@ type Service struct {
 	logger      log.Logger
 	storage     Storage
 	fileStorage FileStore
+	tagService  TagPhoto
 	cfg         Config
 }
 
-func NewService(logger log.Logger, cfg Config, fileStorage FileStore, storage Storage) *Service {
+func NewService(logger log.Logger, cfg Config, tagService TagPhoto, fileStorage FileStore, storage Storage) *Service {
 	return &Service{
 		logger:      logger,
 		storage:     storage,
+		tagService:  tagService,
 		fileStorage: fileStorage,
 		cfg:         cfg,
 	}
@@ -119,4 +127,76 @@ func (s *Service) GetPhotoContent(ctx context.Context, fileName string) (*PhotoC
 		PhotoBody: photoBody,
 		Extension: photo.Extension,
 	}, nil
+}
+
+func (s *Service) getPhotoWithData(ctx context.Context, photoID uuid.UUID) (PhotoWithData, error) {
+	photo, err := s.storage.GetPhotoById(ctx, photoID)
+	if err != nil {
+		return PhotoWithData{}, serviceerr.MakeErr(err, "s.storage.GetPhotoById")
+	}
+	if photo == nil {
+		return PhotoWithData{}, serviceerr.NotFoundError("photo %s from group not found", photoID.String())
+	}
+
+	metaData, err := s.storage.GetMetaData(ctx, photoID)
+	if err != nil {
+		return PhotoWithData{}, serviceerr.MakeErr(err, "s.storage.GetMetaData")
+	}
+
+	tags, err := s.tagService.GetTags(ctx, photoID)
+	if err != nil {
+		return PhotoWithData{}, serviceerr.MakeErr(err, "s.tagService.GetTags")
+	}
+
+	tagsWithCategories := make([]Tag, 0, len(tags))
+	for _, tag := range tags {
+		category, err := s.tagService.GetCategoryByID(ctx, tag.CategoryID)
+		if err != nil {
+			return PhotoWithData{}, serviceerr.MakeErr(err, "s.tagService.GetCategoryByID")
+		}
+
+		tagsWithCategories = append(tagsWithCategories, Tag{
+			ID:    tag.ID,
+			Name:  tag.Name,
+			Type:  category.Type,
+			Color: category.Color,
+		})
+	}
+	return PhotoWithData{
+		Photo: Photo{
+			ID:  photo.ID,
+			Url: fmt.Sprintf("%s/%s", s.cfg.PhotoServerUrl, photo.FileName),
+		},
+		Metadata: metaData,
+		Tags:     tagsWithCategories,
+	}, nil
+}
+
+func (s *Service) GetPhotoGroup(ctx context.Context, groupID uuid.UUID) (*PhotoGroupData, error) {
+
+	group, err := s.storage.GetGroupByID(ctx, groupID)
+	if err != nil {
+		return nil, serviceerr.MakeErr(err, "s.storage.GetGroupByID")
+	}
+	if group == nil {
+		return nil, serviceerr.NotFoundError("group not found")
+	}
+
+	res := PhotoGroupData{
+		ID:     group.ID,
+		Photos: make([]PhotoWithData, 0, len(group.PhotoIDs)),
+	}
+
+	for _, photoID := range group.PhotoIDs {
+		photo, err := s.getPhotoWithData(ctx, photoID)
+		if err != nil {
+			return nil, serviceerr.MakeErr(err, "s.getPhoto")
+		}
+		res.Photos = append(res.Photos, photo)
+		if group.MainPhotoID == photoID {
+			res.MainPhoto = photo
+		}
+	}
+
+	return &res, nil
 }

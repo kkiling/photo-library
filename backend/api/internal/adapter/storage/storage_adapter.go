@@ -162,6 +162,18 @@ func (r *Adapter) GetTagByName(ctx context.Context, photoID uuid.UUID, name stri
 	return mapping.TagEntityToModel(res), nil
 }
 
+func (r *Adapter) GetTags(ctx context.Context, photoID uuid.UUID) ([]model.Tag, error) {
+	res, err := r.photoRepo.GetTags(ctx, photoID)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]model.Tag, 0, len(res))
+	for _, p := range res {
+		result = append(result, *mapping.TagEntityToModel(&p))
+	}
+	return result, nil
+}
+
 func (r *Adapter) SaveTag(ctx context.Context, tag model.Tag) error {
 	in := mapping.TagModelToEntity(&tag)
 	return r.photoRepo.SaveTag(ctx, *in)
@@ -248,4 +260,12 @@ func (r *Adapter) GetPaginatedPhotoGroups(ctx context.Context, paginator model.P
 
 func (r *Adapter) GetPhotoGroupsCount(ctx context.Context) (uint64, error) {
 	return r.photoRepo.GetPhotoGroupsCount(ctx)
+}
+
+func (r *Adapter) GetGroupByID(ctx context.Context, id uuid.UUID) (*model.PhotoGroup, error) {
+	group, err := r.photoRepo.GetGroupByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return mapping.PhotoGroupEntityToModel(group), nil
 }

@@ -3,6 +3,8 @@ package pgrepo
 import (
 	"context"
 	"errors"
+	"fmt"
+	sq "github.com/Masterminds/squirrel"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/entity"
 
 	"github.com/google/uuid"
@@ -95,6 +97,48 @@ func (r *PhotoRepository) GetTagByName(ctx context.Context, photoID uuid.UUID, n
 	}
 
 	return &tag, nil
+}
+
+func (r *PhotoRepository) GetTags(ctx context.Context, photoID uuid.UUID) ([]entity.Tag, error) {
+	conn := r.getConn(ctx)
+
+	builder := sq.
+		Select("id", "category_id", "photo_id", "name").
+		From("tags").
+		Where(sq.Eq{"photo_id": photoID}).
+		PlaceholderFormat(sq.Dollar)
+
+	query, args, err := builder.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("builder.ToSql: %w", err)
+	}
+
+	rows, err := conn.Query(ctx, query, args...)
+	if err != nil {
+		return nil, printError(err)
+	}
+	defer rows.Close()
+
+	var result = make([]entity.Tag, 0)
+	for rows.Next() {
+		var tag entity.Tag
+
+		errScan := rows.Scan(&tag.ID, &tag.CategoryID, &tag.PhotoID, &tag.Name)
+		if errScan != nil {
+			if errors.Is(errScan, pgx.ErrNoRows) {
+				return nil, nil
+			}
+			return nil, printError(err)
+		}
+
+		result = append(result, tag)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, printError(err)
+	}
+
+	return result, nil
 }
 
 func (r *PhotoRepository) SaveTag(ctx context.Context, tag entity.Tag) error {

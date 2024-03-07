@@ -191,3 +191,34 @@ func (r *PhotoRepository) GetPaginatedPhotoGroups(ctx context.Context, params en
 
 	return result, nil
 }
+
+func (r *PhotoRepository) GetGroupByID(ctx context.Context, id uuid.UUID) (*entity.PhotoGroup, error) {
+	conn := r.getConn(ctx)
+
+	const query = `
+		SELECT id, main_photo_id
+		FROM photo_groups
+		WHERE id = $1
+		LIMIT 1
+	`
+
+	row := conn.QueryRow(ctx, query, id)
+
+	var group entity.PhotoGroup
+	err := row.Scan(&group.ID, &group.MainPhotoID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, printError(err)
+	}
+
+	photoIDs, err := r.getGroupPhotoIDs(ctx, group.ID)
+	if err != nil {
+		return nil, fmt.Errorf("r.getGroupPhotoIDs")
+	}
+
+	group.PhotoIDs = photoIDs
+
+	return &group, nil
+}
