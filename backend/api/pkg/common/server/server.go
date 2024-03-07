@@ -93,7 +93,7 @@ func (s *Server) Register(ctx context.Context, descriptor Descriptor) error {
 	return nil
 }
 
-func (s *Server) Start(name string) error {
+func (s *Server) Start(name string, customHandler func(mux *http.ServeMux)) error {
 	// Запуск grpc сервера
 	go func(logger log.Logger) {
 		netAddress := fmt.Sprintf("%s:%d", s.cfg.Host, s.cfg.GrpcPort)
@@ -112,8 +112,11 @@ func (s *Server) Start(name string) error {
 		netAddress := fmt.Sprintf("%s:%d", s.cfg.Host, s.cfg.HttpPort)
 
 		httpMux := http.NewServeMux()
+		customHandler(httpMux)
+
 		// OpenApi спецификация апи
 		swagger := fmt.Sprintf("/%s.swagger.json", name)
+
 		httpMux.Handle(swagger, http.FileServer(http.Dir("./swagger")))
 		// Swagger в браузере
 		httpMux.Handle("/swagger/", httpSwagger.Handler(

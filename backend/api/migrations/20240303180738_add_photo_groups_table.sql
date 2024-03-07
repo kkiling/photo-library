@@ -12,6 +12,8 @@ CREATE TABLE photo_groups_photos (
     PRIMARY KEY (photo_id)
 );
 
+CREATE INDEX idx_photo_groups_photos_group_id ON photo_groups_photos(group_id);
+
 -- +goose StatementEnd
 
 -- +goose Down

@@ -14,13 +14,13 @@ import (
 
 type Config struct {
 	MinSimilarCoefficient float64 `yaml:"min_similar_coefficient"`
-	Limit                 int64   `yaml:"limit"`
+	Limit                 uint64  `yaml:"limit"`
 }
 
 type Storage interface {
 	service.Transactor
-	GetPhotosVectorCount(ctx context.Context) (int64, error)
-	GetPaginatedPhotosVector(ctx context.Context, offset int64, limit int64) ([]model.PhotoVector, error)
+	GetPhotosVectorCount(ctx context.Context) (uint64, error)
+	GetPaginatedPhotosVector(ctx context.Context, paginator model.Pagination) ([]model.PhotoVector, error)
 	GetPhotoVector(ctx context.Context, photoID uuid.UUID) (*model.PhotoVector, error)
 	SaveSimilarPhotoCoefficient(ctx context.Context, sim model.CoeffSimilarPhoto) error
 }
@@ -54,14 +54,20 @@ func (s *Service) Init(ctx context.Context) error {
 		return serviceerr.MakeErr(err, "storage.GetPhotosVectorCount")
 	}
 
-	for offset := int64(0); offset <= count; offset += s.cfg.Limit {
-		vectors, err := s.storage.GetPaginatedPhotosVector(ctx, offset, s.cfg.Limit)
+	var page uint64 = 0
+	for offset := uint64(0); offset <= count; offset += s.cfg.Limit {
+
+		vectors, err := s.storage.GetPaginatedPhotosVector(ctx, model.Pagination{
+			Page:    page,
+			PerPage: s.cfg.Limit,
+		})
 		if err != nil {
 			return serviceerr.MakeErr(err, "storage.GetPaginatedPhotoVectors")
 		}
 		for _, vector := range vectors {
 			s.photoVectors[vector.PhotoID] = vector
 		}
+		page++
 	}
 
 	return nil

@@ -43,8 +43,8 @@ service PhotosService {
 }
 
 message GetPhotoGroupsRequest {
-  int32 offset = 1;
-  int32 limit = 2;
+  int32 page = 1;
+  int32 per_page = 2;
 }
 
 message Photo {
@@ -55,7 +55,7 @@ message Photo {
 message PhotoGroup {
   string id = 1;
   Photo main_photo = 2;
-  repeated Photo photos = 3;
+  int32 photos_count = 3;
 }
 
 message GetPhotoGroupsResponse {

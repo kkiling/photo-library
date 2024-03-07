@@ -62,7 +62,7 @@ func (s *Service) getPhotoExtension(path string) *model.PhotoExtension {
 	}
 }
 
-func (s *Service) UploadPhoto(ctx context.Context, form *model.SyncPhotoRequest) (*model.SyncPhotoResponse, error) {
+func (s *Service) UploadPhoto(ctx context.Context, form *SyncPhotoRequest) (*SyncPhotoResponse, error) {
 	// Проверяем загружено ли фото
 	findPhoto, err := s.storage.GetPhotoByHash(ctx, form.Hash)
 	if err != nil {
@@ -70,7 +70,7 @@ func (s *Service) UploadPhoto(ctx context.Context, form *model.SyncPhotoRequest)
 	}
 
 	if findPhoto != nil {
-		return &model.SyncPhotoResponse{
+		return &SyncPhotoResponse{
 			HasBeenUploadedBefore: true,
 			Hash:                  findPhoto.Hash,
 		}, nil
@@ -133,7 +133,7 @@ func (s *Service) UploadPhoto(ctx context.Context, form *model.SyncPhotoRequest)
 		return nil, serviceerr.MakeErr(err, "s.storage.RunTransaction")
 	}
 
-	return &model.SyncPhotoResponse{
+	return &SyncPhotoResponse{
 		HasBeenUploadedBefore: false,
 		Hash:                  newPhoto.Hash,
 	}, nil

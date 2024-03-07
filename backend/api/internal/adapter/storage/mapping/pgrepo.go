@@ -258,8 +258,8 @@ func PhotoFilter(in *model.PhotoFilter) *entity.PhotoFilter {
 
 func PhotoSelectParams(in model.PhotoSelectParams) entity.PhotoSelectParams {
 	return entity.PhotoSelectParams{
-		Offset:     in.Offset,
-		Limit:      in.Limit,
+		Offset:     in.Paginator.GetOffset(),
+		Limit:      in.Paginator.GetLimit(),
 		SortOrder:  entity.PhotoSortOrder(in.SortOrder),
 		SortDirect: entity.SortDirect(in.SortOrder),
 	}

@@ -1,12 +1,12 @@
 package mapper
 
 import (
-	"github.com/kkiling/photo-library/backend/api/internal/service/model"
+	"github.com/kkiling/photo-library/backend/api/internal/service/syncphotos"
 	desc "github.com/kkiling/photo-library/backend/api/pkg/common/gen/proto/v1"
 )
 
-func UploadPhotoRequest(request *desc.UploadPhotoRequest) *model.SyncPhotoRequest {
-	return &model.SyncPhotoRequest{
+func UploadPhotoRequest(request *desc.UploadPhotoRequest) *syncphotos.SyncPhotoRequest {
+	return &syncphotos.SyncPhotoRequest{
 		Paths:    request.Paths,
 		Hash:     request.Hash,
 		Body:     request.Body,
@@ -15,7 +15,7 @@ func UploadPhotoRequest(request *desc.UploadPhotoRequest) *model.SyncPhotoReques
 	}
 }
 
-func UploadPhotoResponse(response *model.SyncPhotoResponse) *desc.UploadPhotoResponse {
+func UploadPhotoResponse(response *syncphotos.SyncPhotoResponse) *desc.UploadPhotoResponse {
 	return &desc.UploadPhotoResponse{
 		HasBeenUploadedBefore: response.HasBeenUploadedBefore,
 		Hash:                  response.Hash,

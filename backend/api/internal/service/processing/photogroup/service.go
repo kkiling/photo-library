@@ -20,7 +20,7 @@ type Storage interface {
 	FindSimilarPhotoCoefficients(ctx context.Context, photoID uuid.UUID) ([]model.CoeffSimilarPhoto, error)
 	FindGroupIDByPhotoID(ctx context.Context, photoID uuid.UUID) (*uuid.UUID, error)
 	CreateGroup(ctx context.Context, mainPhotoID uuid.UUID) (*model.PhotoGroup, error)
-	AddPhotoToGroup(ctx context.Context, groupID uuid.UUID, photoIDs []uuid.UUID) error
+	AddPhotoIDsToGroup(ctx context.Context, groupID uuid.UUID, photoIDs []uuid.UUID) error
 }
 
 type Service struct {
@@ -137,7 +137,7 @@ func (s *Service) Processing(ctx context.Context, photo model.Photo, _ []byte) (
 		if err != nil {
 			return serviceerr.MakeErr(saveErr, "s.storage.CreateGroup")
 		}
-		if saveErr = s.storage.AddPhotoToGroup(ctxTx, g.ID, groupAllPhotoIDs); saveErr != nil {
+		if saveErr = s.storage.AddPhotoIDsToGroup(ctxTx, g.ID, groupAllPhotoIDs); saveErr != nil {
 			return serviceerr.MakeErr(saveErr, "s.storage.CreateGroup")
 		}
 		return nil

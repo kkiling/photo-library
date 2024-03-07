@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/entity"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/mapping"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/pgrepo"
 
@@ -48,7 +49,15 @@ func (r *Adapter) GetPhotoById(ctx context.Context, id uuid.UUID) (*model.Photo,
 	return mapping.PhotoEntityToModel(res), nil
 }
 
-func (r *Adapter) GetPhotosCount(ctx context.Context, filter *model.PhotoFilter) (int64, error) {
+func (r *Adapter) GetPhotoByFilename(ctx context.Context, fileName string) (*model.Photo, error) {
+	res, err := r.photoRepo.GetPhotoByFilename(ctx, fileName)
+	if err != nil {
+		return nil, err
+	}
+	return mapping.PhotoEntityToModel(res), nil
+}
+
+func (r *Adapter) GetPhotosCount(ctx context.Context, filter *model.PhotoFilter) (uint64, error) {
 	return r.photoRepo.GetPhotosCount(ctx, mapping.PhotoFilter(filter))
 }
 
@@ -56,8 +65,8 @@ func (r *Adapter) AddPhotosProcessingStatus(ctx context.Context, photoID uuid.UU
 	return r.photoRepo.AddPhotosProcessingStatus(ctx, photoID, string(status), success)
 }
 
-func (r *Adapter) GetUnprocessedPhotoIDs(ctx context.Context, lastProcessingStatus model.PhotoProcessingStatus, limit int64) ([]uuid.UUID, error) {
-	return r.photoRepo.GetUnprocessedPhotoIDs(ctx, string(lastProcessingStatus), limit)
+func (r *Adapter) GetUnprocessedPhotoIDs(ctx context.Context, lastProcessingStatus model.PhotoProcessingStatus, perPage uint64) ([]uuid.UUID, error) {
+	return r.photoRepo.GetUnprocessedPhotoIDs(ctx, string(lastProcessingStatus), perPage)
 }
 
 func (r *Adapter) GetPhotoProcessingStatuses(ctx context.Context, photoID uuid.UUID) ([]model.PhotoProcessingStatus, error) {
@@ -163,8 +172,8 @@ func (r *Adapter) SaveOrUpdatePhotoVector(ctx context.Context, photoVector model
 	return r.photoRepo.SaveOrUpdatePhotoVector(ctx, *in)
 }
 
-func (r *Adapter) GetPaginatedPhotosVector(ctx context.Context, offset int64, limit int64) ([]model.PhotoVector, error) {
-	vectors, err := r.photoRepo.GetPaginatedPhotoVectors(ctx, offset, limit)
+func (r *Adapter) GetPaginatedPhotosVector(ctx context.Context, paginator model.Pagination) ([]model.PhotoVector, error) {
+	vectors, err := r.photoRepo.GetPaginatedPhotoVectors(ctx, paginator.GetOffset(), paginator.GetLimit())
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +203,7 @@ func (r *Adapter) FindSimilarPhotoCoefficients(ctx context.Context, photoID uuid
 	return result, nil
 }
 
-func (r *Adapter) GetPhotosVectorCount(ctx context.Context) (int64, error) {
+func (r *Adapter) GetPhotosVectorCount(ctx context.Context) (uint64, error) {
 	return r.photoRepo.GetPhotosVectorCount(ctx)
 }
 
@@ -210,14 +219,6 @@ func (r *Adapter) FindGroupIDByPhotoID(ctx context.Context, photoID uuid.UUID) (
 	return r.photoRepo.FindGroupIDByPhotoID(ctx, photoID)
 }
 
-func (r *Adapter) FindGroupByPhotoID(ctx context.Context, photoID uuid.UUID) (*model.PhotoGroup, error) {
-	group, err := r.photoRepo.FindGroupByPhotoID(ctx, photoID)
-	if err != nil {
-		return nil, err
-	}
-	return mapping.PhotoGroupEntityToModel(group), nil
-}
-
 func (r *Adapter) CreateGroup(ctx context.Context, mainPhotoID uuid.UUID) (*model.PhotoGroup, error) {
 	group, err := r.photoRepo.CreateGroup(ctx, mainPhotoID)
 	if err != nil {
@@ -226,6 +227,25 @@ func (r *Adapter) CreateGroup(ctx context.Context, mainPhotoID uuid.UUID) (*mode
 	return mapping.PhotoGroupEntityToModel(group), nil
 }
 
-func (r *Adapter) AddPhotoToGroup(ctx context.Context, groupID uuid.UUID, photoIDs []uuid.UUID) error {
-	return r.photoRepo.AddPhotoToGroup(ctx, groupID, photoIDs)
+func (r *Adapter) AddPhotoIDsToGroup(ctx context.Context, groupID uuid.UUID, photoIDs []uuid.UUID) error {
+	return r.photoRepo.AddPhotoIDsToGroup(ctx, groupID, photoIDs)
+}
+
+func (r *Adapter) GetPaginatedPhotoGroups(ctx context.Context, paginator model.Pagination) ([]model.PhotoGroup, error) {
+	photos, err := r.photoRepo.GetPaginatedPhotoGroups(ctx, entity.PhotoSelectParams{
+		Offset: paginator.GetOffset(),
+		Limit:  paginator.GetLimit(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	result := make([]model.PhotoGroup, 0, len(photos))
+	for _, p := range photos {
+		result = append(result, *mapping.PhotoGroupEntityToModel(&p))
+	}
+	return result, nil
+}
+
+func (r *Adapter) GetPhotoGroupsCount(ctx context.Context) (uint64, error) {
+	return r.photoRepo.GetPhotoGroupsCount(ctx)
 }

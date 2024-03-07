@@ -3,10 +3,11 @@ package handler
 import (
 	"context"
 	"fmt"
+	"github.com/kkiling/photo-library/backend/api/internal/service/syncphotos"
+	"net/http"
 
 	"github.com/kkiling/photo-library/backend/api/internal/handler/mapper"
 
-	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	desc "github.com/kkiling/photo-library/backend/api/pkg/common/gen/proto/v1"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/server"
@@ -60,6 +61,10 @@ func (p *SyncPhotosServiceServer) crateServerInterceptors() ([]grpc.UnaryServerI
 	}, nil
 }
 
+func (p *SyncPhotosServiceServer) registrationServerHandlers(*http.ServeMux) {
+
+}
+
 func (p *SyncPhotosServiceServer) Start(ctx context.Context) error {
 	interceptors, err := p.crateServerInterceptors()
 	if err != nil {
@@ -78,7 +83,7 @@ func (p *SyncPhotosServiceServer) Start(ctx context.Context) error {
 		return fmt.Errorf("server.Register: %w", err)
 	}
 
-	if err := p.server.Start("sync_photos_service"); err != nil {
+	if err := p.server.Start("sync_photos_service", p.registrationServerHandlers); err != nil {
 		return fmt.Errorf("server.Start: %w", err)
 	}
 
@@ -90,7 +95,7 @@ func (p *SyncPhotosServiceServer) Stop() {
 }
 
 type SyncPhotosService interface {
-	UploadPhoto(ctx context.Context, form *model.SyncPhotoRequest) (*model.SyncPhotoResponse, error)
+	UploadPhoto(ctx context.Context, form *syncphotos.SyncPhotoRequest) (*syncphotos.SyncPhotoResponse, error)
 }
 
 func (p *SyncPhotosServiceServer) UploadPhoto(ctx context.Context, request *desc.UploadPhotoRequest) (*desc.UploadPhotoResponse, error) {

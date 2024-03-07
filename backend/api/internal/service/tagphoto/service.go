@@ -94,7 +94,6 @@ func (s *Service) GetCategory(ctx context.Context, typeCategory string) (*model.
 	if findCategory, err := s.storage.GetTagCategoryByType(ctx, typeCategory); err != nil {
 		return nil, serviceerr.MakeErr(err, "storage.GetTagCategoryByName")
 	} else if findCategory != nil {
-		// TODO: ошибка
 		return findCategory, nil
 	}
 

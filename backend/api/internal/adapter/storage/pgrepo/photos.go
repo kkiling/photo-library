@@ -99,6 +99,30 @@ func (r *PhotoRepository) GetPhotoById(ctx context.Context, id uuid.UUID) (*enti
 	return &photo, nil
 }
 
+func (r *PhotoRepository) GetPhotoByFilename(ctx context.Context, fileName string) (*entity.Photo, error) {
+	conn := r.getConn(ctx)
+
+	const query = `
+		SELECT id, file_name, hash, update_at, extension
+		FROM photos
+		WHERE file_name = $1
+		LIMIT 1
+	`
+
+	row := conn.QueryRow(ctx, query, fileName)
+
+	var photo entity.Photo
+	err := row.Scan(&photo.ID, &photo.FileName, &photo.Hash, &photo.UpdateAt, &photo.Extension)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, printError(err)
+	}
+
+	return &photo, nil
+}
+
 func (r *PhotoRepository) GetPaginatedPhotos(ctx context.Context, params entity.PhotoSelectParams, filter *entity.PhotoFilter) ([]entity.Photo, error) {
 	conn := r.getConn(ctx)
 
@@ -106,8 +130,8 @@ func (r *PhotoRepository) GetPaginatedPhotos(ctx context.Context, params entity.
 		Select("id", "file_name", "hash", "update_at", "extension").
 		From("photos").
 		Where(sq.Eq{"status": entity.NewPhotoStatus}).
-		Offset(uint64(params.Offset)).
-		Limit(uint64(params.Limit)).
+		Offset(params.Offset).
+		Limit(params.Limit).
 		PlaceholderFormat(sq.Dollar)
 
 	if filter != nil {
@@ -153,10 +177,10 @@ func (r *PhotoRepository) GetPaginatedPhotos(ctx context.Context, params entity.
 	return result, nil
 }
 
-func (r *PhotoRepository) GetPhotosCount(ctx context.Context, filter *entity.PhotoFilter) (int64, error) {
+func (r *PhotoRepository) GetPhotosCount(ctx context.Context, filter *entity.PhotoFilter) (uint64, error) {
 	conn := r.getConn(ctx)
 
-	var counter int64
+	var counter uint64
 
 	builder := sq.
 		Select("count(1)").
@@ -207,7 +231,7 @@ func (r *PhotoRepository) AddPhotosProcessingStatus(ctx context.Context, photoID
 	return nil
 }
 
-func (r *PhotoRepository) GetUnprocessedPhotoIDs(ctx context.Context, lastProcessingStatus string, limit int64) ([]uuid.UUID, error) {
+func (r *PhotoRepository) GetUnprocessedPhotoIDs(ctx context.Context, lastProcessingStatus string, limit uint64) ([]uuid.UUID, error) {
 	conn := r.getConn(ctx)
 
 	builder := sq.
@@ -216,7 +240,7 @@ func (r *PhotoRepository) GetUnprocessedPhotoIDs(ctx context.Context, lastProces
 		LeftJoin(fmt.Sprintf("photo_processing_statuses ps ON p.id = ps.photo_id AND ps.status = '%s'", lastProcessingStatus)).
 		Where("ps.photo_id IS NULL").
 		Where(sq.Eq{"p.status": entity.NewPhotoStatus}).
-		Limit(uint64(limit)).
+		Limit(limit).
 		PlaceholderFormat(sq.Dollar)
 
 	query, args, err := builder.ToSql()

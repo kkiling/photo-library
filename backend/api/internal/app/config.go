@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/pgrepo"
+	"github.com/kkiling/photo-library/backend/api/internal/service/photos"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing/photogroup"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing/similarphotos"
 
@@ -20,6 +21,7 @@ const (
 	ProcessingPhotosName = "processing_photo"
 	SimilarPhotosName    = "similar_photo"
 	PhotoGroupName       = "photo_group"
+	PhotosName           = "photos"
 )
 
 func (a *App) getServerConfig() (server.Config, error) {
@@ -89,6 +91,16 @@ func (a *App) getPhotoGroupConfig() (photogroup.Config, error) {
 	err := a.cfgProvider.PopulateByKey(PhotoGroupName, &config)
 	if err != nil {
 		return photogroup.Config{}, fmt.Errorf("PopulateByKey: %w", err)
+	}
+
+	return config, nil
+}
+
+func (a *App) getPhotosConfig() (photos.Config, error) {
+	var config photos.Config
+	err := a.cfgProvider.PopulateByKey(PhotosName, &config)
+	if err != nil {
+		return photos.Config{}, fmt.Errorf("PopulateByKey: %w", err)
 	}
 
 	return config, nil

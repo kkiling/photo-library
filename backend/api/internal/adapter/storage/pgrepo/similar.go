@@ -27,7 +27,7 @@ func (r *PhotoRepository) SaveOrUpdatePhotoVector(ctx context.Context, photoVect
 	return nil
 }
 
-func (r *PhotoRepository) GetPaginatedPhotoVectors(ctx context.Context, offset int64, limit int64) ([]entity.PhotoVector, error) {
+func (r *PhotoRepository) GetPaginatedPhotoVectors(ctx context.Context, offset uint64, limit uint64) ([]entity.PhotoVector, error) {
 	conn := r.getConn(ctx)
 
 	const query = `
@@ -126,10 +126,10 @@ func (r *PhotoRepository) FindSimilarPhotoCoefficients(ctx context.Context, phot
 	return result, nil
 }
 
-func (r *PhotoRepository) GetPhotosVectorCount(ctx context.Context) (int64, error) {
+func (r *PhotoRepository) GetPhotosVectorCount(ctx context.Context) (uint64, error) {
 	conn := r.getConn(ctx)
 
-	var counter int64
+	var counter uint64
 
 	builder := sq.
 		Select("count(1)").

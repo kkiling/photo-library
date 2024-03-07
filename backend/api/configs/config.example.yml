@@ -24,3 +24,6 @@ similar_photo:
 
 photo_group:
   min_similar_coefficient: 0.95
+
+photos:
+  photo_server_url: "http://localhost:8080/photos"

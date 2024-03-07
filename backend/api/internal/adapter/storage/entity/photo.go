@@ -23,8 +23,8 @@ const (
 )
 
 type PhotoSelectParams struct {
-	Offset     int64
-	Limit      int
+	Offset     uint64
+	Limit      uint64
 	SortOrder  PhotoSortOrder
 	SortDirect SortDirect
 }

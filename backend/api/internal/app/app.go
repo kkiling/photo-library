@@ -11,6 +11,7 @@ import (
 	pgrepo2 "github.com/kkiling/photo-library/backend/api/internal/adapter/storage/pgrepo"
 	"github.com/kkiling/photo-library/backend/api/internal/handler"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
+	"github.com/kkiling/photo-library/backend/api/internal/service/photos"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing/catalogtags"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing/exifphotodata"
@@ -42,8 +43,10 @@ type App struct {
 	similarPhotos *similarphotos.Service
 	syncPhoto     *syncphotos.Service
 	geoService    *geo.Service
+	//
+	tagPhoto *tagphoto.Service
+	photos   *photos.Service
 	// Processing
-	tagPhoto         *tagphoto.Service
 	exifPhoto        *exifphotodata.Service
 	metaPhoto        *photometadata.Service
 	metaTagsPhoto    *metatags.Service
@@ -97,6 +100,11 @@ func (a *App) Create(ctx context.Context) error {
 		return fmt.Errorf("getPhotoGroupConfig: %w", err)
 	}
 
+	photosCfg, err := a.getPhotosConfig()
+	if err != nil {
+		return fmt.Errorf("getPhotosConfig: %w", err)
+	}
+
 	pool, err := pgrepo2.NewPgConn(ctx, pgCfg)
 	if err != nil {
 		return fmt.Errorf("newPgConn: %w", err)
@@ -113,6 +121,12 @@ func (a *App) Create(ctx context.Context) error {
 		photoMlCfg,
 	)
 	a.tagPhoto = tagphoto.NewService(
+		a.storageAdapter,
+	)
+	a.photos = photos.NewService(
+		a.logger.Named("photo_ml"),
+		photosCfg,
+		a.fsStore,
 		a.storageAdapter,
 	)
 	a.syncPhoto = syncphotos.NewService(
@@ -146,7 +160,7 @@ func (a *App) Create(ctx context.Context) error {
 	)
 	a.photosServer = handler.NewPhotosServiceServer(
 		a.logger.Named("sync_photo_service_photo"),
-		"todo",
+		a.photos,
 		serverCfg,
 	)
 	a.vectorPhoto = vectorphoto.NewService(

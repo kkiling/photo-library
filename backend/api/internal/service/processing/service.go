@@ -14,14 +14,14 @@ import (
 )
 
 type Config struct {
-	MaxGoroutines int   `yaml:"max_goroutines"`
-	Limit         int64 `yaml:"limit"`
+	MaxGoroutines int    `yaml:"max_goroutines"`
+	Limit         uint64 `yaml:"limit"`
 }
 
 type Storage interface {
 	GetPhotoById(ctx context.Context, id uuid.UUID) (*model.Photo, error)
 	GetPhotoProcessingStatuses(ctx context.Context, photoID uuid.UUID) ([]model.PhotoProcessingStatus, error)
-	GetUnprocessedPhotoIDs(ctx context.Context, lastProcessingStatus model.PhotoProcessingStatus, limit int64) ([]uuid.UUID, error)
+	GetUnprocessedPhotoIDs(ctx context.Context, lastProcessingStatus model.PhotoProcessingStatus, perPage uint64) ([]uuid.UUID, error)
 	AddPhotosProcessingStatus(ctx context.Context, photoID uuid.UUID, status model.PhotoProcessingStatus, success bool) error
 	MakeNotValidPhoto(ctx context.Context, photoID uuid.UUID, error string) error
 }

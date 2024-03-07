@@ -19,7 +19,6 @@ type PhotoMetadata struct {
 	HeightPixel int
 	// Дата и время снимка берем из exif // если нет то пробуем из имени файла
 	DateTime *time.Time
-
 	// Дата последнего обновления файла
 	// Берем из файла
 	UpdateAt time.Time

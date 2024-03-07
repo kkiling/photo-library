@@ -52,6 +52,37 @@
           "photo"
         ]
       }
+    },
+    "/v1/photos/{url}": {
+      "get": {
+        "summary": "Загрузка фотографии",
+        "operationId": "PhotosService_GetImage",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/GetImageResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/Status"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "url",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "photo"
+        ]
+      }
     }
   },
   "definitions": {
@@ -64,14 +95,23 @@
       },
       "additionalProperties": {}
     },
+    "GetImageResponse": {
+      "type": "object",
+      "properties": {
+        "image": {
+          "type": "string",
+          "format": "byte"
+        }
+      }
+    },
     "GetPhotoGroupsRequest": {
       "type": "object",
       "properties": {
-        "offset": {
+        "page": {
           "type": "integer",
           "format": "int32"
         },
-        "limit": {
+        "per_page": {
           "type": "integer",
           "format": "int32"
         }
@@ -113,12 +153,9 @@
         "main_photo": {
           "$ref": "#/definitions/Photo"
         },
-        "photos": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/Photo"
-          }
+        "photos_count": {
+          "type": "integer",
+          "format": "int32"
         }
       }
     },
