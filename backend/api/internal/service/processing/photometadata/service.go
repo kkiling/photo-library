@@ -35,11 +35,7 @@ func NewService(logger log.Logger, storage Storage) *Service {
 	}
 }
 
-func (s *Service) getDateTime(ctx context.Context, exif *model.ExifPhotoData, photoID uuid.UUID) (*time.Time, error) {
-	if exif == nil {
-		return nil, nil
-	}
-
+func (s *Service) getDateTime(exif *model.ExifPhotoData) (*time.Time, error) {
 	var dateTime *time.Time = nil
 
 	if exif.DateTime != nil {
@@ -50,31 +46,38 @@ func (s *Service) getDateTime(ctx context.Context, exif *model.ExifPhotoData, ph
 		if d, err := parseDate(*exif.DateTimeOriginal); err == nil {
 			dateTime = &d
 		}
-	} else {
-		uploadData, err := s.storage.GetUploadPhotoData(ctx, photoID)
+	}
+
+	return dateTime, nil
+}
+
+func (s *Service) getDateTimeFromPaths(ctx context.Context, photoID uuid.UUID) (*time.Time, error) {
+	var dateTime *time.Time = nil
+
+	// Попытка получения даты из имени файлов
+	uploadData, err := s.storage.GetUploadPhotoData(ctx, photoID)
+	if err != nil {
+		return nil, serviceerr.MakeErr(err, "storage.GetPhotoUploadData")
+	}
+
+	if uploadData == nil {
+		return nil, serviceerr.NotFoundError("not found upload data for photo: %s", photoID)
+	}
+
+	for _, path := range uploadData.Paths {
+		toTime, err := fileNameToTime(path)
 		if err != nil {
-			return nil, serviceerr.MakeErr(err, "storage.GetPhotoUploadData")
+			continue
 		}
-
-		if uploadData == nil {
-			return nil, serviceerr.NotFoundError("not found upload data for photo: %s", photoID)
-		}
-
-		for _, path := range uploadData.Paths {
-			toTime, err := fileNameToTime(path)
-			if err != nil {
-				continue
-			}
-			dateTime = &toTime
-			break
-		}
+		dateTime = &toTime
+		break
 	}
 
 	return dateTime, nil
 }
 
 func (s *Service) getGeo(exif *model.ExifPhotoData) (*model.Geo, error) {
-	if exif != nil && exif.GPSLongitude != nil && exif.GPSLatitude != nil {
+	if exif.GPSLongitude != nil && exif.GPSLatitude != nil {
 		geo, err := convertToGeo(exif.GPSLatitude, exif.GPSLongitude)
 		if err != nil {
 			return nil, serviceerr.MakeErr(err, "convertToGeo")
@@ -86,7 +89,7 @@ func (s *Service) getGeo(exif *model.ExifPhotoData) (*model.Geo, error) {
 }
 
 func (s *Service) getModelInfo(exif *model.ExifPhotoData) *string {
-	if exif != nil && (exif.Model != nil || exif.Make != nil) {
+	if exif.Model != nil || exif.Make != nil {
 		modelInfo := ""
 		if exif.Model != nil && exif.Make != nil {
 			modelInfo = fmt.Sprintf("%s %s", *exif.Model, *exif.Make)
@@ -101,7 +104,7 @@ func (s *Service) getModelInfo(exif *model.ExifPhotoData) *string {
 	return nil
 }
 
-func (s *Service) Init(ctx context.Context) error {
+func (s *Service) Init(_ context.Context) error {
 	return nil
 }
 
@@ -116,21 +119,29 @@ func (s *Service) Processing(ctx context.Context, photo model.Photo, photoBody [
 		return false, serviceerr.MakeErr(err, "storage.GetExif")
 	}
 
-	if exif == nil {
-		return false, nil
+	var dateTime *time.Time = nil
+	var geo *model.Geo = nil
+	var modelInfo *string
+	if exif != nil {
+		dateTime, err = s.getDateTime(exif)
+		if err != nil {
+			return false, serviceerr.MakeErr(err, "getDateTime")
+		}
+
+		geo, err = s.getGeo(exif)
+		if err != nil {
+			return false, serviceerr.MakeErr(err, "getGeo")
+		}
+
+		modelInfo = s.getModelInfo(exif)
 	}
 
-	dateTime, err := s.getDateTime(ctx, exif, photo.ID)
-	if err != nil {
-		return false, serviceerr.MakeErr(err, "getDateTime")
+	if dateTime == nil {
+		dateTime, err = s.getDateTimeFromPaths(ctx, photo.ID)
+		if err != nil {
+			return false, serviceerr.MakeErr(err, "getDateTime")
+		}
 	}
-
-	geo, err := s.getGeo(exif)
-	if err != nil {
-		return false, serviceerr.MakeErr(err, "getGeo")
-	}
-
-	modelInfo := s.getModelInfo(exif)
 
 	widthPixel, heightPixel, err := getImageDetails(photoBody)
 	if err != nil {
