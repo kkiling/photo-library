@@ -4,14 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/entity"
-	"reflect"
-	"strings"
-
 	sq "github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/entity"
+	"reflect"
 )
 
 func structToMapDBTag(obj interface{}) map[string]interface{} {
@@ -56,7 +54,7 @@ func structToMapDBTag(obj interface{}) map[string]interface{} {
 	return m
 }
 
-func (r *PhotoRepository) SaveOrUpdateExif(ctx context.Context, data *entity.ExifPhotoData) error {
+func (r *PhotoRepository) SaveExif(ctx context.Context, data *entity.ExifPhotoData) error {
 	conn := r.getConn(ctx)
 
 	fields := structToMapDBTag(data)
@@ -67,12 +65,10 @@ func (r *PhotoRepository) SaveOrUpdateExif(ctx context.Context, data *entity.Exi
 		}
 		updateParts = append(updateParts, fmt.Sprintf("%s = EXCLUDED.%s", column, column))
 	}
-	updateStr := strings.Join(updateParts, ", ")
 
 	query, args, err := sq.
 		Insert("exif_photo_data").
 		SetMap(fields).
-		Suffix("ON CONFLICT (photo_id) DO UPDATE SET " + updateStr).
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
 	if err != nil {

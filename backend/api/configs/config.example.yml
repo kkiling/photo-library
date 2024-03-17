@@ -27,3 +27,9 @@ photo_group:
 
 photos:
   photo_server_url: "http://localhost:8080/photos"
+
+photo_preview:
+  sizes:
+    - 480
+    - 640
+    - 800

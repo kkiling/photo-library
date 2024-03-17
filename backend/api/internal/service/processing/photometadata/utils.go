@@ -2,9 +2,7 @@ package photometadata
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
-	"github.com/kkiling/photo-library/backend/api/internal/adapter/photoml"
 	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
 	"go.uber.org/multierr"
 	"image"
@@ -24,9 +22,7 @@ func getImageDetails(photoBody []byte) (width int, height int, err error) {
 	// Получение размера изображения в пикселях
 	img, _, err := image.DecodeConfig(reader)
 	if err != nil {
-		if errors.Is(err, photoml.ErrInternalServerError) {
-			return 0, 0, multierr.Append(serviceerr.MakeErr(err, "image.DecodeConfig"), serviceerr.ErrPhotoIsNotValid)
-		}
+		return 0, 0, multierr.Append(serviceerr.MakeErr(err, "image.DecodeConfig"), serviceerr.ErrPhotoIsNotValid)
 	}
 
 	return img.Width, img.Height, nil

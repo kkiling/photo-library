@@ -18,7 +18,7 @@ import (
 type Storage interface {
 	service.Transactor
 	GetPhotoById(ctx context.Context, id uuid.UUID) (*model.Photo, error)
-	SaveOrUpdateExif(ctx context.Context, data *model.ExifPhotoData) error
+	SaveExif(ctx context.Context, data *model.ExifPhotoData) error
 }
 
 type Service struct {
@@ -174,7 +174,7 @@ func (s *Service) Processing(ctx context.Context, photo model.Photo, photoBody [
 		return false, serviceerr.MakeErr(err, "exif.Walk")
 	}
 
-	err = s.storage.SaveOrUpdateExif(ctx, &p.data)
+	err = s.storage.SaveExif(ctx, &p.data)
 
 	if err != nil {
 		return false, serviceerr.MakeErr(err, "storage.SaveOrUpdateExif")

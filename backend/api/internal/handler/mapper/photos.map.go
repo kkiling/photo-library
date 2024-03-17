@@ -16,15 +16,11 @@ func GetPhotoGroupsRequest(request *desc.GetPhotoGroupsRequest) *photos.GetPhoto
 }
 
 func GetPhotoGroupsResponse(response *photos.GetPhotoGroupsResponse) *desc.GetPhotoGroupsResponse {
-
 	items := make([]*desc.PhotoGroup, 0, len(response.Items))
 	for _, group := range response.Items {
 		items = append(items, &desc.PhotoGroup{
-			Id: group.ID.String(),
-			MainPhoto: &desc.Photo{
-				Id:  group.MainPhoto.ID.String(),
-				Url: group.MainPhoto.Url,
-			},
+			Id:          group.ID.String(),
+			MainPhoto:   Photo(&group.MainPhoto),
 			PhotosCount: int32(group.PhotoCount),
 		})
 	}
@@ -63,27 +59,42 @@ func Tag(tag *photos.Tag) *desc.Tag {
 	}
 }
 
-func PhotoWithData(photo *photos.PhotoWithData) *desc.PhotoWithData {
+func Photo(photo *photos.Photo) *desc.Photo {
 	tags := make([]*desc.Tag, 0, len(photo.Tags))
 	for _, tag := range photo.Tags {
 		tags = append(tags, Tag(&tag))
 	}
-	return &desc.PhotoWithData{
+
+	previews := make([]*desc.Photo_Preview, 0, len(photo.Preview))
+	for _, preview := range photo.Preview {
+		previews = append(previews, &desc.Photo_Preview{
+			Src:    preview.Src,
+			Width:  int32(preview.Width),
+			Height: int32(preview.Height),
+			Size:   int32(preview.Size),
+		})
+	}
+
+	return &desc.Photo{
 		Id:       photo.ID.String(),
-		Url:      photo.Url,
+		Src:      photo.Src,
+		Width:    int32(photo.Width),
+		Height:   int32(photo.Height),
+		Size:     int32(photo.Size),
 		MetaData: MetaData(photo.Metadata),
 		Tags:     tags,
+		Previews: previews,
 	}
 }
 
 func GetPhotoGroupResponse(response *photos.PhotoGroupData) *desc.GetPhotoGroupResponse {
-	photoArray := make([]*desc.PhotoWithData, 0, len(response.Photos))
+	photoArray := make([]*desc.Photo, 0, len(response.Photos))
 	for _, photo := range response.Photos {
-		photoArray = append(photoArray, PhotoWithData(&photo))
+		photoArray = append(photoArray, Photo(&photo))
 	}
 	return &desc.GetPhotoGroupResponse{
 		Id:        response.ID.String(),
-		MainPhoto: PhotoWithData(&response.MainPhoto),
+		MainPhoto: Photo(&response.MainPhoto),
 		Photos:    photoArray,
 	}
 }

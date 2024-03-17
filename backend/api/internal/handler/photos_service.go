@@ -16,6 +16,7 @@ import (
 	"google.golang.org/grpc"
 	"net/http"
 	"path/filepath"
+	"strconv"
 )
 
 type PhotosServiceServer struct {
@@ -64,7 +65,19 @@ func (p *PhotosServiceServer) registrationServerHandlers(mux *http.ServeMux) {
 	mux.HandleFunc("/photos/", func(w http.ResponseWriter, r *http.Request) {
 		fileName := filepath.Base(r.URL.Path)
 
-		photoContent, err := p.photosService.GetPhotoContent(r.Context(), fileName)
+		queryParams := r.URL.Query()
+		sizeStr := queryParams.Get("size")
+		var previewSize *int
+		if sizeStr != "" {
+			sizeInt, err := strconv.Atoi(sizeStr)
+			if err != nil {
+				http.Error(w, "invalid size parameter", http.StatusBadRequest)
+				return
+			}
+			previewSize = &sizeInt
+		}
+
+		photoContent, err := p.photosService.GetPhotoContent(r.Context(), fileName, previewSize)
 		if err != nil {
 			if errors.Is(err, serviceerr.ErrNotFound) {
 				http.NotFound(w, r)
@@ -127,7 +140,7 @@ func (p *PhotosServiceServer) Stop() {
 
 type PhotosService interface {
 	GetPhotoGroups(ctx context.Context, req *photos.GetPhotoGroupsRequest) (*photos.GetPhotoGroupsResponse, error)
-	GetPhotoContent(ctx context.Context, fileName string) (*photos.PhotoContent, error)
+	GetPhotoContent(ctx context.Context, fileName string, previewSize *int) (*photos.PhotoContent, error)
 	GetPhotoGroup(ctx context.Context, groupID uuid.UUID) (*photos.PhotoGroupData, error)
 }
 

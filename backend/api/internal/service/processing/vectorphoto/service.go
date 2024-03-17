@@ -15,7 +15,7 @@ import (
 
 type Storage interface {
 	service.Transactor
-	SaveOrUpdatePhotoVector(ctx context.Context, photoVector model.PhotoVector) error
+	SavePhotoVector(ctx context.Context, photoVector model.PhotoVector) error
 }
 
 type PhotoML interface {
@@ -55,7 +55,7 @@ func (s *Service) Processing(ctx context.Context, photo model.Photo, photoBody [
 	}
 
 	norm := floats.Norm(vector, 2)
-	if err := s.storage.SaveOrUpdatePhotoVector(ctx, model.PhotoVector{
+	if err := s.storage.SavePhotoVector(ctx, model.PhotoVector{
 		PhotoID: photo.ID,
 		Vector:  vector,
 		Norm:    norm,

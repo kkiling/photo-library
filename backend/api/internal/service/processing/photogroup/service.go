@@ -19,7 +19,7 @@ type Storage interface {
 	service.Transactor
 	FindSimilarPhotoCoefficients(ctx context.Context, photoID uuid.UUID) ([]model.CoeffSimilarPhoto, error)
 	FindGroupIDByPhotoID(ctx context.Context, photoID uuid.UUID) (*uuid.UUID, error)
-	CreateGroup(ctx context.Context, mainPhotoID uuid.UUID) (*model.PhotoGroup, error)
+	SaveGroup(ctx context.Context, group model.PhotoGroup) error
 	AddPhotoIDsToGroup(ctx context.Context, groupID uuid.UUID, photoIDs []uuid.UUID) error
 }
 
@@ -132,12 +132,17 @@ func (s *Service) Processing(ctx context.Context, photo model.Photo, _ []byte) (
 		return false, serviceerr.MakeErr(err, "s.getGroupAllPhotoIDs")
 	}
 
+	group := model.PhotoGroup{
+		ID:          uuid.New(),
+		MainPhotoID: photo.ID,
+	}
+
 	err = s.storage.RunTransaction(ctx, func(ctxTx context.Context) error {
-		g, saveErr := s.storage.CreateGroup(ctxTx, photo.ID)
+		saveErr := s.storage.SaveGroup(ctxTx, group)
 		if err != nil {
 			return serviceerr.MakeErr(saveErr, "s.storage.CreateGroup")
 		}
-		if saveErr = s.storage.AddPhotoIDsToGroup(ctxTx, g.ID, groupAllPhotoIDs); saveErr != nil {
+		if saveErr = s.storage.AddPhotoIDsToGroup(ctxTx, group.ID, groupAllPhotoIDs); saveErr != nil {
 			return serviceerr.MakeErr(saveErr, "s.storage.CreateGroup")
 		}
 		return nil

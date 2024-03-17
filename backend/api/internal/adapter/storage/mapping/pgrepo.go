@@ -275,3 +275,42 @@ func PhotoGroupEntityToModel(in *entity.PhotoGroup) *model.PhotoGroup {
 		PhotoIDs:    in.PhotoIDs,
 	}
 }
+
+func PhotoGroupModelToEntity(in *model.PhotoGroup) *entity.PhotoGroup {
+	if in == nil {
+		return nil
+	}
+	return &entity.PhotoGroup{
+		ID:          in.ID,
+		MainPhotoID: in.MainPhotoID,
+		PhotoIDs:    in.PhotoIDs,
+	}
+}
+
+func PhotoPreviewEntityToModel(in *entity.PhotoPreview) *model.PhotoPreview {
+	if in == nil {
+		return nil
+	}
+	return &model.PhotoPreview{
+		ID:          in.ID,
+		PhotoID:     in.PhotoID,
+		FileName:    in.FileName,
+		WidthPixel:  in.WidthPixel,
+		HeightPixel: in.HeightPixel,
+		SizePixel:   in.SizePixel,
+	}
+}
+
+func PhotoPreviewModelToEntity(in *model.PhotoPreview) *entity.PhotoPreview {
+	if in == nil {
+		return nil
+	}
+	return &entity.PhotoPreview{
+		ID:          in.ID,
+		PhotoID:     in.PhotoID,
+		FileName:    in.FileName,
+		WidthPixel:  in.WidthPixel,
+		HeightPixel: in.HeightPixel,
+		SizePixel:   in.SizePixel,
+	}
+}

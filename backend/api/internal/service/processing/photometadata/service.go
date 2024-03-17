@@ -17,8 +17,8 @@ const invalidTime = "0000:00:00 00:00:00"
 
 type Storage interface {
 	service.Transactor
+	SavePhotoMetadata(ctx context.Context, data model.PhotoMetadata) error
 	GetPhotoById(ctx context.Context, id uuid.UUID) (*model.Photo, error)
-	SaveOrUpdateMetaData(ctx context.Context, data model.PhotoMetadata) error
 	GetExif(ctx context.Context, photoID uuid.UUID) (*model.ExifPhotoData, error)
 	GetUploadPhotoData(ctx context.Context, photoID uuid.UUID) (*model.PhotoUploadData, error)
 }
@@ -159,7 +159,7 @@ func (s *Service) Processing(ctx context.Context, photo model.Photo, photoBody [
 		Geo:         geo,
 	}
 
-	err = s.storage.SaveOrUpdateMetaData(ctx, meta)
+	err = s.storage.SavePhotoMetadata(ctx, meta)
 	if err != nil {
 		return false, serviceerr.MakeErr(err, "storage.SaveOrUpdateMeta")
 	}

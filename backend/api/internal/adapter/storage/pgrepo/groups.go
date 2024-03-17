@@ -35,7 +35,7 @@ func (r *PhotoRepository) FindGroupIDByPhotoID(ctx context.Context, photoID uuid
 	return &groupID, nil
 }
 
-func (r *PhotoRepository) CreateGroup(ctx context.Context, mainPhotoID uuid.UUID) (*entity.PhotoGroup, error) {
+func (r *PhotoRepository) SaveGroup(ctx context.Context, group *entity.PhotoGroup) error {
 	conn := r.getConn(ctx)
 
 	const query = `
@@ -43,17 +43,12 @@ func (r *PhotoRepository) CreateGroup(ctx context.Context, mainPhotoID uuid.UUID
 		VALUES ($1, $2, $3)
 	`
 
-	group := entity.PhotoGroup{
-		ID:          uuid.New(),
-		MainPhotoID: mainPhotoID,
-	}
-
 	_, err := conn.Exec(ctx, query, group.ID, group.MainPhotoID, time.Now())
 	if err != nil {
-		return nil, printError(err)
+		return printError(err)
 	}
 
-	return &group, nil
+	return nil
 }
 
 func (r *PhotoRepository) AddPhotoIDsToGroup(ctx context.Context, groupID uuid.UUID, photoIDs []uuid.UUID) error {

@@ -5,15 +5,22 @@ import (
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 )
 
-type Photo struct {
-	ID  uuid.UUID
-	Url string
+type PhotoPreview struct {
+	Src    string
+	Width  int
+	Height int
+	Size   int
 }
 
-type PhotoWithData struct {
-	Photo
+type Photo struct {
+	ID       uuid.UUID
+	Src      string
+	Width    int
+	Height   int
+	Size     int
 	Metadata *model.PhotoMetadata
 	Tags     []Tag
+	Preview  []PhotoPreview
 }
 
 type PhotoGroup struct {
@@ -32,8 +39,10 @@ type GetPhotoGroupsResponse struct {
 }
 
 type PhotoContent struct {
-	PhotoBody []byte
-	Extension model.PhotoExtension
+	PhotoBody          []byte
+	Extension          model.PhotoExtension
+	WidthPixelCurrent  int
+	HeightPixelCurrent int
 }
 
 type Tag struct {
@@ -45,6 +54,6 @@ type Tag struct {
 
 type PhotoGroupData struct {
 	ID        uuid.UUID
-	MainPhoto PhotoWithData
-	Photos    []PhotoWithData
+	MainPhoto Photo
+	Photos    []Photo
 }

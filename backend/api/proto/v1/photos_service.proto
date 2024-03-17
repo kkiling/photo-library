@@ -66,15 +66,8 @@ message GetPhotoGroupRequest {
 
 message GetPhotoGroupResponse {
   string id = 1;
-  PhotoWithData main_photo = 2;
-  repeated PhotoWithData photos = 3;
-}
-
-message PhotoWithData {
-  string id = 1;
-  string url = 2;
-  Metadata meta_data = 3;
-  repeated Tag tags = 4;
+  Photo main_photo = 2;
+  repeated Photo photos = 3;
 }
 
 message Geo {
@@ -100,8 +93,20 @@ message Tag {
 }
 
 message Photo {
+  message Preview {
+    string src = 1;
+    int32 width = 2;
+    int32 height = 3;
+    int32 size = 4;
+  }
   string id = 1;
-  string url = 2;
+  string src = 2;
+  int32 width = 3;
+  int32 height = 4;
+  int32 size = 5;
+  Metadata meta_data = 6;
+  repeated Tag tags = 7;
+  repeated Preview previews = 8;
 }
 
 message PhotoGroup {

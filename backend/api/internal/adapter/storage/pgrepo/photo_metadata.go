@@ -9,21 +9,12 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (r *PhotoRepository) SaveOrUpdatePhotoMetadata(ctx context.Context, data *entity.PhotoMetadata) error {
+func (r *PhotoRepository) SavePhotoMetadata(ctx context.Context, data *entity.PhotoMetadata) error {
 	conn := r.getConn(ctx)
 
 	const query = `
 			INSERT INTO photo_metadata (photo_id, model_info, size_bytes, width_pixel, height_pixel, date_time, geo_latitude, geo_longitude)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-			ON CONFLICT (photo_id) 
-			DO UPDATE SET 
-				model_info = EXCLUDED.model_info, 
-				size_bytes = EXCLUDED.size_bytes, 
-				width_pixel = EXCLUDED.width_pixel, 
-				height_pixel = EXCLUDED.height_pixel, 
-				date_time = EXCLUDED.date_time, 
-				geo_latitude = EXCLUDED.geo_latitude, 
-				geo_longitude = EXCLUDED.geo_longitude;
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
 	`
 
 	_, err := conn.Exec(ctx, query, data.PhotoID, data.ModelInfo, data.SizeBytes, data.WidthPixel,

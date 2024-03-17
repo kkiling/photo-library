@@ -5,6 +5,7 @@ import (
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/pgrepo"
 	"github.com/kkiling/photo-library/backend/api/internal/service/photos"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing/photogroup"
+	"github.com/kkiling/photo-library/backend/api/internal/service/processing/photopreview"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing/similarphotos"
 
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/fsstore"
@@ -22,6 +23,7 @@ const (
 	SimilarPhotosName    = "similar_photo"
 	PhotoGroupName       = "photo_group"
 	PhotosName           = "photos"
+	PhotoPreviewName     = "photo_preview"
 )
 
 func (a *App) getServerConfig() (server.Config, error) {
@@ -101,6 +103,16 @@ func (a *App) getPhotosConfig() (photos.Config, error) {
 	err := a.cfgProvider.PopulateByKey(PhotosName, &config)
 	if err != nil {
 		return photos.Config{}, fmt.Errorf("PopulateByKey: %w", err)
+	}
+
+	return config, nil
+}
+
+func (a *App) getPhotoPreviewConfig() (photopreview.Config, error) {
+	var config photopreview.Config
+	err := a.cfgProvider.PopulateByKey(PhotoPreviewName, &config)
+	if err != nil {
+		return photopreview.Config{}, fmt.Errorf("PopulateByKey: %w", err)
 	}
 
 	return config, nil

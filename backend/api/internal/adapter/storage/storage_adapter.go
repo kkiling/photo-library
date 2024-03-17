@@ -107,9 +107,9 @@ func (r *Adapter) GetUploadPhotoData(ctx context.Context, photoID uuid.UUID) (*m
 	return mapping.PhotoUploadDataEntityToModel(res), nil
 }
 
-func (r *Adapter) SaveOrUpdateExif(ctx context.Context, data *model.ExifPhotoData) error {
+func (r *Adapter) SaveExif(ctx context.Context, data *model.ExifPhotoData) error {
 	in := mapping.ExifPhotoDataModelToEntity(data)
-	return r.photoRepo.SaveOrUpdateExif(ctx, in)
+	return r.photoRepo.SaveExif(ctx, in)
 }
 
 func (r *Adapter) GetExif(ctx context.Context, photoID uuid.UUID) (*model.ExifPhotoData, error) {
@@ -120,9 +120,9 @@ func (r *Adapter) GetExif(ctx context.Context, photoID uuid.UUID) (*model.ExifPh
 	return mapping.ExifPhotoDataEntityToModel(res), nil
 }
 
-func (r *Adapter) SaveOrUpdateMetaData(ctx context.Context, data model.PhotoMetadata) error {
+func (r *Adapter) SavePhotoMetadata(ctx context.Context, data model.PhotoMetadata) error {
 	in := mapping.PhotoMetadataModelToEntity(&data)
-	return r.photoRepo.SaveOrUpdatePhotoMetadata(ctx, in)
+	return r.photoRepo.SavePhotoMetadata(ctx, in)
 }
 
 func (r *Adapter) GetMetaData(ctx context.Context, photoID uuid.UUID) (*model.PhotoMetadata, error) {
@@ -179,9 +179,9 @@ func (r *Adapter) SaveTag(ctx context.Context, tag model.Tag) error {
 	return r.photoRepo.SaveTag(ctx, *in)
 }
 
-func (r *Adapter) SaveOrUpdatePhotoVector(ctx context.Context, photoVector model.PhotoVector) error {
+func (r *Adapter) SavePhotoVector(ctx context.Context, photoVector model.PhotoVector) error {
 	in := mapping.PhotoVectorModelToEntity(&photoVector)
-	return r.photoRepo.SaveOrUpdatePhotoVector(ctx, *in)
+	return r.photoRepo.SavePhotoVector(ctx, *in)
 }
 
 func (r *Adapter) GetPaginatedPhotosVector(ctx context.Context, paginator model.Pagination) ([]model.PhotoVector, error) {
@@ -231,12 +231,8 @@ func (r *Adapter) FindGroupIDByPhotoID(ctx context.Context, photoID uuid.UUID) (
 	return r.photoRepo.FindGroupIDByPhotoID(ctx, photoID)
 }
 
-func (r *Adapter) CreateGroup(ctx context.Context, mainPhotoID uuid.UUID) (*model.PhotoGroup, error) {
-	group, err := r.photoRepo.CreateGroup(ctx, mainPhotoID)
-	if err != nil {
-		return nil, err
-	}
-	return mapping.PhotoGroupEntityToModel(group), nil
+func (r *Adapter) SaveGroup(ctx context.Context, group model.PhotoGroup) error {
+	return r.photoRepo.SaveGroup(ctx, mapping.PhotoGroupModelToEntity(&group))
 }
 
 func (r *Adapter) AddPhotoIDsToGroup(ctx context.Context, groupID uuid.UUID, photoIDs []uuid.UUID) error {
@@ -268,4 +264,20 @@ func (r *Adapter) GetGroupByID(ctx context.Context, id uuid.UUID) (*model.PhotoG
 		return nil, err
 	}
 	return mapping.PhotoGroupEntityToModel(group), nil
+}
+
+func (r *Adapter) CreatePhotoPreview(ctx context.Context, preview model.PhotoPreview) error {
+	return r.photoRepo.CreatePhotoPreview(ctx, mapping.PhotoPreviewModelToEntity(&preview))
+}
+
+func (r *Adapter) GetPhotoPreviews(ctx context.Context, photoID uuid.UUID) ([]model.PhotoPreview, error) {
+	previews, err := r.photoRepo.GetPhotoPreviews(ctx, photoID)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]model.PhotoPreview, 0, len(previews))
+	for _, p := range previews {
+		result = append(result, *mapping.PhotoPreviewEntityToModel(&p))
+	}
+	return result, nil
 }

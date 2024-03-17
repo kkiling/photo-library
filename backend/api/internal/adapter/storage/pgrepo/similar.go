@@ -10,15 +10,11 @@ import (
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/entity"
 )
 
-func (r *PhotoRepository) SaveOrUpdatePhotoVector(ctx context.Context, photoVector entity.PhotoVector) error {
+func (r *PhotoRepository) SavePhotoVector(ctx context.Context, photoVector entity.PhotoVector) error {
 	conn := r.getConn(ctx)
 	const query = `
 		INSERT INTO photo_vectors (photo_id, vector, norm)
-		VALUES ($1, $2, $3)
-		ON CONFLICT (photo_id) 
-			DO UPDATE SET 
-				vector = EXCLUDED.vector,
-				norm = EXCLUDED.norm;
+		VALUES ($1, $2, $3);
 	`
 	_, err := conn.Exec(ctx, query, photoVector.PhotoID, photoVector.Vector, photoVector.Norm)
 	if err != nil {
@@ -73,10 +69,7 @@ func (r *PhotoRepository) SaveCoeffSimilarPhoto(ctx context.Context, sim entity.
 	conn := r.getConn(ctx)
 	const query = `
 		INSERT INTO coeffs_similar_photos (photo_id1, photo_id2, coefficient)
-		VALUES ($1, $2, $3)
-		ON CONFLICT (photo_id1, photo_id2) 
-			DO UPDATE SET 
-				coefficient = EXCLUDED.coefficient;
+		VALUES ($1, $2, $3);
 	`
 	_, err := conn.Exec(ctx, query, sim.PhotoID1, sim.PhotoID2, sim.Coefficient)
 	if err != nil {
