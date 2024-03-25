@@ -27,8 +27,8 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type PhotosServiceClient interface {
-	GetPhotoGroups(ctx context.Context, in *GetPhotoGroupsRequest, opts ...grpc.CallOption) (*GetPhotoGroupsResponse, error)
-	GetPhotoGroup(ctx context.Context, in *GetPhotoGroupRequest, opts ...grpc.CallOption) (*GetPhotoGroupResponse, error)
+	GetPhotoGroups(ctx context.Context, in *GetPhotoGroupsRequest, opts ...grpc.CallOption) (*PaginatedPhotoGroups, error)
+	GetPhotoGroup(ctx context.Context, in *GetPhotoGroupRequest, opts ...grpc.CallOption) (*PhotoGroupData, error)
 }
 
 type photosServiceClient struct {
@@ -39,8 +39,8 @@ func NewPhotosServiceClient(cc grpc.ClientConnInterface) PhotosServiceClient {
 	return &photosServiceClient{cc}
 }
 
-func (c *photosServiceClient) GetPhotoGroups(ctx context.Context, in *GetPhotoGroupsRequest, opts ...grpc.CallOption) (*GetPhotoGroupsResponse, error) {
-	out := new(GetPhotoGroupsResponse)
+func (c *photosServiceClient) GetPhotoGroups(ctx context.Context, in *GetPhotoGroupsRequest, opts ...grpc.CallOption) (*PaginatedPhotoGroups, error) {
+	out := new(PaginatedPhotoGroups)
 	err := c.cc.Invoke(ctx, PhotosService_GetPhotoGroups_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -48,8 +48,8 @@ func (c *photosServiceClient) GetPhotoGroups(ctx context.Context, in *GetPhotoGr
 	return out, nil
 }
 
-func (c *photosServiceClient) GetPhotoGroup(ctx context.Context, in *GetPhotoGroupRequest, opts ...grpc.CallOption) (*GetPhotoGroupResponse, error) {
-	out := new(GetPhotoGroupResponse)
+func (c *photosServiceClient) GetPhotoGroup(ctx context.Context, in *GetPhotoGroupRequest, opts ...grpc.CallOption) (*PhotoGroupData, error) {
+	out := new(PhotoGroupData)
 	err := c.cc.Invoke(ctx, PhotosService_GetPhotoGroup_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -61,18 +61,18 @@ func (c *photosServiceClient) GetPhotoGroup(ctx context.Context, in *GetPhotoGro
 // All implementations should embed UnimplementedPhotosServiceServer
 // for forward compatibility
 type PhotosServiceServer interface {
-	GetPhotoGroups(context.Context, *GetPhotoGroupsRequest) (*GetPhotoGroupsResponse, error)
-	GetPhotoGroup(context.Context, *GetPhotoGroupRequest) (*GetPhotoGroupResponse, error)
+	GetPhotoGroups(context.Context, *GetPhotoGroupsRequest) (*PaginatedPhotoGroups, error)
+	GetPhotoGroup(context.Context, *GetPhotoGroupRequest) (*PhotoGroupData, error)
 }
 
 // UnimplementedPhotosServiceServer should be embedded to have forward compatible implementations.
 type UnimplementedPhotosServiceServer struct {
 }
 
-func (UnimplementedPhotosServiceServer) GetPhotoGroups(context.Context, *GetPhotoGroupsRequest) (*GetPhotoGroupsResponse, error) {
+func (UnimplementedPhotosServiceServer) GetPhotoGroups(context.Context, *GetPhotoGroupsRequest) (*PaginatedPhotoGroups, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPhotoGroups not implemented")
 }
-func (UnimplementedPhotosServiceServer) GetPhotoGroup(context.Context, *GetPhotoGroupRequest) (*GetPhotoGroupResponse, error) {
+func (UnimplementedPhotosServiceServer) GetPhotoGroup(context.Context, *GetPhotoGroupRequest) (*PhotoGroupData, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPhotoGroup not implemented")
 }
 

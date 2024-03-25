@@ -67,3 +67,39 @@ func (r *PhotoRepository) GetPhotoPreviews(ctx context.Context, photoID uuid.UUI
 
 	return result, nil
 }
+
+func (r *PhotoRepository) GetPhotoPreviewFileName(ctx context.Context, photoID uuid.UUID, photoSize *int) (string, error) {
+	conn := r.getConn(ctx)
+	var row pgx.Row
+
+	if photoSize == nil {
+		const query = `
+			SELECT file_name
+			FROM photo_previews
+			WHERE photo_id = $1
+			ORDER BY size_pixel DESC 
+			LIMIT 1
+		`
+		row = conn.QueryRow(ctx, query, photoID)
+	} else {
+		query := `
+			SELECT file_name
+			FROM photo_previews
+			WHERE photo_id = $1 and size_pixel >= $2
+			ORDER BY size_pixel 
+			LIMIT 1
+		`
+		row = conn.QueryRow(ctx, query, photoID, photoSize)
+	}
+
+	var fileName string
+	err := row.Scan(&fileName)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", fmt.Errorf("preview not found")
+		}
+		return "", printError(err)
+	}
+
+	return fileName, nil
+}

@@ -12,37 +12,9 @@ type PhotoPreview struct {
 	Size   int
 }
 
-type Photo struct {
-	ID       uuid.UUID
-	Src      string
-	Width    int
-	Height   int
-	Size     int
-	Metadata *model.PhotoMetadata
-	Tags     []Tag
-	Preview  []PhotoPreview
-}
-
-type PhotoGroup struct {
-	ID         uuid.UUID
-	MainPhoto  Photo
-	PhotoCount int
-}
-
-type GetPhotoGroupsRequest struct {
-	Paginator model.Pagination
-}
-
-type GetPhotoGroupsResponse struct {
-	Items      []PhotoGroup
-	TotalItems int
-}
-
 type PhotoContent struct {
-	PhotoBody          []byte
-	Extension          model.PhotoExtension
-	WidthPixelCurrent  int
-	HeightPixelCurrent int
+	PhotoBody []byte
+	Extension model.PhotoExtension
 }
 
 type Tag struct {
@@ -52,8 +24,27 @@ type Tag struct {
 	Color string
 }
 
+type PhotoGroup struct {
+	ID          uuid.UUID
+	Original    PhotoPreview
+	Previews    []PhotoPreview
+	PhotosCount int
+}
+
+type GetPhotoGroupsRequest struct {
+	Paginator model.Pagination
+}
+
+type PaginatedPhotoGroups struct {
+	Items      []PhotoGroup
+	TotalItems int
+}
+
 type PhotoGroupData struct {
-	ID        uuid.UUID
-	MainPhoto Photo
-	Photos    []Photo
+	ID          uuid.UUID
+	Original    PhotoPreview
+	Previews    []PhotoPreview
+	PhotosCount int
+	Metadata    *model.PhotoMetadata
+	Tags        []Tag
 }

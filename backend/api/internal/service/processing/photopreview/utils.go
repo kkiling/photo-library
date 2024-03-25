@@ -117,10 +117,12 @@ func createImagePreview(originalImage image.Image, extension model.PhotoExtensio
 			newWidth = (originalWidth * maxSize) / originalHeight
 		}
 	}
+
 	// Создание нового изображения с новыми размерами
 	targetRect := image.Rect(0, 0, newWidth, newHeight)
 	resizedImg := image.NewRGBA(targetRect)
 	draw.CatmullRom.Scale(resizedImg, targetRect, originalImage, originalImage.Bounds(), draw.Src, nil)
+
 	// Применение ориентации к измененному по размеру изображению
 	resizedAndOrientedImg := applyOrientation(resizedImg, orientation)
 
@@ -137,6 +139,10 @@ func createImagePreview(originalImage image.Image, extension model.PhotoExtensio
 		}
 	default:
 		return imagePreview{}, serviceerr.NotFoundError("unsupported format")
+	}
+
+	if orientation == 6 || orientation == 8 {
+		newWidth, newHeight = newHeight, newWidth
 	}
 
 	return imagePreview{

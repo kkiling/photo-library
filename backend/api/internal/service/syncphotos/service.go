@@ -7,8 +7,8 @@ import (
 	"github.com/kkiling/photo-library/backend/api/internal/service"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
+	"github.com/kkiling/photo-library/backend/api/internal/service/utils"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
-	"path/filepath"
 	"strings"
 	"time"
 )
@@ -39,29 +39,6 @@ func NewService(logger log.Logger, storage Storage, fileStorage FileStore) *Serv
 	}
 }
 
-func (s *Service) getPhotoExtension(path string) *model.PhotoExtension {
-	// Извлекаем расширение файла из пути.
-	ext := strings.ToUpper(filepath.Ext(path))
-	// Удаляем точку из начала расширения.
-	ext = strings.TrimPrefix(ext, ".")
-
-	// Определяем, какому PhotoExtension соответствует извлеченное расширение.
-	switch ext {
-	case string(model.PhotoExtensionJpg), string(model.PhotoExtensionJpeg):
-		photoExt := model.PhotoExtensionJpeg
-		return &photoExt
-	case string(model.PhotoExtensionPng):
-		photoExt := model.PhotoExtensionPng
-		return &photoExt
-	case string(model.PhotoExtensionBmb):
-		photoExt := model.PhotoExtensionBmb
-		return &photoExt
-	default:
-		// Если расширение не соответствует известным типам, возвращаем nil.
-		return nil
-	}
-}
-
 func (s *Service) UploadPhoto(ctx context.Context, form *SyncPhotoRequest) (*SyncPhotoResponse, error) {
 	// Проверяем загружено ли фото
 	findPhoto, err := s.storage.GetPhotoByHash(ctx, form.Hash)
@@ -81,7 +58,7 @@ func (s *Service) UploadPhoto(ctx context.Context, form *SyncPhotoRequest) (*Syn
 	}
 
 	// Проверка, поддерживается ли расширение
-	ex := s.getPhotoExtension(form.Paths[0])
+	ex := utils.GetPhotoExtension(form.Paths[0])
 	if ex == nil {
 		return nil, serviceerr.InvalidInputError("photo extension not found")
 	}

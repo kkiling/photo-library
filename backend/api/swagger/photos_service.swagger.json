@@ -28,7 +28,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/GetPhotoGroupsResponse"
+              "$ref": "#/definitions/PaginatedPhotoGroups"
             }
           },
           "default": {
@@ -67,7 +67,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/GetPhotoGroupResponse"
+              "$ref": "#/definitions/PhotoGroupData"
             }
           },
           "default": {
@@ -114,40 +114,6 @@
         }
       }
     },
-    "GetPhotoGroupResponse": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "main_photo": {
-          "$ref": "#/definitions/Photo"
-        },
-        "photos": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/Photo"
-          }
-        }
-      }
-    },
-    "GetPhotoGroupsResponse": {
-      "type": "object",
-      "properties": {
-        "items": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/PhotoGroup"
-          }
-        },
-        "total_items": {
-          "type": "integer",
-          "format": "int32"
-        }
-      }
-    },
     "Metadata": {
       "type": "object",
       "properties": {
@@ -179,24 +145,61 @@
         }
       }
     },
-    "Photo": {
+    "PaginatedPhotoGroups": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/PhotoGroup"
+          }
+        },
+        "total_items": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "PhotoGroup": {
       "type": "object",
       "properties": {
         "id": {
           "type": "string"
         },
-        "src": {
+        "original": {
+          "$ref": "#/definitions/PhotoPreview"
+        },
+        "previews": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/PhotoPreview"
+          }
+        },
+        "photos_count": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "PhotoGroupData": {
+      "type": "object",
+      "properties": {
+        "id": {
           "type": "string"
         },
-        "width": {
-          "type": "integer",
-          "format": "int32"
+        "original": {
+          "$ref": "#/definitions/PhotoPreview"
         },
-        "height": {
-          "type": "integer",
-          "format": "int32"
+        "previews": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/PhotoPreview"
+          }
         },
-        "size": {
+        "photos_count": {
           "type": "integer",
           "format": "int32"
         },
@@ -209,32 +212,10 @@
             "type": "object",
             "$ref": "#/definitions/v1.Tag"
           }
-        },
-        "previews": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/Preview"
-          }
         }
       }
     },
-    "PhotoGroup": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "main_photo": {
-          "$ref": "#/definitions/Photo"
-        },
-        "photos_count": {
-          "type": "integer",
-          "format": "int32"
-        }
-      }
-    },
-    "Preview": {
+    "PhotoPreview": {
       "type": "object",
       "properties": {
         "src": {

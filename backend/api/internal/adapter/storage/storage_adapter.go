@@ -281,3 +281,7 @@ func (r *Adapter) GetPhotoPreviews(ctx context.Context, photoID uuid.UUID) ([]mo
 	}
 	return result, nil
 }
+
+func (r *Adapter) GetPhotoPreviewFileName(ctx context.Context, photoID uuid.UUID, photoSize *int) (string, error) {
+	return r.photoRepo.GetPhotoPreviewFileName(ctx, photoID, photoSize)
+}

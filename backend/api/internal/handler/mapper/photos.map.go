@@ -15,17 +15,18 @@ func GetPhotoGroupsRequest(request *desc.GetPhotoGroupsRequest) *photos.GetPhoto
 	}
 }
 
-func GetPhotoGroupsResponse(response *photos.GetPhotoGroupsResponse) *desc.GetPhotoGroupsResponse {
+func GetPhotoGroupsResponse(response *photos.PaginatedPhotoGroups) *desc.PaginatedPhotoGroups {
 	items := make([]*desc.PhotoGroup, 0, len(response.Items))
 	for _, group := range response.Items {
 		items = append(items, &desc.PhotoGroup{
 			Id:          group.ID.String(),
-			MainPhoto:   Photo(&group.MainPhoto),
-			PhotosCount: int32(group.PhotoCount),
+			Original:    PhotoPreview(&group.Original),
+			Previews:    PhotoPreviews(group.Previews),
+			PhotosCount: int32(group.PhotosCount),
 		})
 	}
 
-	return &desc.GetPhotoGroupsResponse{
+	return &desc.PaginatedPhotoGroups{
 		Items:      items,
 		TotalItems: int32(response.TotalItems),
 	}
@@ -59,42 +60,35 @@ func Tag(tag *photos.Tag) *desc.Tag {
 	}
 }
 
-func Photo(photo *photos.Photo) *desc.Photo {
-	tags := make([]*desc.Tag, 0, len(photo.Tags))
-	for _, tag := range photo.Tags {
-		tags = append(tags, Tag(&tag))
-	}
-
-	previews := make([]*desc.Photo_Preview, 0, len(photo.Preview))
-	for _, preview := range photo.Preview {
-		previews = append(previews, &desc.Photo_Preview{
-			Src:    preview.Src,
-			Width:  int32(preview.Width),
-			Height: int32(preview.Height),
-			Size:   int32(preview.Size),
-		})
-	}
-
-	return &desc.Photo{
-		Id:       photo.ID.String(),
-		Src:      photo.Src,
-		Width:    int32(photo.Width),
-		Height:   int32(photo.Height),
-		Size:     int32(photo.Size),
-		MetaData: MetaData(photo.Metadata),
-		Tags:     tags,
-		Previews: previews,
+func PhotoPreview(preview *photos.PhotoPreview) *desc.PhotoPreview {
+	return &desc.PhotoPreview{
+		Src:    preview.Src,
+		Width:  int32(preview.Width),
+		Height: int32(preview.Height),
+		Size:   int32(preview.Size),
 	}
 }
 
-func GetPhotoGroupResponse(response *photos.PhotoGroupData) *desc.GetPhotoGroupResponse {
-	photoArray := make([]*desc.Photo, 0, len(response.Photos))
-	for _, photo := range response.Photos {
-		photoArray = append(photoArray, Photo(&photo))
+func PhotoPreviews(preview []photos.PhotoPreview) []*desc.PhotoPreview {
+	previews := make([]*desc.PhotoPreview, 0, len(preview))
+	for _, pr := range preview {
+		previews = append(previews, PhotoPreview(&pr))
 	}
-	return &desc.GetPhotoGroupResponse{
-		Id:        response.ID.String(),
-		MainPhoto: Photo(&response.MainPhoto),
-		Photos:    photoArray,
+	return previews
+}
+
+func GetPhotoGroupResponse(response *photos.PhotoGroupData) *desc.PhotoGroupData {
+	tags := make([]*desc.Tag, 0, len(response.Tags))
+	for _, tag := range response.Tags {
+		tags = append(tags, Tag(&tag))
+	}
+
+	return &desc.PhotoGroupData{
+		Id:          response.ID.String(),
+		Original:    PhotoPreview(&response.Original),
+		Previews:    PhotoPreviews(response.Previews),
+		PhotosCount: int32(response.PhotosCount),
+		MetaData:    MetaData(response.Metadata),
+		Tags:        tags,
 	}
 }

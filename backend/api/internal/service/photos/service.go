@@ -7,6 +7,7 @@ import (
 	"github.com/kkiling/photo-library/backend/api/internal/service"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
+	"github.com/kkiling/photo-library/backend/api/internal/service/utils"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 )
 
@@ -19,6 +20,7 @@ type Storage interface {
 	GetGroupByID(ctx context.Context, id uuid.UUID) (*model.PhotoGroup, error)
 	GetMetaData(ctx context.Context, photoID uuid.UUID) (*model.PhotoMetadata, error)
 	GetPhotoPreviews(ctx context.Context, photoID uuid.UUID) ([]model.PhotoPreview, error)
+	GetPhotoPreviewFileName(ctx context.Context, photoID uuid.UUID, photoSize *int) (string, error)
 	GetExif(ctx context.Context, photoID uuid.UUID) (*model.ExifPhotoData, error)
 }
 type TagPhoto interface {
@@ -65,91 +67,7 @@ func (s *Service) getPreviews(ctx context.Context, photoID uuid.UUID) ([]model.P
 		return nil, serviceerr.NotFoundError("not found previews")
 	}
 
-	// TODO: Костыль с поворотом
-	var orientation = 1
-
-	exif, err := s.storage.GetExif(ctx, photoID)
-	if err != nil {
-		return nil, serviceerr.MakeErr(err, "s.storage.GetExif")
-	}
-
-	if exif != nil && exif.Orientation != nil {
-		orientation = *exif.Orientation
-	}
-
-	if orientation == 6 || orientation == 8 {
-		for index, preview := range previews {
-			preview.WidthPixel, preview.HeightPixel = preview.HeightPixel, preview.WidthPixel
-			previews[index] = preview
-		}
-	}
-
 	return previews, nil
-}
-
-func (s *Service) getPhoto(ctx context.Context, photoID uuid.UUID) (Photo, error) {
-	photo, err := s.storage.GetPhotoById(ctx, photoID)
-	if err != nil {
-		return Photo{}, serviceerr.MakeErr(err, "s.storage.GetPhotoById")
-	}
-
-	if photo == nil {
-		return Photo{}, serviceerr.NotFoundError("photo %s from group not found", photoID.String())
-	}
-
-	metaData, err := s.storage.GetMetaData(ctx, photoID)
-	if err != nil {
-		return Photo{}, serviceerr.MakeErr(err, "s.storage.GetMetaData")
-	}
-
-	tags, err := s.tagService.GetTags(ctx, photoID)
-	if err != nil {
-		return Photo{}, serviceerr.MakeErr(err, "s.tagService.GetTags")
-	}
-
-	tagsWithCategories := make([]Tag, 0, len(tags))
-	for _, tag := range tags {
-		category, err := s.tagService.GetCategoryByID(ctx, tag.CategoryID)
-		if err != nil {
-			return Photo{}, serviceerr.MakeErr(err, "s.tagService.GetCategoryByID")
-		}
-
-		tagsWithCategories = append(tagsWithCategories, Tag{
-			ID:    tag.ID,
-			Name:  tag.Name,
-			Type:  category.Type,
-			Color: category.Color,
-		})
-	}
-
-	// В начале самый маленький, превью всегда есть
-	previews, err := s.getPreviews(ctx, photoID)
-	if err != nil {
-		return Photo{}, serviceerr.MakeErr(err, "s.getPreview")
-	}
-
-	original := previews[len(previews)-1]
-	lenPreviews := len(previews) - 1
-	photoPreviews := make([]PhotoPreview, 0, lenPreviews)
-	for _, preview := range previews[:lenPreviews] {
-		photoPreviews = append(photoPreviews, PhotoPreview{
-			Src:    fmt.Sprintf("%s/%s?size=%d", s.cfg.PhotoServerUrl, photo.FileName, preview.SizePixel),
-			Width:  preview.WidthPixel,
-			Height: preview.HeightPixel,
-			Size:   preview.SizePixel,
-		})
-	}
-
-	return Photo{
-		ID:       photo.ID,
-		Src:      fmt.Sprintf("%s/%s", s.cfg.PhotoServerUrl, photo.FileName),
-		Width:    original.WidthPixel,
-		Height:   original.HeightPixel,
-		Size:     original.SizePixel,
-		Metadata: metaData,
-		Tags:     tagsWithCategories,
-		Preview:  photoPreviews,
-	}, nil
 }
 
 func validateGetPhotoGroups(req *GetPhotoGroupsRequest) error {
@@ -159,8 +77,37 @@ func validateGetPhotoGroups(req *GetPhotoGroupsRequest) error {
 	return nil
 }
 
+func (s *Service) getPhotoPreviews(ctx context.Context, photoID uuid.UUID) ([]PhotoPreview, error) {
+	photo, err := s.storage.GetPhotoById(ctx, photoID)
+	if err != nil {
+		return nil, serviceerr.MakeErr(err, "s.storage.GetPhotoById")
+	}
+
+	if photo == nil {
+		return nil, serviceerr.NotFoundError("photo %s from group not found", photoID.String())
+	}
+
+	// В начале самый маленький, превью всегда есть
+	previews, err := s.getPreviews(ctx, photoID)
+	if err != nil {
+		return nil, serviceerr.MakeErr(err, "s.getPreview")
+	}
+
+	photoPreviews := make([]PhotoPreview, 0, len(previews))
+	for _, preview := range previews {
+		photoPreviews = append(photoPreviews, PhotoPreview{
+			Src:    fmt.Sprintf("%s/%s?size=%d", s.cfg.PhotoServerUrl, photo.FileName, preview.SizePixel),
+			Width:  preview.WidthPixel,
+			Height: preview.HeightPixel,
+			Size:   preview.SizePixel,
+		})
+	}
+
+	return photoPreviews, nil
+}
+
 // GetPhotoGroups получение списка групп фотографий
-func (s *Service) GetPhotoGroups(ctx context.Context, req *GetPhotoGroupsRequest) (*GetPhotoGroupsResponse, error) {
+func (s *Service) GetPhotoGroups(ctx context.Context, req *GetPhotoGroupsRequest) (*PaginatedPhotoGroups, error) {
 	if err := validateGetPhotoGroups(req); err != nil {
 		return nil, serviceerr.InvalidInputErr(err, "validateGetPhotoGroups")
 	}
@@ -172,14 +119,15 @@ func (s *Service) GetPhotoGroups(ctx context.Context, req *GetPhotoGroupsRequest
 
 	items := make([]PhotoGroup, 0, req.Paginator.PerPage)
 	for _, group := range groups {
-		mainPhoto, err := s.getPhoto(ctx, group.MainPhotoID)
+		previews, err := s.getPhotoPreviews(ctx, group.MainPhotoID)
 		if err != nil {
-			return nil, serviceerr.MakeErr(err, "s.getPhoto")
+			return nil, serviceerr.MakeErr(err, "s.storage.GetPhotoById")
 		}
 		photoGroup := PhotoGroup{
-			ID:         group.ID,
-			MainPhoto:  mainPhoto,
-			PhotoCount: len(group.PhotoIDs),
+			ID:          group.ID,
+			Original:    previews[len(previews)-1],
+			Previews:    previews,
+			PhotosCount: len(group.PhotoIDs),
 		}
 		items = append(items, photoGroup)
 	}
@@ -189,47 +137,36 @@ func (s *Service) GetPhotoGroups(ctx context.Context, req *GetPhotoGroupsRequest
 		return nil, serviceerr.MakeErr(err, "s.storage.GetPhotoGroupsCount")
 	}
 
-	return &GetPhotoGroupsResponse{
+	return &PaginatedPhotoGroups{
 		Items:      items,
 		TotalItems: int(totalCount),
 	}, nil
 }
 
 func (s *Service) GetPhotoContent(ctx context.Context, fileName string, previewSize *int) (*PhotoContent, error) {
-	photo, err := s.storage.GetPhotoByFilename(ctx, fileName)
+	photoID, err := uuid.Parse(utils.FileNameWithoutExtSliceNotation(fileName))
+	if err != nil {
+		return nil, serviceerr.InvalidInputError("invalid file name uuid")
+	}
 
+	previewVileName, err := s.storage.GetPhotoPreviewFileName(ctx, photoID, previewSize)
 	if err != nil {
 		return nil, serviceerr.MakeErr(err, "s.storage.GetPhotoByFilename")
 	}
 
-	if photo == nil {
-		return nil, serviceerr.NotFoundError("photo not found")
-	}
-
-	previews, err := s.getPreviews(ctx, photo.ID)
-	if err != nil {
-		return nil, serviceerr.MakeErr(err, "s.getPreview")
-	}
-
-	// В начале самый маленький
-	currPreview := previews[len(previews)-1]
-	if previewSize != nil {
-		for _, preview := range previews {
-			if preview.SizePixel >= *previewSize {
-				currPreview = preview
-				break
-			}
-		}
-	}
-
-	photoBody, err := s.fileStorage.GetFileBody(ctx, currPreview.FileName)
+	photoBody, err := s.fileStorage.GetFileBody(ctx, previewVileName)
 	if err != nil {
 		return nil, serviceerr.MakeErr(err, "s.fileStorage.GetFileBody")
 	}
 
+	ext := utils.GetPhotoExtension(previewVileName)
+	if ext == nil {
+		return nil, serviceerr.InvalidInputError("invalid file extension")
+	}
+
 	return &PhotoContent{
 		PhotoBody: photoBody,
-		Extension: photo.Extension,
+		Extension: *ext,
 	}, nil
 }
 
@@ -243,22 +180,43 @@ func (s *Service) GetPhotoGroup(ctx context.Context, groupID uuid.UUID) (*PhotoG
 		return nil, serviceerr.NotFoundError("group not found")
 	}
 
-	res := PhotoGroupData{
-		ID:        group.ID,
-		MainPhoto: Photo{},
-		Photos:    make([]Photo, 0, len(group.PhotoIDs)),
+	previews, err := s.getPhotoPreviews(ctx, group.MainPhotoID)
+	if err != nil {
+		return nil, serviceerr.MakeErr(err, "s.storage.GetPhotoById")
 	}
 
-	for _, photoID := range group.PhotoIDs {
-		photo, err := s.getPhoto(ctx, photoID)
+	metaData, err := s.storage.GetMetaData(ctx, group.MainPhotoID)
+	if err != nil {
+		return nil, serviceerr.MakeErr(err, "s.storage.GetMetaData")
+	}
+
+	tags, err := s.tagService.GetTags(ctx, group.MainPhotoID)
+	if err != nil {
+		return nil, serviceerr.MakeErr(err, "s.tagService.GetTags")
+	}
+
+	tagsWithCategories := make([]Tag, 0, len(tags))
+	for _, tag := range tags {
+		category, err := s.tagService.GetCategoryByID(ctx, tag.CategoryID)
 		if err != nil {
-			return nil, serviceerr.MakeErr(err, "s.getPhoto")
+			return nil, serviceerr.MakeErr(err, "s.tagService.GetCategoryByID")
 		}
 
-		res.Photos = append(res.Photos, photo)
-		if group.MainPhotoID == photoID {
-			res.MainPhoto = photo
-		}
+		tagsWithCategories = append(tagsWithCategories, Tag{
+			ID:    tag.ID,
+			Name:  tag.Name,
+			Type:  category.Type,
+			Color: category.Color,
+		})
+	}
+
+	res := PhotoGroupData{
+		ID:          group.ID,
+		Original:    previews[len(previews)-1],
+		Previews:    previews,
+		PhotosCount: len(group.PhotoIDs),
+		Metadata:    metaData,
+		Tags:        tagsWithCategories,
 	}
 
 	return &res, nil

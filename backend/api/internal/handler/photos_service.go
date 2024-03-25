@@ -104,6 +104,7 @@ func (p *PhotosServiceServer) registrationServerHandlers(mux *http.ServeMux) {
 		w.Header().Set("Content-Type", contentType)
 		_, err = w.Write(photoContent.PhotoBody)
 		if err != nil {
+			p.logger.Errorf(" w.Write: %v", err)
 			http.Error(w, "w.Write(photoContent.PhotoBody)", http.StatusInternalServerError)
 		}
 	})
@@ -139,12 +140,12 @@ func (p *PhotosServiceServer) Stop() {
 }
 
 type PhotosService interface {
-	GetPhotoGroups(ctx context.Context, req *photos.GetPhotoGroupsRequest) (*photos.GetPhotoGroupsResponse, error)
+	GetPhotoGroups(ctx context.Context, req *photos.GetPhotoGroupsRequest) (*photos.PaginatedPhotoGroups, error)
 	GetPhotoContent(ctx context.Context, fileName string, previewSize *int) (*photos.PhotoContent, error)
 	GetPhotoGroup(ctx context.Context, groupID uuid.UUID) (*photos.PhotoGroupData, error)
 }
 
-func (p *PhotosServiceServer) GetPhotoGroup(ctx context.Context, req *desc.GetPhotoGroupRequest) (*desc.GetPhotoGroupResponse, error) {
+func (p *PhotosServiceServer) GetPhotoGroup(ctx context.Context, req *desc.GetPhotoGroupRequest) (*desc.PhotoGroupData, error) {
 	groupID, err := uuid.ParseBytes([]byte(req.GroupId))
 	if err != nil {
 		return nil, server.ErrInvalidArgument(err)
@@ -158,7 +159,7 @@ func (p *PhotosServiceServer) GetPhotoGroup(ctx context.Context, req *desc.GetPh
 	return mapper.GetPhotoGroupResponse(response), nil
 }
 
-func (p *PhotosServiceServer) GetPhotoGroups(ctx context.Context, request *desc.GetPhotoGroupsRequest) (*desc.GetPhotoGroupsResponse, error) {
+func (p *PhotosServiceServer) GetPhotoGroups(ctx context.Context, request *desc.GetPhotoGroupsRequest) (*desc.PaginatedPhotoGroups, error) {
 	response, err := p.photosService.GetPhotoGroups(ctx, mapper.GetPhotoGroupsRequest(request))
 
 	if err != nil {

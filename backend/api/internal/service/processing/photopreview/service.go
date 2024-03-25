@@ -84,11 +84,19 @@ func (s *Service) Processing(ctx context.Context, photo model.Photo, photoBody [
 		SizePixel:   sizePixel,
 	}
 
+	if orientation == 6 || orientation == 8 {
+		photoPreview.WidthPixel, photoPreview.HeightPixel = photoPreview.HeightPixel, photoPreview.WidthPixel
+	}
+
 	if err := s.storage.CreatePhotoPreview(ctx, photoPreview); err != nil {
 		return false, serviceerr.MakeErr(err, "s.storage.CreatePhotoPreview")
 	}
 
 	for _, maxSize := range s.cfg.Sizes {
+		if maxSize >= sizePixel {
+			break
+		}
+
 		imgPreview, err := createImagePreview(originalImage, photo.Extension, orientation, maxSize)
 		if err != nil {
 			return false, serviceerr.MakeErr(err, "failed to decode image")
@@ -97,7 +105,8 @@ func (s *Service) Processing(ctx context.Context, photo model.Photo, photoBody [
 		previewID := uuid.New()
 
 		// Сохранить файл и получить url
-		fileName := fmt.Sprintf("%s.%s", previewID, strings.ToLower(string(photo.Extension)))
+		fileName := fmt.Sprintf("preview_%d_%s.%s", maxSize, photo.ID, strings.ToLower(string(photo.Extension)))
+
 		if err := s.fileStorage.SaveFileBody(ctx, fileName, imgPreview.photoBody); err != nil {
 			return false, serviceerr.MakeErr(err, "s.fileStorage.SaveFileBody")
 		}
