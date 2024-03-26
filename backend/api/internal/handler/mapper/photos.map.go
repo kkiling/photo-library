@@ -20,8 +20,7 @@ func GetPhotoGroupsResponse(response *photos.PaginatedPhotoGroups) *desc.Paginat
 	for _, group := range response.Items {
 		items = append(items, &desc.PhotoGroup{
 			Id:          group.ID.String(),
-			Original:    PhotoPreview(&group.Original),
-			Previews:    PhotoPreviews(group.Previews),
+			MainPhoto:   PhotoWithPreviews(&group.MainPhoto),
 			PhotosCount: int32(group.PhotosCount),
 		})
 	}
@@ -60,6 +59,24 @@ func Tag(tag *photos.Tag) *desc.Tag {
 	}
 }
 
+func PhotoWithPreviews(photo *photos.PhotoWithPreviews) *desc.PhotoWithPreviews {
+	return &desc.PhotoWithPreviews{
+		Id:       photo.ID.String(),
+		Src:      photo.Src,
+		Width:    int32(photo.Width),
+		Height:   int32(photo.Height),
+		Previews: PhotoPreviews(photo.Previews),
+	}
+}
+
+func PhotosWithPreview(photos []photos.PhotoWithPreviews) []*desc.PhotoWithPreviews {
+	previews := make([]*desc.PhotoWithPreviews, 0, len(photos))
+	for _, pr := range photos {
+		previews = append(previews, PhotoWithPreviews(&pr))
+	}
+	return previews
+}
+
 func PhotoPreview(preview *photos.PhotoPreview) *desc.PhotoPreview {
 	return &desc.PhotoPreview{
 		Src:    preview.Src,
@@ -85,9 +102,9 @@ func GetPhotoGroupResponse(response *photos.PhotoGroupData) *desc.PhotoGroupData
 
 	return &desc.PhotoGroupData{
 		Id:          response.ID.String(),
-		Original:    PhotoPreview(&response.Original),
-		Previews:    PhotoPreviews(response.Previews),
+		MainPhoto:   PhotoWithPreviews(&response.MainPhoto),
 		PhotosCount: int32(response.PhotosCount),
+		Photos:      PhotosWithPreview(response.Photos),
 		MetaData:    MetaData(response.Metadata),
 		Tags:        tags,
 	}

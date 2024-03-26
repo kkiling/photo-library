@@ -167,15 +167,8 @@
         "id": {
           "type": "string"
         },
-        "original": {
-          "$ref": "#/definitions/PhotoPreview"
-        },
-        "previews": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/PhotoPreview"
-          }
+        "main_photo": {
+          "$ref": "#/definitions/PhotoWithPreviews"
         },
         "photos_count": {
           "type": "integer",
@@ -189,19 +182,19 @@
         "id": {
           "type": "string"
         },
-        "original": {
-          "$ref": "#/definitions/PhotoPreview"
-        },
-        "previews": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/PhotoPreview"
-          }
+        "main_photo": {
+          "$ref": "#/definitions/PhotoWithPreviews"
         },
         "photos_count": {
           "type": "integer",
           "format": "int32"
+        },
+        "photos": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/PhotoWithPreviews"
+          }
         },
         "meta_data": {
           "$ref": "#/definitions/Metadata"
@@ -232,6 +225,32 @@
         "size": {
           "type": "integer",
           "format": "int32"
+        }
+      }
+    },
+    "PhotoWithPreviews": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "src": {
+          "type": "string"
+        },
+        "width": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "height": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "previews": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/PhotoPreview"
+          }
         }
       }
     },

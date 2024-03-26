@@ -77,20 +77,24 @@ func validateGetPhotoGroups(req *GetPhotoGroupsRequest) error {
 	return nil
 }
 
-func (s *Service) getPhotoPreviews(ctx context.Context, photoID uuid.UUID) ([]PhotoPreview, error) {
+func (s *Service) getPhotoWithPreviews(ctx context.Context, photoID uuid.UUID) (PhotoWithPreviews, error) {
 	photo, err := s.storage.GetPhotoById(ctx, photoID)
 	if err != nil {
-		return nil, serviceerr.MakeErr(err, "s.storage.GetPhotoById")
+		return PhotoWithPreviews{}, serviceerr.MakeErr(err, "s.storage.GetPhotoById")
 	}
 
 	if photo == nil {
-		return nil, serviceerr.NotFoundError("photo %s from group not found", photoID.String())
+		return PhotoWithPreviews{}, serviceerr.NotFoundError("photo %s from group not found", photoID.String())
 	}
 
 	// В начале самый маленький, превью всегда есть
 	previews, err := s.getPreviews(ctx, photoID)
 	if err != nil {
-		return nil, serviceerr.MakeErr(err, "s.getPreview")
+		return PhotoWithPreviews{}, serviceerr.MakeErr(err, "s.getPreview")
+	}
+
+	if len(previews) == 0 {
+		return PhotoWithPreviews{}, serviceerr.NotFoundError("not found previews for photo %s", photoID.String())
 	}
 
 	photoPreviews := make([]PhotoPreview, 0, len(previews))
@@ -103,7 +107,14 @@ func (s *Service) getPhotoPreviews(ctx context.Context, photoID uuid.UUID) ([]Ph
 		})
 	}
 
-	return photoPreviews, nil
+	last := photoPreviews[len(photoPreviews)-1]
+	return PhotoWithPreviews{
+		ID:       photo.ID,
+		Src:      fmt.Sprintf("%s/%s", s.cfg.PhotoServerUrl, photo.FileName),
+		Width:    last.Width,
+		Height:   last.Height,
+		Previews: photoPreviews,
+	}, nil
 }
 
 // GetPhotoGroups получение списка групп фотографий
@@ -119,14 +130,14 @@ func (s *Service) GetPhotoGroups(ctx context.Context, req *GetPhotoGroupsRequest
 
 	items := make([]PhotoGroup, 0, req.Paginator.PerPage)
 	for _, group := range groups {
-		previews, err := s.getPhotoPreviews(ctx, group.MainPhotoID)
+		photoWithPreviews, err := s.getPhotoWithPreviews(ctx, group.MainPhotoID)
 		if err != nil {
 			return nil, serviceerr.MakeErr(err, "s.storage.GetPhotoById")
 		}
+
 		photoGroup := PhotoGroup{
 			ID:          group.ID,
-			Original:    previews[len(previews)-1],
-			Previews:    previews,
+			MainPhoto:   photoWithPreviews,
 			PhotosCount: len(group.PhotoIDs),
 		}
 		items = append(items, photoGroup)
@@ -180,9 +191,18 @@ func (s *Service) GetPhotoGroup(ctx context.Context, groupID uuid.UUID) (*PhotoG
 		return nil, serviceerr.NotFoundError("group not found")
 	}
 
-	previews, err := s.getPhotoPreviews(ctx, group.MainPhotoID)
+	photoWithPreview, err := s.getPhotoWithPreviews(ctx, group.MainPhotoID)
 	if err != nil {
 		return nil, serviceerr.MakeErr(err, "s.storage.GetPhotoById")
+	}
+
+	photosWithPreview := make([]PhotoWithPreviews, 0, len(group.PhotoIDs))
+	for _, photoID := range group.PhotoIDs {
+		photoPreview, err := s.getPhotoWithPreviews(ctx, photoID)
+		if err != nil {
+			return nil, serviceerr.MakeErr(err, "s.storage.GetPhotoById")
+		}
+		photosWithPreview = append(photosWithPreview, photoPreview)
 	}
 
 	metaData, err := s.storage.GetMetaData(ctx, group.MainPhotoID)
@@ -211,12 +231,14 @@ func (s *Service) GetPhotoGroup(ctx context.Context, groupID uuid.UUID) (*PhotoG
 	}
 
 	res := PhotoGroupData{
-		ID:          group.ID,
-		Original:    previews[len(previews)-1],
-		Previews:    previews,
-		PhotosCount: len(group.PhotoIDs),
-		Metadata:    metaData,
-		Tags:        tagsWithCategories,
+		PhotoGroup: PhotoGroup{
+			ID:          group.MainPhotoID,
+			MainPhoto:   photoWithPreview,
+			PhotosCount: len(group.PhotoIDs),
+		},
+		Photos:   photosWithPreview,
+		Metadata: metaData,
+		Tags:     tagsWithCategories,
 	}
 
 	return &res, nil

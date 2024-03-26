@@ -50,39 +50,31 @@ service PhotosService {
   };
 }
 
-message GetPhotoGroupsRequest {
-  int32 page = 1;
-  int32 per_page = 2;
-}
-
-message PaginatedPhotoGroups {
-  repeated PhotoGroup items = 1;
-  int32 total_items = 2;
-}
-
-message GetPhotoGroupRequest {
-  string group_id = 1;
-}
-
-message PhotoGroupData {
-  string id = 1;
-  PhotoPreview original = 2;
-  repeated PhotoPreview previews = 3;
-  int32 photos_count = 4;
-  Metadata meta_data = 5;
-  repeated Tag tags = 6;
-}
-
-message Geo {
-  double Latitude = 1;
-  double Longitude = 2;
-}
-
 message PhotoPreview {
   string src = 1;
   int32 width = 2;
   int32 height = 3;
   int32 size = 4;
+}
+
+message PhotoWithPreviews {
+  string id = 1;
+  string src = 2;
+  int32 width = 3;
+  int32 height = 4;
+  repeated PhotoPreview previews = 5;
+}
+
+message Tag {
+  string id = 1;
+  string name = 2;
+  string type = 3;
+  string color = 4;
+}
+
+message Geo {
+  double Latitude = 1;
+  double Longitude = 2;
 }
 
 message Metadata {
@@ -95,16 +87,38 @@ message Metadata {
   Geo geo = 7;
 }
 
-message Tag {
-  string id = 1;
-  string name = 2;
-  string type = 3;
-  string color = 4;
-}
-
 message PhotoGroup {
   string id = 1;
-  PhotoPreview original = 2;
-  repeated PhotoPreview previews = 3;
-  int32 photos_count = 4;
+  PhotoWithPreviews main_photo = 2;
+  int32 photos_count = 3;
 }
+
+message PhotoGroupData {
+  string id = 1;
+  PhotoWithPreviews main_photo = 2;
+  int32 photos_count = 3;
+  repeated PhotoWithPreviews photos = 4;
+  Metadata meta_data = 5;
+  repeated Tag tags = 6;
+}
+
+//
+message GetPhotoGroupsRequest {
+  int32 page = 1;
+  int32 per_page = 2;
+}
+
+message PaginatedPhotoGroups {
+  repeated PhotoGroup items = 1;
+  int32 total_items = 2;
+}
+
+//
+message GetPhotoGroupRequest {
+  string group_id = 1;
+}
+
+
+
+
+
