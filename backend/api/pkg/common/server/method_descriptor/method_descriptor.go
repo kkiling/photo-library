@@ -1,4 +1,4 @@
-package method_descriptor
+package methoddescriptor
 
 import (
 	"errors"
@@ -22,9 +22,9 @@ func getName(m Descriptor) (string, error) {
 	return methodNameParts[len(methodNameParts)-1], nil
 }
 
-type MethodDescriptorMap map[string]Descriptor
+type DescriptorsMap map[string]Descriptor
 
-func (m MethodDescriptorMap) GetByFullName(fullName string) (Descriptor, bool) {
+func (m DescriptorsMap) GetByFullName(fullName string) (Descriptor, bool) {
 	methodNameParts := strings.Split(fullName, "/")
 	methodName := methodNameParts[len(methodNameParts)-1]
 	methodDescriptor, ok := m[methodName]
@@ -33,8 +33,8 @@ func (m MethodDescriptorMap) GetByFullName(fullName string) (Descriptor, bool) {
 
 func NewMethodDescriptorMap(
 	methodDescriptors []Descriptor,
-) (MethodDescriptorMap, error) {
-	m := make(MethodDescriptorMap)
+) (DescriptorsMap, error) {
+	m := make(DescriptorsMap)
 	for _, methodDescriptor := range methodDescriptors {
 		methodName, err := getName(methodDescriptor)
 		if err != nil {

@@ -3,39 +3,41 @@ package server
 import (
 	"context"
 	"fmt"
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	httpSwagger "github.com/swaggo/http-swagger"
+	"google.golang.org/grpc/reflection"
 	"net"
 	"net/http"
 	"time"
 
-	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	rn "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/reflection"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-type GatewayRegistrar = func(context.Context, *rn.ServeMux, string, []grpc.DialOption) error
+type HandlerFromEndpoint = func(context.Context, *rn.ServeMux, string, []grpc.DialOption) error
 
-type Descriptor struct {
-	GatewayRegistrar     []GatewayRegistrar
-	OnRegisterGrpcServer func(grpcServer *grpc.Server)
+type HandlerService interface {
+	RegistrationServerHandlers(*http.ServeMux)
+	RegisterServiceHandlerFromEndpoint() HandlerFromEndpoint
+	RegisterServiceServer(*grpc.Server)
 }
 
 type Server struct {
-	cfg           Config
-	logger        log.Logger
-	grpcServer    *grpc.Server
-	gatewayServer *http.Server
-	mux           *rn.ServeMux
-	opts          []grpc.DialOption
-	errors        chan error
+	cfg               Config
+	logger            log.Logger
+	grpcServer        *grpc.Server
+	gatewayServer     *http.Server
+	mux               *rn.ServeMux
+	opts              []grpc.DialOption
+	errors            chan error
+	unaryInterceptors []grpc.UnaryServerInterceptor
 }
 
-func NewServer(logger log.Logger, cfg Config, interceptor ...grpc.UnaryServerInterceptor) *Server {
+func NewServer(logger log.Logger, cfg Config) *Server {
 	muxOption := rn.WithMarshalerOption(rn.MIMEWildcard, &rn.JSONPb{
 		MarshalOptions: protojson.MarshalOptions{
 			UseProtoNames:   true,
@@ -44,19 +46,12 @@ func NewServer(logger log.Logger, cfg Config, interceptor ...grpc.UnaryServerInt
 		UnmarshalOptions: protojson.UnmarshalOptions{},
 	})
 
-	//r := http.NewServeMux()
-	// r.Handle("/app.swagger.json", http.FileServer(http.Dir(".")))
-
 	return &Server{
-		logger: logger,
-		grpcServer: grpc.NewServer(
-			grpc.MaxRecvMsgSize(cfg.MaxReceiveMessageLength),
-			grpc.MaxSendMsgSize(cfg.MaxSendMessageLength),
-			grpc.ChainUnaryInterceptor(interceptor...),
-			grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
-			grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
-		),
-		mux: rn.NewServeMux(muxOption),
+		cfg:           cfg,
+		logger:        logger,
+		grpcServer:    nil,
+		gatewayServer: nil,
+		mux:           rn.NewServeMux(muxOption),
 		opts: []grpc.DialOption{
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
 			grpc.WithDefaultCallOptions(
@@ -64,40 +59,42 @@ func NewServer(logger log.Logger, cfg Config, interceptor ...grpc.UnaryServerInt
 				grpc.MaxCallSendMsgSize(cfg.MaxSendMessageLength),
 			),
 		},
-		cfg:    cfg,
-		errors: make(chan error, 1),
+		errors:            make(chan error, 1),
+		unaryInterceptors: nil,
 	}
 }
 
-func (s *Server) Register(ctx context.Context, descriptor Descriptor) error {
-	// Регистрация grpc сервера
-	if descriptor.OnRegisterGrpcServer == nil {
-		return fmt.Errorf("OnRegisterGrpcServer is requered")
-	}
+func (s *Server) WitUnaryServerInterceptor(interceptors ...grpc.UnaryServerInterceptor) {
+	s.unaryInterceptors = interceptors
+}
 
-	descriptor.OnRegisterGrpcServer(s.grpcServer)
+func (s *Server) Start(ctx context.Context, swaggerName string, impl ...HandlerService) error {
+	s.grpcServer = grpc.NewServer(
+		grpc.MaxRecvMsgSize(s.cfg.MaxReceiveMessageLength),
+		grpc.MaxSendMsgSize(s.cfg.MaxSendMessageLength),
+		// Регистрация интерсепторов
+		grpc.ChainUnaryInterceptor(s.unaryInterceptors...),
+		grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
+		grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
+	)
 
-	// Регистрация rest api gateway
-	if descriptor.GatewayRegistrar != nil {
-		host := fmt.Sprintf("%s:%d", s.cfg.Host, s.cfg.GrpcPort)
-		for _, registrar := range descriptor.GatewayRegistrar {
-			if err := registrar(ctx, s.mux, host, s.opts); err != nil {
-				return fmt.Errorf("failed to register HTTP server: %v", err)
-			}
+	host := fmt.Sprintf("%s:%d", s.cfg.Host, s.cfg.GrpcPort)
+
+	for _, service := range impl {
+		// Регистрация grpc методов
+		service.RegisterServiceServer(s.grpcServer)
+		// Регистрация rest api gateway
+		if err := service.RegisterServiceHandlerFromEndpoint()(ctx, s.mux, host, s.opts); err != nil {
+			return fmt.Errorf("failed to register HTTP server: %v", err)
 		}
 	}
 
 	// После инициализации сервера:
 	grpc_prometheus.Register(s.grpcServer)
-
 	// Нужно что бы сервер сам отдавал описание методов
 	// например для postman
 	reflection.Register(s.grpcServer)
 
-	return nil
-}
-
-func (s *Server) Start(name string, customHandler func(mux *http.ServeMux)) error {
 	// Запуск grpc сервера
 	go func(logger log.Logger) {
 		netAddress := fmt.Sprintf("%s:%d", s.cfg.Host, s.cfg.GrpcPort)
@@ -116,10 +113,12 @@ func (s *Server) Start(name string, customHandler func(mux *http.ServeMux)) erro
 		netAddress := fmt.Sprintf("%s:%d", s.cfg.Host, s.cfg.HttpPort)
 
 		httpMux := http.NewServeMux()
-		customHandler(httpMux)
+		for _, service := range impl {
+			service.RegistrationServerHandlers(httpMux)
+		}
 
 		// OpenApi спецификация апи
-		swagger := fmt.Sprintf("/%s.swagger.json", name)
+		swagger := fmt.Sprintf("/%s.swagger.json", swaggerName)
 
 		httpMux.Handle(swagger, http.FileServer(http.Dir("./swagger")))
 		// Swagger в браузере
@@ -138,6 +137,7 @@ func (s *Server) Start(name string, customHandler func(mux *http.ServeMux)) erro
 
 		logger.Infof("start gateway at %s", netAddress)
 		s.errors <- s.gatewayServer.ListenAndServe()
+
 	}(s.logger.Named("http_server"))
 
 	return <-s.errors

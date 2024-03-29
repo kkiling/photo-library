@@ -10,6 +10,9 @@ import (
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage"
 	pgrepo2 "github.com/kkiling/photo-library/backend/api/internal/adapter/storage/pgrepo"
 	"github.com/kkiling/photo-library/backend/api/internal/handler"
+	photosservice "github.com/kkiling/photo-library/backend/api/internal/handler/photos_service"
+	syncphotosservice "github.com/kkiling/photo-library/backend/api/internal/handler/sync_photos_service"
+	tagsservice "github.com/kkiling/photo-library/backend/api/internal/handler/tags_service"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/internal/service/photos"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing"
@@ -38,8 +41,8 @@ type App struct {
 	fsStore        *fsstore.Store
 	photoML        *photoml.Service
 	// handler
-	syncPhotoServer *handler.SyncPhotosServiceServer
-	photosServer    *handler.PhotosServiceServer
+	syncPhotosServer    *handler.CustomServer
+	photosLibraryServer *handler.CustomServer
 	// service
 	similarPhotos *similarphotos.Service
 	syncPhoto     *syncphotos.Service
@@ -161,16 +164,6 @@ func (a *App) Create(ctx context.Context) error {
 		a.tagPhoto,
 		a.storageAdapter,
 	)
-	a.syncPhotoServer = handler.NewSyncPhotosServiceServer(
-		a.logger.Named("sync_photo_service_photo"),
-		a.syncPhoto,
-		serverCfg,
-	)
-	a.photosServer = handler.NewPhotosServiceServer(
-		a.logger.Named("sync_photo_service_photo"),
-		a.photos,
-		serverCfg,
-	)
 	a.vectorPhoto = vectorphoto.NewService(
 		a.logger.Named("vector_photo"),
 		a.storageAdapter,
@@ -210,23 +203,44 @@ func (a *App) Create(ctx context.Context) error {
 		},
 	)
 
+	a.syncPhotosServer = handler.NewCustomServer(
+		a.logger.Named("sync_photos_server"),
+		serverCfg,
+		syncphotosservice.NewHandlerSyncPhotosService(
+			a.logger.Named("sync_photo_service_photo"),
+			a.syncPhoto,
+		),
+	)
+
+	a.photosLibraryServer = handler.NewCustomServer(
+		a.logger.Named("photos_library_server"),
+		serverCfg,
+		photosservice.NewHandlerPhotosService(
+			a.logger.Named("photos_service_handler"),
+			a.photos,
+		),
+		tagsservice.NewHandlerTagsService(
+			a.logger.Named("tags_service_handler"),
+		),
+	)
+
 	return nil
 }
 
 func (a *App) StartSyncPhotosServer(ctx context.Context) error {
-	return a.syncPhotoServer.Start(ctx)
+	return a.syncPhotosServer.Start(ctx, syncPhotosSwaggerName)
 }
 
 func (a *App) StopSyncPhotosServer() {
-	a.syncPhotoServer.Stop()
+	a.syncPhotosServer.Stop()
 }
 
-func (a *App) StartPhotosServer(ctx context.Context) error {
-	return a.photosServer.Start(ctx)
+func (a *App) StartPhotosLibraryServer(ctx context.Context) error {
+	return a.photosLibraryServer.Start(ctx, photoLibrarySwaggerName)
 }
 
-func (a *App) StopPhotosServer() {
-	a.photosServer.Stop()
+func (a *App) StopPhotosLibraryServer() {
+	a.photosLibraryServer.Stop()
 }
 
 func (a *App) GetProcessingPhotos() *processing.Service {

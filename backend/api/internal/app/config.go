@@ -15,6 +15,12 @@ import (
 )
 
 const (
+	photoLibrarySwaggerName = "photo_library"
+	syncPhotosSwaggerName   = "sync_photos"
+)
+
+// Config
+const (
 	ServerConfigName     = "server"
 	PgConnectionName     = "pg_db"
 	FsStoreName          = "fs_store"

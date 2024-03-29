@@ -292,7 +292,7 @@
           "type": "array",
           "items": {
             "type": "object",
-            "$ref": "#/definitions/v1.Tag"
+            "$ref": "#/definitions/PhotoTag"
           }
         }
       }
@@ -314,6 +314,23 @@
         "size": {
           "type": "integer",
           "format": "int32"
+        }
+      }
+    },
+    "PhotoTag": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "color": {
+          "type": "string"
         }
       }
     },
@@ -367,23 +384,6 @@
             "type": "object",
             "$ref": "#/definitions/Any"
           }
-        }
-      }
-    },
-    "v1.Tag": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "type": {
-          "type": "string"
-        },
-        "color": {
-          "type": "string"
         }
       }
     }

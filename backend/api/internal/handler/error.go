@@ -19,7 +19,7 @@ import (
 	return res
 }*/
 
-func handleError(err2 error, description any) error {
+func HandleError(err2 error, description any) error {
 	newErr := fmt.Errorf("%s: %w", description, err2)
 
 	/*info := pbv1.ErrorInfo{

@@ -50,8 +50,8 @@ func MetaData(metadata *model.PhotoMetadata) *desc.Metadata {
 	}
 }
 
-func Tag(tag *photos.Tag) *desc.Tag {
-	return &desc.Tag{
+func Tag(tag *photos.Tag) *desc.PhotoTag {
+	return &desc.PhotoTag{
 		Id:    tag.ID.String(),
 		Name:  tag.Name,
 		Type:  tag.Type,
@@ -95,7 +95,7 @@ func PhotoPreviews(preview []photos.PhotoPreview) []*desc.PhotoPreview {
 }
 
 func GetPhotoGroupResponse(response *photos.PhotoGroupData) *desc.PhotoGroupData {
-	tags := make([]*desc.Tag, 0, len(response.Tags))
+	tags := make([]*desc.PhotoTag, 0, len(response.Tags))
 	for _, tag := range response.Tags {
 		tags = append(tags, Tag(&tag))
 	}

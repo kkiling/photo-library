@@ -11,26 +11,38 @@ import (
 	"google.golang.org/grpc"
 )
 
-func getDescriptor(descriptors method_descriptor.MethodDescriptorMap, fullName string) *customDescriptor {
+type CustomDescriptor struct {
+	method interface{}
+}
+
+func NewCustomDescriptor(method interface{}) *CustomDescriptor {
+	return &CustomDescriptor{
+		method: method,
+	}
+}
+
+func (c *CustomDescriptor) Method() interface{} {
+	return c.method
+}
+
+func getCustomDescriptor(descriptors methoddescriptor.DescriptorsMap, fullName string) *CustomDescriptor {
 	ds, ok := descriptors.GetByFullName(fullName)
 	if !ok {
 		return nil
 	}
 
-	if result, ok := ds.(*customDescriptor); !ok {
+	if result, ok := ds.(*CustomDescriptor); !ok {
 		panic("cannot convert method descriptor to customDescriptor")
 	} else {
 		return result
 	}
 }
 
-func NewAuthInterceptor(logger log.Logger, descriptors method_descriptor.MethodDescriptorMap) grpc.UnaryServerInterceptor {
+func NewAuthInterceptor(logger log.Logger, descriptors methoddescriptor.DescriptorsMap) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		// logger = logger.WithCtx(ctx, "middleware", "NewAuthInterceptor")
-
-		ds := getDescriptor(descriptors, info.FullMethod)
+		ds := getCustomDescriptor(descriptors, info.FullMethod)
 		if ds == nil {
-			return nil, server.ErrUnauthenticated(method_descriptor.ErrMethodDescriptorNotFound)
+			return nil, server.ErrUnauthenticated(methoddescriptor.ErrMethodDescriptorNotFound)
 		}
 
 		// TODO: логика авторизации
