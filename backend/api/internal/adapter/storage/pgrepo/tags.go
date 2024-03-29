@@ -6,10 +6,9 @@ import (
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/entity"
-
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/entity"
 )
 
 func (r *PhotoRepository) GetTagCategory(ctx context.Context, categoryID uuid.UUID) (*entity.TagCategory, error) {

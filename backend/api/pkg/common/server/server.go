@@ -8,14 +8,13 @@ import (
 	"time"
 
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
-	httpSwagger "github.com/swaggo/http-swagger"
-	"google.golang.org/grpc/reflection"
-
 	rn "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	httpSwagger "github.com/swaggo/http-swagger"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/reflection"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 

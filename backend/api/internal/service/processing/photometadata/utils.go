@@ -12,9 +12,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
-
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
+	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
 )
 
 func getImageDetails(photoBody []byte) (width int, height int, err error) {

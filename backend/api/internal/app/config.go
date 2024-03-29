@@ -3,15 +3,14 @@ package app
 import (
 	"fmt"
 
+	"github.com/kkiling/photo-library/backend/api/internal/adapter/fsstore"
+	"github.com/kkiling/photo-library/backend/api/internal/adapter/photoml"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/pgrepo"
 	"github.com/kkiling/photo-library/backend/api/internal/service/photos"
+	"github.com/kkiling/photo-library/backend/api/internal/service/processing"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing/photogroup"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing/photopreview"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing/similarphotos"
-
-	"github.com/kkiling/photo-library/backend/api/internal/adapter/fsstore"
-	"github.com/kkiling/photo-library/backend/api/internal/adapter/photoml"
-	"github.com/kkiling/photo-library/backend/api/internal/service/processing"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/server"
 )
 

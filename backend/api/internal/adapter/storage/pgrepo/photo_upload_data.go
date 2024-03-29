@@ -4,10 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/entity"
-
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/entity"
 )
 
 func (r *PhotoRepository) SavePhotoUploadData(ctx context.Context, data entity.PhotoUploadData) error {
