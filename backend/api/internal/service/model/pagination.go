@@ -1,7 +1,6 @@
 package model
 
 import (
-	"errors"
 	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
@@ -44,19 +43,11 @@ func (g *Pagination) Validate() error {
 	validate := validator.New()
 
 	if err := validate.Var(g.Page, fmt.Sprintf("gte=%d,lte=%d", 0, PageMax)); err != nil {
-		var validationErrors validator.ValidationErrors
-		if errors.As(err, &validationErrors) {
-			return serviceerr.MakeErr(validationErrors, "invalid page")
-		}
-		return serviceerr.MakeErr(validationErrors, "invalid page")
+		return serviceerr.MakeErr(err, "invalid page")
 	}
 
 	if err := validate.Var(g.PerPage, fmt.Sprintf("gte=%d,lte=%d", 1, PerPageMax)); err != nil {
-		var validationErrors validator.ValidationErrors
-		if errors.As(err, &validationErrors) {
-			return serviceerr.MakeErr(validationErrors, "invalid perPage")
-		}
-		return serviceerr.MakeErr(validationErrors, "invalid perPage")
+		return serviceerr.MakeErr(err, "invalid perPage")
 	}
 
 	return nil

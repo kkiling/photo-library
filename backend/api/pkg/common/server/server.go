@@ -121,6 +121,7 @@ func (s *Server) Start(ctx context.Context, swaggerName string, impl ...HandlerS
 		swagger := fmt.Sprintf("/%s.swagger.json", swaggerName)
 
 		httpMux.Handle(swagger, http.FileServer(http.Dir("./swagger")))
+
 		// Swagger в браузере
 		httpMux.Handle("/swagger/", httpSwagger.Handler(
 			httpSwagger.URL(swagger),

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
-	"go.uber.org/multierr"
 	"image"
 	_ "image/gif"
 	_ "image/jpeg"
@@ -22,7 +21,7 @@ func getImageDetails(photoBody []byte) (width int, height int, err error) {
 	// Получение размера изображения в пикселях
 	img, _, err := image.DecodeConfig(reader)
 	if err != nil {
-		return 0, 0, multierr.Append(serviceerr.MakeErr(err, "image.DecodeConfig"), serviceerr.ErrPhotoIsNotValid)
+		return 0, 0, serviceerr.InvalidInputErr(err, "image.DecodeConfig")
 	}
 
 	return img.Width, img.Height, nil

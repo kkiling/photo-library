@@ -61,7 +61,7 @@ func (s *Service) getDateTimeFromPaths(ctx context.Context, photoID uuid.UUID) (
 	}
 
 	if uploadData == nil {
-		return nil, serviceerr.NotFoundError("not found upload data for photo: %s", photoID)
+		return nil, serviceerr.NotFoundf("not found upload data for photo: %s", photoID)
 	}
 
 	for _, path := range uploadData.Paths {

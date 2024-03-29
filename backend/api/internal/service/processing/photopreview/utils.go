@@ -138,7 +138,7 @@ func createImagePreview(originalImage image.Image, extension model.PhotoExtensio
 			return imagePreview{}, serviceerr.MakeErr(err, "failed to encode png")
 		}
 	default:
-		return imagePreview{}, serviceerr.NotFoundError("unsupported format")
+		return imagePreview{}, serviceerr.NotFoundf("unsupported format")
 	}
 
 	if orientation == 6 || orientation == 8 {

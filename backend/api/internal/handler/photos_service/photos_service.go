@@ -2,7 +2,6 @@ package photosservice
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/kkiling/photo-library/backend/api/internal/handler"
@@ -13,6 +12,7 @@ import (
 	desc "github.com/kkiling/photo-library/backend/api/pkg/common/gen/proto/v1"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/server"
+	methoddescriptor "github.com/kkiling/photo-library/backend/api/pkg/common/server/method_descriptor"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -81,7 +81,7 @@ func (p *HandlerPhotosService) GetPhotoContent(w http.ResponseWriter, r *http.Re
 
 	photoContent, err := p.photosService.GetPhotoContent(r.Context(), fileName, previewSize)
 	if err != nil {
-		if errors.Is(err, serviceerr.ErrNotFound) {
+		if serviceerr.IsNotFound(err) {
 			http.NotFound(w, r)
 			return
 		}

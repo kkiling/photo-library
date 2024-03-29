@@ -64,7 +64,7 @@ func (s *Service) getPreviews(ctx context.Context, photoID uuid.UUID) ([]model.P
 	}
 
 	if len(previews) == 0 {
-		return nil, serviceerr.NotFoundError("not found previews")
+		return nil, serviceerr.NotFoundf("not found previews")
 	}
 
 	return previews, nil
@@ -84,7 +84,7 @@ func (s *Service) getPhotoWithPreviews(ctx context.Context, photoID uuid.UUID) (
 	}
 
 	if photo == nil {
-		return PhotoWithPreviews{}, serviceerr.NotFoundError("photo %s from group not found", photoID.String())
+		return PhotoWithPreviews{}, serviceerr.NotFoundf("photo %s from group not found", photoID.String())
 	}
 
 	// В начале самый маленький, превью всегда есть
@@ -94,7 +94,7 @@ func (s *Service) getPhotoWithPreviews(ctx context.Context, photoID uuid.UUID) (
 	}
 
 	if len(previews) == 0 {
-		return PhotoWithPreviews{}, serviceerr.NotFoundError("not found previews for photo %s", photoID.String())
+		return PhotoWithPreviews{}, serviceerr.NotFoundf("not found previews for photo %s", photoID.String())
 	}
 
 	photoPreviews := make([]PhotoPreview, 0, len(previews))
@@ -157,7 +157,7 @@ func (s *Service) GetPhotoGroups(ctx context.Context, req *GetPhotoGroupsRequest
 func (s *Service) GetPhotoContent(ctx context.Context, fileName string, previewSize *int) (*PhotoContent, error) {
 	photoID, err := uuid.Parse(utils.FileNameWithoutExtSliceNotation(fileName))
 	if err != nil {
-		return nil, serviceerr.InvalidInputError("invalid file name uuid")
+		return nil, serviceerr.InvalidInputf("invalid file name uuid")
 	}
 
 	previewVileName, err := s.storage.GetPhotoPreviewFileName(ctx, photoID, previewSize)
@@ -172,7 +172,7 @@ func (s *Service) GetPhotoContent(ctx context.Context, fileName string, previewS
 
 	ext := utils.GetPhotoExtension(previewVileName)
 	if ext == nil {
-		return nil, serviceerr.InvalidInputError("invalid file extension")
+		return nil, serviceerr.InvalidInputf("invalid file extension")
 	}
 
 	return &PhotoContent{
@@ -188,7 +188,7 @@ func (s *Service) GetPhotoGroup(ctx context.Context, groupID uuid.UUID) (*PhotoG
 	}
 
 	if group == nil {
-		return nil, serviceerr.NotFoundError("group not found")
+		return nil, serviceerr.NotFoundf("group not found")
 	}
 
 	photoWithPreview, err := s.getPhotoWithPreviews(ctx, group.MainPhotoID)

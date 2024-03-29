@@ -107,7 +107,7 @@ func (s *Service) Processing(ctx context.Context, photo model.Photo, _ []byte) (
 	}
 
 	if uploadData == nil {
-		return false, serviceerr.NotFoundError("upload data not found")
+		return false, serviceerr.NotFoundf("upload data not found")
 	}
 
 	// Теги По каталогу По каталогу КАТАЛОГ

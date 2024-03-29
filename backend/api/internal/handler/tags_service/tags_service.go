@@ -3,6 +3,7 @@ package tagsservice
 import (
 	"context"
 	"github.com/kkiling/photo-library/backend/api/internal/handler"
+	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
 	desc "github.com/kkiling/photo-library/backend/api/pkg/common/gen/proto/v1"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/server"
@@ -23,10 +24,12 @@ func NewHandlerTagsService(logger log.Logger) *HandlerTagsService {
 }
 
 func (p *HandlerTagsService) GetTagsCategory(ctx context.Context, request *desc.GetTagsCategoryRequest) (*desc.GetTagsCategoryResponse, error) {
+	notFoundErr := serviceerr.NotFoundf("group not found")
+
 	return &desc.GetTagsCategoryResponse{
 		Page:    request.Page,
 		PerPage: request.PerPage,
-	}, nil
+	}, handler.HandleError(notFoundErr, "GetTagsCategory")
 }
 
 func (p *HandlerTagsService) RegistrationServerHandlers(mux *http.ServeMux) {

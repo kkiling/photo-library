@@ -54,13 +54,13 @@ func (s *Service) UploadPhoto(ctx context.Context, form *SyncPhotoRequest) (*Syn
 	}
 
 	if len(form.Paths) == 0 {
-		return nil, serviceerr.InvalidInputError("paths must not be empty")
+		return nil, serviceerr.InvalidInputf("paths must not be empty")
 	}
 
 	// Проверка, поддерживается ли расширение
 	ex := utils.GetPhotoExtension(form.Paths[0])
 	if ex == nil {
-		return nil, serviceerr.InvalidInputError("photo extension not found")
+		return nil, serviceerr.InvalidInputf("photo extension not found")
 	}
 
 	photoID := uuid.New()

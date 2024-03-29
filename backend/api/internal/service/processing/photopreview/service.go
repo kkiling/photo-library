@@ -9,7 +9,6 @@ import (
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
-	"go.uber.org/multierr"
 	"image"
 	"strings"
 )
@@ -67,7 +66,7 @@ func (s *Service) Processing(ctx context.Context, photo model.Photo, photoBody [
 	reader := bytes.NewReader(photoBody)
 	originalImage, _, err := image.Decode(reader)
 	if err != nil {
-		return false, multierr.Append(serviceerr.MakeErr(err, "image.Decode"), serviceerr.ErrPhotoIsNotValid)
+		return false, fmt.Errorf("image.Decode: %w, (%w)", err, serviceerr.ErrPhotoIsNotValid)
 	}
 
 	sizePixel := originalImage.Bounds().Dx()

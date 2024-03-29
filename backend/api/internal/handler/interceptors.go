@@ -48,6 +48,13 @@ func NewAuthInterceptor(logger log.Logger, descriptors methoddescriptor.Descript
 		// TODO: логика авторизации
 		// logger.Infof("auth method: %s", info.FullMethod)
 
+		/*val := metautils.ExtractIncoming(ctx).Get("authorization")
+		if val == "" {
+			return "", status.Errorf(codes.Unauthenticated, "Request unauthenticated with "+"bearer")
+		}
+
+		logger.Infof("auth method: %s, authorization: %s", info.FullMethod, val)*/
+
 		return handler(ctx, req)
 	}
 }

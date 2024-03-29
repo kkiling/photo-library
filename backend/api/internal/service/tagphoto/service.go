@@ -75,7 +75,7 @@ func (s *Service) CreateCategory(ctx context.Context, typeCategory, color string
 	if findCategory, err := s.storage.GetTagCategoryByType(ctx, typeCategory); err != nil {
 		return model.TagCategory{}, serviceerr.MakeErr(err, "storage.GetTagCategoryByName")
 	} else if findCategory != nil {
-		return model.TagCategory{}, serviceerr.ConflictError("category already exist")
+		return model.TagCategory{}, serviceerr.Conflictf("category already exist")
 	}
 
 	newCategory := model.TagCategory{
@@ -126,12 +126,7 @@ func validateAddPhotoTag(name string) error {
 
 	// Валидация имени
 	if err := validate.Var(name, fmt.Sprintf("min=%d,max=%d", TagNameMin, TagNameMax)); err != nil {
-		var validationErrors validator.ValidationErrors
-		if errors.As(err, &validationErrors) {
-			return serviceerr.MakeErr(validationErrors, "invalid name")
-		}
-
-		return serviceerr.MakeErr(validationErrors, "invalid name")
+		return serviceerr.MakeErr(err, "invalid name")
 	}
 
 	return nil
@@ -140,13 +135,13 @@ func validateAddPhotoTag(name string) error {
 // AddPhotoTag добавляет тег для фотографии
 func (s *Service) AddPhotoTag(ctx context.Context, photoID, categoryID uuid.UUID, name string) (model.Tag, error) {
 	if err := validateAddPhotoTag(name); err != nil {
-		return model.Tag{}, serviceerr.InvalidInputError("validateAddPhotoTag", err)
+		return model.Tag{}, serviceerr.InvalidInputErr(err, "validateAddPhotoTag")
 	}
 
 	if findCategory, err := s.storage.GetTagCategory(ctx, categoryID); err != nil {
 		return model.Tag{}, serviceerr.MakeErr(err, "storage.GetTypeCategory")
 	} else if findCategory == nil {
-		return model.Tag{}, serviceerr.NotFoundError("category not exist")
+		return model.Tag{}, serviceerr.NotFoundf("category not exist")
 	}
 
 	if findTag, err := s.storage.GetTagByName(ctx, photoID, name); err != nil {

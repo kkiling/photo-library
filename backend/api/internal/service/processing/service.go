@@ -63,11 +63,12 @@ func (s *Service) Init(ctx context.Context) error {
 	for _, nextStatus := range model.PhotoProcessingStatuses {
 		processor, ok := s.photoProcessors[nextStatus]
 		if !ok {
-			return serviceerr.NotFoundError("not found processing service for photo status: %s", string(nextStatus))
+			return serviceerr.NotFoundf("not found processing service for photo status: %s", string(nextStatus))
 		}
 
 		if err := processor.Init(ctx); err != nil {
-			return serviceerr.MakeErr(fmt.Errorf("status %s: %w", nextStatus, err), "processor.Init")
+			err = fmt.Errorf("status %s: %w", nextStatus, err)
+			return serviceerr.MakeErr(err, "processor.Init")
 		}
 	}
 
@@ -78,7 +79,7 @@ func (s *Service) processingPhoto(ctx context.Context, photoID uuid.UUID) error 
 	// TODO: Тут нужно ставить лок на обработку фотографии
 	photo, err := s.storage.GetPhotoById(ctx, photoID)
 	if err != nil {
-		return serviceerr.NotFoundError("photo not found")
+		return serviceerr.NotFoundf("photo not found")
 	}
 
 	actualPhotoProcessingStatuses, err := s.storage.GetPhotoProcessingStatuses(ctx, photoID)
@@ -95,7 +96,7 @@ func (s *Service) processingPhoto(ctx context.Context, photoID uuid.UUID) error 
 
 		processor, ok := s.photoProcessors[nextStatus]
 		if !ok {
-			return serviceerr.NotFoundError("not found processing service for photo status: %s", string(nextStatus))
+			return serviceerr.NotFoundf("not found processing service for photo status: %s", string(nextStatus))
 		}
 
 		// Ленивая загрузка фото, если нужно
@@ -108,11 +109,13 @@ func (s *Service) processingPhoto(ctx context.Context, photoID uuid.UUID) error 
 
 		success, err := processor.Processing(ctx, *photo, photoBody)
 		if err != nil {
-			return serviceerr.MakeErr(fmt.Errorf("status %s: %w", nextStatus, err), "processor.Processing")
+			err = fmt.Errorf("status %s: %w", nextStatus, err)
+			return serviceerr.MakeErr(err, "processor.Processing")
 		}
 
 		if err := s.storage.AddPhotosProcessingStatus(ctx, photo.ID, nextStatus, success); err != nil {
-			return serviceerr.MakeErr(fmt.Errorf("status %s: %w", nextStatus, err), "s.storage.UpdatePhotosProcessingStatus")
+			err = fmt.Errorf("status %s: %w", nextStatus, err)
+			return serviceerr.MakeErr(err, "s.storage.UpdatePhotosProcessingStatus")
 		}
 	}
 

@@ -3,12 +3,11 @@ package vectorphoto
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/photoml"
-	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
-	"go.uber.org/multierr"
-
 	"github.com/kkiling/photo-library/backend/api/internal/service"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
+	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 	"gonum.org/v1/gonum/floats"
 )
@@ -49,7 +48,7 @@ func (s *Service) Processing(ctx context.Context, photo model.Photo, photoBody [
 	vector, err := s.photoML.GetImageVector(ctx, photoBody)
 	if err != nil {
 		if errors.Is(err, photoml.ErrInternalServerError) {
-			return false, multierr.Append(err, serviceerr.ErrPhotoIsNotValid)
+			return false, fmt.Errorf("s.photoML.GetImageVector: %w (%w)", err, serviceerr.ErrPhotoIsNotValid)
 		}
 		return false, serviceerr.MakeErr(err, "photoML.GetImageVector")
 	}
