@@ -3,6 +3,10 @@ package photosservice
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"path/filepath"
+	"strconv"
+
 	"github.com/google/uuid"
 	"github.com/kkiling/photo-library/backend/api/internal/handler"
 	"github.com/kkiling/photo-library/backend/api/internal/handler/mapper"
@@ -16,9 +20,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/emptypb"
-	"net/http"
-	"path/filepath"
-	"strconv"
 )
 
 type PhotosService interface {

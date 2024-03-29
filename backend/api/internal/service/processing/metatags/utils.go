@@ -1,8 +1,9 @@
 package metatags
 
 import (
-	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"math"
+
+	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 )
 
 const earthRadiusKm = 6371.0

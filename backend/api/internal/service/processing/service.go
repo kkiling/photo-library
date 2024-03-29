@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/samber/lo"
 	"sync"
+
+	"github.com/samber/lo"
 
 	"github.com/google/uuid"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"

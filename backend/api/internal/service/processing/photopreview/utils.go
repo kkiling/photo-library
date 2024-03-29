@@ -2,12 +2,13 @@ package photopreview
 
 import (
 	"bytes"
-	"github.com/kkiling/photo-library/backend/api/internal/service/model"
-	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
-	"golang.org/x/image/draw"
 	"image"
 	"image/jpeg"
 	"image/png"
+
+	"github.com/kkiling/photo-library/backend/api/internal/service/model"
+	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
+	"golang.org/x/image/draw"
 )
 
 // Пример функции для поворота на 90 градусов по часовой стрелке

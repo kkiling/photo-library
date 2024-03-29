@@ -11,6 +11,7 @@ install:
 	go install golang.org/x/tools/cmd/goimports@latest
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.54.2
 	go install github.com/pressly/goose/v3/cmd/goose@latest
+	go install github.com/pav5000/smartimports/cmd/smartimports@v0.2.0
 
 .PHONY: generate
 generate:
@@ -51,3 +52,7 @@ processing:
 .PHONY: run-photos-server
 run-photos-server:
 	go run cmd/photos_server/main.go
+
+.PHONY: format
+format:
+	smartimports -local "gitlab.ozon.ru/ob/harry-template/"

@@ -1,9 +1,10 @@
 package utils
 
 import (
-	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"path/filepath"
 	"strings"
+
+	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 )
 
 func GetPhotoExtension(path string) *model.PhotoExtension {

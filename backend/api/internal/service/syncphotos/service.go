@@ -3,14 +3,15 @@ package syncphotos
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/kkiling/photo-library/backend/api/internal/service"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
 	"github.com/kkiling/photo-library/backend/api/internal/service/utils"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
-	"strings"
-	"time"
 )
 
 type Storage interface {

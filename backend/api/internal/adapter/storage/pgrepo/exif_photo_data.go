@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/entity"
-	"reflect"
 )
 
 func structToMapDBTag(obj interface{}) map[string]interface{} {

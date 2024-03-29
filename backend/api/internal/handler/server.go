@@ -3,9 +3,10 @@ package handler
 import (
 	"context"
 	"fmt"
+
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/server"
-	"github.com/kkiling/photo-library/backend/api/pkg/common/server/method_descriptor"
+	methoddescriptor "github.com/kkiling/photo-library/backend/api/pkg/common/server/method_descriptor"
 	"google.golang.org/grpc"
 )
 

@@ -2,15 +2,16 @@ package syncphotosservice
 
 import (
 	"context"
+	"net/http"
+
 	"github.com/kkiling/photo-library/backend/api/internal/handler"
 	"github.com/kkiling/photo-library/backend/api/internal/handler/mapper"
 	"github.com/kkiling/photo-library/backend/api/internal/service/syncphotos"
 	desc "github.com/kkiling/photo-library/backend/api/pkg/common/gen/proto/v1"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/server"
-	"github.com/kkiling/photo-library/backend/api/pkg/common/server/method_descriptor"
+	methoddescriptor "github.com/kkiling/photo-library/backend/api/pkg/common/server/method_descriptor"
 	"google.golang.org/grpc"
-	"net/http"
 )
 
 type SyncPhotosService interface {

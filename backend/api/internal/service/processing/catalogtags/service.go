@@ -3,8 +3,9 @@ package catalogtags
 import (
 	"context"
 	"errors"
-	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
 	"unicode/utf8"
+
+	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
 
 	"github.com/google/uuid"
 	"github.com/kkiling/photo-library/backend/api/internal/service"

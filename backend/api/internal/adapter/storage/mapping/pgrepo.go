@@ -2,8 +2,9 @@ package mapping
 
 import (
 	"fmt"
-	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/entity"
 	"reflect"
+
+	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/entity"
 
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 )

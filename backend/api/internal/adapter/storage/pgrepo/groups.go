@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/entity"
-	"time"
 )
 
 func (r *PhotoRepository) FindGroupIDByPhotoID(ctx context.Context, photoID uuid.UUID) (*uuid.UUID, error) {
