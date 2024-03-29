@@ -7,6 +7,7 @@ option go_package = "github.com/kkiling/photo-library/backend/sync_photos_server
 import "google/api/annotations.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {
@@ -35,7 +36,6 @@ service PhotosService {
       get: "/v1/photos/groups";
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      tags: ["photo"]
       summary: "Получение списка групп фотографий";
     };
   };
@@ -44,10 +44,21 @@ service PhotosService {
       get: "/v1/photos/groups/{group_id}";
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
-      tags: ["photo"]
       summary: "Получение группы фотографий";
     };
   };
+  rpc SetMainPhotoGroup(SetMainPhotoGroupRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/v1/photos/groups/main_photo";
+      body: "*";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Изменить главную фотографию группы";
+    };
+  };
+  // Повернуть фотографию 0 -90 90 180
+  // Удалить тег фотографии
+  // Добавить тег фотографии (category_id, name тега)
 }
 
 message PhotoPreview {
@@ -118,7 +129,7 @@ message GetPhotoGroupRequest {
   string group_id = 1;
 }
 
-
-
-
-
+//
+message SetMainPhotoGroupRequest {
+  string main_photo_id = 1;
+}

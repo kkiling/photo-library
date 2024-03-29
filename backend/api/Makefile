@@ -14,7 +14,7 @@ install:
 
 .PHONY: generate
 generate:
-	buf generate --template buf.gen.yaml --path proto/v1/photos_service.proto
+	buf generate --template buf.gen.yaml --path proto/v1/photos_service.proto --path proto/v1/tags_service.proto
 	move swagger\api.swagger.json swagger\photos_service.swagger.json
 	buf generate --template buf.gen.yaml --path proto/v1/sync_photos_service.proto
 	move swagger\api.swagger.json swagger\sync_photos_service.swagger.json

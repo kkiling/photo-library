@@ -73,7 +73,9 @@ func (p *SyncPhotosServiceServer) Start(ctx context.Context) error {
 
 	p.server = server.NewServer(p.logger, p.serverConfig, interceptors...)
 	serverDs := server.Descriptor{
-		GatewayRegistrar: desc.RegisterSyncPhotosServiceHandlerFromEndpoint,
+		GatewayRegistrar: []server.GatewayRegistrar{
+			desc.RegisterSyncPhotosServiceHandlerFromEndpoint,
+		},
 		OnRegisterGrpcServer: func(grpcServer *grpc.Server) {
 			desc.RegisterSyncPhotosServiceServer(grpcServer, p)
 		},

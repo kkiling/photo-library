@@ -11,6 +11,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -19,8 +20,9 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	PhotosService_GetPhotoGroups_FullMethodName = "/pb.v1.PhotosService/GetPhotoGroups"
-	PhotosService_GetPhotoGroup_FullMethodName  = "/pb.v1.PhotosService/GetPhotoGroup"
+	PhotosService_GetPhotoGroups_FullMethodName    = "/pb.v1.PhotosService/GetPhotoGroups"
+	PhotosService_GetPhotoGroup_FullMethodName     = "/pb.v1.PhotosService/GetPhotoGroup"
+	PhotosService_SetMainPhotoGroup_FullMethodName = "/pb.v1.PhotosService/SetMainPhotoGroup"
 )
 
 // PhotosServiceClient is the client API for PhotosService service.
@@ -29,6 +31,7 @@ const (
 type PhotosServiceClient interface {
 	GetPhotoGroups(ctx context.Context, in *GetPhotoGroupsRequest, opts ...grpc.CallOption) (*PaginatedPhotoGroups, error)
 	GetPhotoGroup(ctx context.Context, in *GetPhotoGroupRequest, opts ...grpc.CallOption) (*PhotoGroupData, error)
+	SetMainPhotoGroup(ctx context.Context, in *SetMainPhotoGroupRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type photosServiceClient struct {
@@ -57,12 +60,22 @@ func (c *photosServiceClient) GetPhotoGroup(ctx context.Context, in *GetPhotoGro
 	return out, nil
 }
 
+func (c *photosServiceClient) SetMainPhotoGroup(ctx context.Context, in *SetMainPhotoGroupRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, PhotosService_SetMainPhotoGroup_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PhotosServiceServer is the server API for PhotosService service.
 // All implementations should embed UnimplementedPhotosServiceServer
 // for forward compatibility
 type PhotosServiceServer interface {
 	GetPhotoGroups(context.Context, *GetPhotoGroupsRequest) (*PaginatedPhotoGroups, error)
 	GetPhotoGroup(context.Context, *GetPhotoGroupRequest) (*PhotoGroupData, error)
+	SetMainPhotoGroup(context.Context, *SetMainPhotoGroupRequest) (*emptypb.Empty, error)
 }
 
 // UnimplementedPhotosServiceServer should be embedded to have forward compatible implementations.
@@ -74,6 +87,9 @@ func (UnimplementedPhotosServiceServer) GetPhotoGroups(context.Context, *GetPhot
 }
 func (UnimplementedPhotosServiceServer) GetPhotoGroup(context.Context, *GetPhotoGroupRequest) (*PhotoGroupData, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPhotoGroup not implemented")
+}
+func (UnimplementedPhotosServiceServer) SetMainPhotoGroup(context.Context, *SetMainPhotoGroupRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetMainPhotoGroup not implemented")
 }
 
 // UnsafePhotosServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -123,6 +139,24 @@ func _PhotosService_GetPhotoGroup_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PhotosService_SetMainPhotoGroup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetMainPhotoGroupRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PhotosServiceServer).SetMainPhotoGroup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PhotosService_SetMainPhotoGroup_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PhotosServiceServer).SetMainPhotoGroup(ctx, req.(*SetMainPhotoGroupRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PhotosService_ServiceDesc is the grpc.ServiceDesc for PhotosService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -137,6 +171,10 @@ var PhotosService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetPhotoGroup",
 			Handler:    _PhotosService_GetPhotoGroup_Handler,
+		},
+		{
+			MethodName: "SetMainPhotoGroup",
+			Handler:    _PhotosService_SetMainPhotoGroup_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

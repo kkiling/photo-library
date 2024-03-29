@@ -18,8 +18,10 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
+type GatewayRegistrar = func(context.Context, *rn.ServeMux, string, []grpc.DialOption) error
+
 type Descriptor struct {
-	GatewayRegistrar     func(context.Context, *rn.ServeMux, string, []grpc.DialOption) error
+	GatewayRegistrar     []GatewayRegistrar
 	OnRegisterGrpcServer func(grpcServer *grpc.Server)
 }
 
@@ -78,8 +80,10 @@ func (s *Server) Register(ctx context.Context, descriptor Descriptor) error {
 	// Регистрация rest api gateway
 	if descriptor.GatewayRegistrar != nil {
 		host := fmt.Sprintf("%s:%d", s.cfg.Host, s.cfg.GrpcPort)
-		if err := descriptor.GatewayRegistrar(ctx, s.mux, host, s.opts); err != nil {
-			return fmt.Errorf("failed to register HTTP server: %v", err)
+		for _, registrar := range descriptor.GatewayRegistrar {
+			if err := registrar(ctx, s.mux, host, s.opts); err != nil {
+				return fmt.Errorf("failed to register HTTP server: %v", err)
+			}
 		}
 	}
 

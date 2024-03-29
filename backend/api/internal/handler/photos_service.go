@@ -21,6 +21,7 @@ import (
 
 type PhotosServiceServer struct {
 	desc.UnimplementedPhotosServiceServer
+	desc.UnsafeTagsServiceServer
 	server        *server.Server
 	logger        log.Logger
 	serverConfig  server.Config
@@ -45,6 +46,9 @@ func (p *PhotosServiceServer) crateServerInterceptors() ([]grpc.UnaryServerInter
 			},
 			&customDescriptor{
 				method: (*PhotosServiceServer).GetPhotoGroup,
+			},
+			&customDescriptor{
+				method: (*PhotosServiceServer).GetTagsCategory,
 			},
 		},
 	)
@@ -118,9 +122,13 @@ func (p *PhotosServiceServer) Start(ctx context.Context) error {
 
 	p.server = server.NewServer(p.logger, p.serverConfig, interceptors...)
 	serverDs := server.Descriptor{
-		GatewayRegistrar: desc.RegisterPhotosServiceHandlerFromEndpoint,
+		GatewayRegistrar: []server.GatewayRegistrar{
+			desc.RegisterPhotosServiceHandlerFromEndpoint,
+			desc.RegisterTagsServiceHandlerFromEndpoint,
+		},
 		OnRegisterGrpcServer: func(grpcServer *grpc.Server) {
 			desc.RegisterPhotosServiceServer(grpcServer, p)
+			desc.RegisterTagsServiceServer(grpcServer, p)
 		},
 	}
 
@@ -167,4 +175,13 @@ func (p *PhotosServiceServer) GetPhotoGroups(ctx context.Context, request *desc.
 	}
 
 	return mapper.GetPhotoGroupsResponse(response), nil
+}
+
+// Tags
+
+func (p *PhotosServiceServer) GetTagsCategory(ctx context.Context, request *desc.GetTagsCategoryRequest) (*desc.GetTagsCategoryResponse, error) {
+	return &desc.GetTagsCategoryResponse{
+		Page:    request.Page,
+		PerPage: request.PerPage,
+	}, nil
 }

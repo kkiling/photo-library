@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package pb.v1;
+
+option go_package = "github.com/kkiling/photo-library/backend/sync_photos_server/pkg/common/gen/pbv1";
+
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+service TagsService {
+  rpc GetTagsCategory(GetTagsCategoryRequest) returns (GetTagsCategoryResponse) {
+    option (google.api.http) = {
+      get: "/v1/tags";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Получение списка категорий тегов";
+    };
+  };
+}
+
+message GetTagsCategoryRequest {
+  int32 page = 1;
+  int32 per_page = 2;
+}
+
+message GetTagsCategoryResponse {
+  int32 page = 1;
+  int32 per_page = 2;
+}
