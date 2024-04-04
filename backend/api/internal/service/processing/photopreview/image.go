@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"image"
 
-	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"gocv.io/x/gocv"
+
+	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 )
 
 type ImageCV struct {

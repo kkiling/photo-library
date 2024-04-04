@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 
+	"google.golang.org/grpc"
+
 	"github.com/kkiling/photo-library/backend/api/internal/handler"
 	"github.com/kkiling/photo-library/backend/api/internal/handler/mapper"
 	"github.com/kkiling/photo-library/backend/api/internal/service/syncphotos"
@@ -11,7 +13,6 @@ import (
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/server"
 	methoddescriptor "github.com/kkiling/photo-library/backend/api/pkg/common/server/method_descriptor"
-	"google.golang.org/grpc"
 )
 
 type SyncPhotosService interface {

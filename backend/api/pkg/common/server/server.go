@@ -9,13 +9,14 @@ import (
 
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	rn "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	httpSwagger "github.com/swaggo/http-swagger"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/protobuf/encoding/protojson"
+
+	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 )
 
 type HandlerFromEndpoint = func(context.Context, *rn.ServeMux, string, []grpc.DialOption) error

@@ -1,9 +1,10 @@
 package exifphotodata
 
 import (
+	"strings"
+
 	"github.com/rwcarlsen/goexif/exif"
 	"github.com/rwcarlsen/goexif/tiff"
-	"strings"
 )
 
 type write struct {

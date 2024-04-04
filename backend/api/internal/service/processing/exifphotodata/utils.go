@@ -2,6 +2,7 @@ package exifphotodata
 
 import (
 	"fmt"
+
 	"github.com/rwcarlsen/goexif/tiff"
 )
 

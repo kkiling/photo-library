@@ -3,10 +3,11 @@ package handler
 import (
 	"fmt"
 
+	"github.com/pkg/errors"
+
 	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
 	pbv1 "github.com/kkiling/photo-library/backend/api/pkg/common/gen/proto/v1"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/server"
-	"github.com/pkg/errors"
 )
 
 func HandleError(err error, description any) error {

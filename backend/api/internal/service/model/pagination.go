@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/go-playground/validator/v10"
+
 	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
 )
 
