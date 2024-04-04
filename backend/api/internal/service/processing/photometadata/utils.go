@@ -21,9 +21,8 @@ func getImageDetails(photoBody []byte) (width int, height int, err error) {
 	// Получение размера изображения в пикселях
 	img, _, err := image.DecodeConfig(reader)
 	if err != nil {
-		return 0, 0, serviceerr.InvalidInputErr(err, "image.DecodeConfig")
+		return 0, 0, fmt.Errorf("image.DecodeConfig: %w (%w)", err, serviceerr.ErrPhotoIsNotValid)
 	}
-
 	return img.Width, img.Height, nil
 }
 

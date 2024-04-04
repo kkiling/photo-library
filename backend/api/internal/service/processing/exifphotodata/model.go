@@ -1,16 +1,5 @@
 package exifphotodata
 
-type dataType int
-
-const (
-	dataTypeUnknown    dataType = 0
-	dataTypeInt        dataType = 1
-	dataTypeString     dataType = 2
-	dataTypeFloat      dataType = 3
-	dataTypeIntArray   dataType = 4
-	dataTypeFloatArray dataType = 6
-)
-
 var propertyDescription = map[string]string{
 	"Sharpness":                        "Резкость",
 	"MakerNote":                        "Примечание производителя",

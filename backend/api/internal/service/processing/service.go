@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
@@ -13,9 +14,18 @@ import (
 	"github.com/samber/lo"
 )
 
+const (
+	defaultTimeout = 12 * time.Second
+)
+
 type Config struct {
 	MaxGoroutines int    `yaml:"max_goroutines"`
 	Limit         uint64 `yaml:"limit"`
+}
+
+type RocketLockService interface {
+	Lock(ctx context.Context, key string, ttl time.Duration) (*model.RocketLockID, error)
+	UnLock(ctx context.Context, lockID *model.RocketLockID) error
 }
 
 type Storage interface {
@@ -40,6 +50,7 @@ type Service struct {
 	logger          log.Logger
 	cfg             Config
 	storage         Storage
+	lock            RocketLockService
 	fileStorage     FileStore
 	photoProcessors map[model.PhotoProcessingStatus]PhotoProcessor
 }
@@ -48,12 +59,14 @@ func NewService(logger log.Logger,
 	cfg Config,
 	storage Storage,
 	fileStorage FileStore,
+	lock RocketLockService,
 	photoProcessors map[model.PhotoProcessingStatus]PhotoProcessor,
 ) *Service {
 	return &Service{
 		logger:          logger,
 		cfg:             cfg,
 		storage:         storage,
+		lock:            lock,
 		fileStorage:     fileStorage,
 		photoProcessors: photoProcessors,
 	}
@@ -76,7 +89,22 @@ func (s *Service) Init(ctx context.Context) error {
 }
 
 func (s *Service) processingPhoto(ctx context.Context, photoID uuid.UUID) error {
-	// TODO: Тут нужно ставить лок на обработку фотографии
+	// Тут нужно ставить лок на обработку фотографии
+	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
+	defer cancel()
+
+	key := fmt.Sprintf("processing_photo_%s", photoID.String())
+	lockID, err := s.lock.Lock(ctx, key, defaultTimeout)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		err := s.lock.UnLock(ctx, lockID)
+		if err != nil {
+			s.logger.Errorf("unlock: %v", err)
+		}
+	}()
+
 	photo, err := s.storage.GetPhotoById(ctx, photoID)
 	if err != nil {
 		return serviceerr.NotFoundf("photo not found")
@@ -107,6 +135,11 @@ func (s *Service) processingPhoto(ctx context.Context, photoID uuid.UUID) error 
 			}
 		}
 
+		// TODO: С учетом того что группы постоянно меняются, сливаются и тд, пока не закончен процесс обработки фотографий
+		// Группы этих фотографий нельзя отдавать пользователям
+		// TODO: МОЖЕТ БЫТЬ ТАКАЯ СИТУАЦИЯ ЧТО Processing сохранит данные
+		// Но при этом AddPhotosProcessingStatus не обновит состояние
+		// Либо в одной транзакции, либо все Processing должны быть идемпотентными
 		success, err := processor.Processing(ctx, *photo, photoBody)
 		if err != nil {
 			err = fmt.Errorf("status %s: %w", nextStatus, err)
@@ -122,14 +155,17 @@ func (s *Service) processingPhoto(ctx context.Context, photoID uuid.UUID) error 
 	return nil
 }
 
-func (s *Service) ProcessingPhotos(ctx context.Context) (bool, error) {
+func (s *Service) ProcessingPhotos(ctx context.Context) (model.ProcessingPhotos, error) {
+	var stats = model.ProcessingPhotos{
+		EOF: true,
+	}
 	photoIDs, err := s.storage.GetUnprocessedPhotoIDs(ctx, model.LastProcessingStatus, s.cfg.Limit)
 	if err != nil {
-		return false, serviceerr.MakeErr(err, "s.storage.GetUnprocessedPhotoIDs")
+		return stats, serviceerr.MakeErr(err, "s.storage.GetUnprocessedPhotoIDs")
 	}
 
 	if len(photoIDs) == 0 {
-		return false, nil
+		return stats, nil
 	}
 
 	var photoIDsChan = make(chan uuid.UUID)
@@ -148,9 +184,7 @@ func (s *Service) ProcessingPhotos(ctx context.Context) (bool, error) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-
 			for ctx.Err() == nil {
-
 				mu.Lock()
 				if returnErr != nil {
 					mu.Unlock()
@@ -168,18 +202,26 @@ func (s *Service) ProcessingPhotos(ctx context.Context) (bool, error) {
 					}
 
 					processedErr := s.processingPhoto(ctx, photoID)
+					mu.Lock()
 					if processedErr == nil {
+						stats.SuccessProcessedPhotos++
+						mu.Unlock()
 						continue
 					}
 
-					mu.Lock()
-					// Необходимо сделать фото невалидным
-					if errors.Is(processedErr, serviceerr.ErrPhotoIsNotValid) {
+					if errors.Is(processedErr, serviceerr.ErrAlreadyLocked) {
+						stats.LockProcessedPhotos++
+						// Установленна блокировка, просто стоит подождать
+						// s.logger.Errorf("ErrAlreadyLocked: %v: %v\n", photoID, processedErr)
+					} else if errors.Is(processedErr, serviceerr.ErrPhotoIsNotValid) { // Необходимо сделать фото невалидным
 						if notValidErr := s.storage.MakeNotValidPhoto(ctx, photoID, processedErr.Error()); notValidErr != nil {
 							returnErr = notValidErr
-							return
+							stats.ErrorProcessedPhotos++
+							mu.Unlock()
+							return // Критичная ошибка, выходим
 						}
-					} else {
+					} else { // Неизвестная критичная ошибка, выходим
+						stats.ErrorProcessedPhotos++
 						returnErr = serviceerr.MakeErr(processedErr, "s.processingPhoto")
 						s.logger.Errorf("%v: %v\n", photoID, processedErr)
 					}
@@ -191,5 +233,6 @@ func (s *Service) ProcessingPhotos(ctx context.Context) (bool, error) {
 
 	wg.Wait()
 
-	return true, returnErr
+	stats.EOF = false
+	return stats, returnErr
 }

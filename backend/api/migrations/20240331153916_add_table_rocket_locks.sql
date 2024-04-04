@@ -1,12 +1,12 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE exif_photo_data (
-   photo_id UUID PRIMARY KEY,
-   data JSONB
+CREATE TABLE rocket_locks(
+    key text NOT NULL UNIQUE,
+    locked_until timestamptz NOT NULL
 );
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE exif_photo_data;
+DROP TABLE rocket_locks;
 -- +goose StatementEnd

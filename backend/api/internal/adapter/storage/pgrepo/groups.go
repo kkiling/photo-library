@@ -93,7 +93,22 @@ func (r *PhotoRepository) GetPhotoGroupsCount(ctx context.Context) (uint64, erro
 	return counter, nil
 }
 
-func (r *PhotoRepository) getGroupPhotoIDs(ctx context.Context, groupID uuid.UUID) ([]uuid.UUID, error) {
+func (r *PhotoRepository) DeleteGroupByID(ctx context.Context, groupID uuid.UUID) error {
+	conn := r.getConn(ctx)
+	const query1 = `DELETE FROM photo_groups_photos where group_id = $1`
+	if _, err := conn.Exec(ctx, query1, groupID); err != nil {
+		return printError(err)
+	}
+
+	const query2 = `DELETE FROM photo_groups where id = $1`
+	if _, err := conn.Exec(ctx, query2, groupID); err != nil {
+		return printError(err)
+	}
+
+	return nil
+}
+
+func (r *PhotoRepository) GetGroupPhotoIDs(ctx context.Context, groupID uuid.UUID) ([]uuid.UUID, error) {
 	conn := r.getConn(ctx)
 
 	const query = `
@@ -171,7 +186,7 @@ func (r *PhotoRepository) GetPaginatedPhotoGroups(ctx context.Context, params en
 			return nil, printError(err)
 		}
 
-		photoIDs, err := r.getGroupPhotoIDs(ctx, group.ID)
+		photoIDs, err := r.GetGroupPhotoIDs(ctx, group.ID)
 		if err != nil {
 			return nil, fmt.Errorf("r.getGroupPhotoIDs")
 		}
@@ -209,7 +224,7 @@ func (r *PhotoRepository) GetGroupByID(ctx context.Context, id uuid.UUID) (*enti
 		return nil, printError(err)
 	}
 
-	photoIDs, err := r.getGroupPhotoIDs(ctx, group.ID)
+	photoIDs, err := r.GetGroupPhotoIDs(ctx, group.ID)
 	if err != nil {
 		return nil, fmt.Errorf("r.getGroupPhotoIDs")
 	}

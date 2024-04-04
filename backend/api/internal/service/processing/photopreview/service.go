@@ -1,10 +1,8 @@
 package photopreview
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"image"
 	"strings"
 
 	"github.com/google/uuid"
@@ -20,6 +18,7 @@ type Config struct {
 
 type Storage interface {
 	service.Transactor
+	GetPhotoPreviews(ctx context.Context, photoID uuid.UUID) ([]model.PhotoPreview, error)
 	CreatePhotoPreview(ctx context.Context, preview model.PhotoPreview) error
 	GetExif(ctx context.Context, photoID uuid.UUID) (*model.ExifPhotoData, error)
 }
@@ -55,38 +54,51 @@ func (s *Service) NeedLoadPhotoBody() bool {
 
 // Processing генерирует preview версии фотографий
 func (s *Service) Processing(ctx context.Context, photo model.Photo, photoBody []byte) (bool, error) {
-	var orientation = 1
+	/*var orientation = 1
 	exif, err := s.storage.GetExif(ctx, photo.ID)
 	if err != nil {
 		return false, serviceerr.MakeErr(err, "s.storage.GetExif")
 	}
+
 	if exif != nil && exif.Orientation != nil {
 		orientation = *exif.Orientation
-	}
+	}*/
 
-	reader := bytes.NewReader(photoBody)
-	originalImage, _, err := image.Decode(reader)
-	if err != nil {
+	// TODO: Временно, удалить
+	//previews, err := s.storage.GetPhotoPreviews(ctx, photo.ID)
+	//if err != nil {
+	//	return false, err
+	//}
+	//if len(previews) > 0 {
+	//	return true, nil
+	//}
+
+	var originalImage ImageCV
+	if err := originalImage.Load(photoBody); err != nil {
 		return false, fmt.Errorf("image.Decode: %w, (%w)", err, serviceerr.ErrPhotoIsNotValid)
 	}
+	defer originalImage.Close()
 
-	sizePixel := originalImage.Bounds().Dx()
-	if originalImage.Bounds().Dy() > originalImage.Bounds().Dx() {
-		sizePixel = originalImage.Bounds().Dy()
+	// TODO: СОХРАНЯТЬ превью в одной транзакции!
+
+	widthPixel, heightPixel := originalImage.Size()
+	sizePixel := widthPixel
+	if heightPixel > widthPixel {
+		sizePixel = heightPixel
 	}
 
 	photoPreview := model.PhotoPreview{
 		ID:          photo.ID,
 		PhotoID:     photo.ID,
 		FileName:    photo.FileName,
-		WidthPixel:  originalImage.Bounds().Dx(),
-		HeightPixel: originalImage.Bounds().Dy(),
+		WidthPixel:  widthPixel,
+		HeightPixel: heightPixel,
 		SizePixel:   sizePixel,
 	}
 
-	if orientation == 6 || orientation == 8 {
+	/*if orientation == 6 || orientation == 8 {
 		photoPreview.WidthPixel, photoPreview.HeightPixel = photoPreview.HeightPixel, photoPreview.WidthPixel
-	}
+	}*/
 
 	if err := s.storage.CreatePhotoPreview(ctx, photoPreview); err != nil {
 		return false, serviceerr.MakeErr(err, "s.storage.CreatePhotoPreview")
@@ -97,16 +109,14 @@ func (s *Service) Processing(ctx context.Context, photo model.Photo, photoBody [
 			break
 		}
 
-		imgPreview, err := createImagePreview(originalImage, photo.Extension, orientation, maxSize)
+		imgPreview, err := createImagePreview(originalImage, widthPixel, heightPixel, maxSize, photo.Extension)
 		if err != nil {
 			return false, serviceerr.MakeErr(err, "failed to decode image")
 		}
 
 		previewID := uuid.New()
-
 		// Сохранить файл и получить url
 		fileName := fmt.Sprintf("preview_%d_%s.%s", maxSize, photo.ID, strings.ToLower(string(photo.Extension)))
-
 		if err := s.fileStorage.SaveFileBody(ctx, fileName, imgPreview.photoBody); err != nil {
 			return false, serviceerr.MakeErr(err, "s.fileStorage.SaveFileBody")
 		}
@@ -119,7 +129,6 @@ func (s *Service) Processing(ctx context.Context, photo model.Photo, photoBody [
 			HeightPixel: imgPreview.height,
 			SizePixel:   maxSize,
 		}
-
 		if err := s.storage.CreatePhotoPreview(ctx, preview); err != nil {
 			return false, serviceerr.MakeErr(err, "s.storage.CreatePhotoPreview")
 		}

@@ -1,4 +1,4 @@
-package metatags
+package utils
 
 import (
 	"math"

@@ -28,3 +28,17 @@ goose create [name] sql
 goose -dir=./migrations postgres "postgresql://localhost:5432/photo_library?sslmode=disable" up
 goose-dir=./migrations postgres "postgresql://localhost:5432/photo_library?sslmode=disable" down
 ```
+
+```
+DELETE FROM coeffs_similar_photos;
+DELETE FROM exif_photo_data;
+DELETE FROM photo_groups_photos;
+DELETE FROM photo_groups;
+DELETE FROM photo_metadata;
+DELETE FROM photo_previews;
+DELETE FROM photo_vectors;
+DELETE FROM rocket_locks;
+DELETE FROM tags;
+DELETE FROM tags_category;
+DELETE FROM photo_processing_statuses;
+```

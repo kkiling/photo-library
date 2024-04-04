@@ -3,6 +3,7 @@ package photometadata
 import (
 	"context"
 	"fmt"
+	"github.com/samber/lo"
 	"time"
 
 	"github.com/google/uuid"
@@ -36,19 +37,20 @@ func NewService(logger log.Logger, storage Storage) *Service {
 }
 
 func (s *Service) getDateTime(exif *model.ExifPhotoData) (*time.Time, error) {
-	var dateTime *time.Time = nil
 
-	if exif.DateTime != nil {
-		if d, err := parseDate(*exif.DateTime); err == nil {
-			dateTime = &d
-		}
-	} else if exif.DateTimeOriginal != nil {
-		if d, err := parseDate(*exif.DateTimeOriginal); err == nil {
-			dateTime = &d
+	if dateTimeStr, ok := exif.GetString(model.DateTimeExifData); ok {
+		if d, err := parseDate(dateTimeStr); err == nil {
+			return &d, nil
 		}
 	}
 
-	return dateTime, nil
+	if dateTimeStr, ok := exif.GetString(model.DateTimeOriginalExifData); ok {
+		if d, err := parseDate(dateTimeStr); err == nil {
+			return &d, nil
+		}
+	}
+
+	return nil, nil
 }
 
 func (s *Service) getDateTimeFromPaths(ctx context.Context, photoID uuid.UUID) (*time.Time, error) {
@@ -77,31 +79,39 @@ func (s *Service) getDateTimeFromPaths(ctx context.Context, photoID uuid.UUID) (
 }
 
 func (s *Service) getGeo(exif *model.ExifPhotoData) (*model.Geo, error) {
-	if exif.GPSLongitude != nil && exif.GPSLatitude != nil {
-		geo, err := convertToGeo(exif.GPSLatitude, exif.GPSLongitude)
-		if err != nil {
-			return nil, serviceerr.MakeErr(err, "convertToGeo")
-		}
-		return geo, nil
+	latitude, ok := exif.GetFloatArray(model.GPSLatitudeExifData)
+	if !ok {
+		return nil, nil
+	}
+	longitude, ok := exif.GetFloatArray(model.GPSLongitudeExifData)
+	if !ok {
+		return nil, nil
 	}
 
-	return nil, nil
+	geo, err := convertToGeo(latitude, longitude)
+	if err != nil {
+		return nil, serviceerr.MakeErr(err, "convertToGeo")
+	}
+	return geo, nil
 }
 
 func (s *Service) getModelInfo(exif *model.ExifPhotoData) *string {
-	if exif.Model != nil || exif.Make != nil {
-		modelInfo := ""
-		if exif.Model != nil && exif.Make != nil {
-			modelInfo = fmt.Sprintf("%s %s", *exif.Model, *exif.Make)
-		} else if exif.Model != nil {
-			modelInfo = *exif.Model
-		} else {
-			modelInfo = *exif.Make
-		}
-		return &modelInfo
+	modelStr, okModel := exif.GetString(model.ModelExifData)
+	makeStr, okMake := exif.GetString(model.MakeExifData)
+
+	if !okModel && !okMake {
+		return nil
 	}
 
-	return nil
+	if okModel && okMake {
+		return lo.ToPtr(fmt.Sprintf("%s %s", modelStr, makeStr))
+	}
+
+	if okModel {
+		return &modelStr
+	}
+
+	return &makeStr
 }
 
 func (s *Service) Init(_ context.Context) error {

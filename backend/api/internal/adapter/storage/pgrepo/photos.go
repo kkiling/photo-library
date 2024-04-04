@@ -240,6 +240,7 @@ func (r *PhotoRepository) GetUnprocessedPhotoIDs(ctx context.Context, lastProces
 		LeftJoin(fmt.Sprintf("photo_processing_statuses ps ON p.id = ps.photo_id AND ps.status = '%s'", lastProcessingStatus)).
 		Where("ps.photo_id IS NULL").
 		Where(sq.Eq{"p.status": entity.NewPhotoStatus}).
+		// Where(sq.Eq{"p.id": "28b6654a-ea3f-41bb-8fbd-90efa25c3357"}).
 		Limit(limit).
 		PlaceholderFormat(sq.Dollar)
 

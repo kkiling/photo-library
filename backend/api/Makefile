@@ -39,7 +39,7 @@ migrate-create\:%:
 
 .PHONY: migrate-up
 migrate-up:
-	goose -dir=./migrations postgres "postgresql://root:q9ckMfi6xQUc1@10.10.10.201:5501/photos?sslmode=disable" up
+	goose -dir=./migrations postgres "postgresql://postgres@localhost:5432/photo_library?sslmode=disable" up
 
 .PHONY: run-sync-server
 run-sync-server:
@@ -55,4 +55,13 @@ run-photos-server:
 
 .PHONY: format
 format:
-	smartimports -local "gitlab.ozon.ru/ob/harry-template/"
+	smartimports -local "github.com/kkiling/photo-library/backend/api/"
+
+.PHONY: db
+db:
+	psql -U postgres -h localhost -p 5432 -d postgres -c "DROP DATABASE IF EXISTS photo_library;" -c "CREATE DATABASE photo_library;"
+	make migrate-up
+
+.PHONY: schema
+schema:
+	pg_dump -U postgres -h localhost -p 5432 -d photo_library --no-owner --no-privileges --no-tablespaces --no-security-labels --no-comments -s  > schema.sql

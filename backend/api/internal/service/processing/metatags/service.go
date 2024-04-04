@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/geo"
@@ -25,12 +26,13 @@ const (
 type Storage interface {
 	service.Transactor
 	GetMetaData(ctx context.Context, photoID uuid.UUID) (*model.PhotoMetadata, error)
+	SaveGeoAddress(ctx context.Context, location model.Location) error
+	GetGeoAddress(ctx context.Context, photoID uuid.UUID) (*model.Location, error)
 }
 
 type TagPhoto interface {
 	AddPhotoTag(ctx context.Context, photoID, categoryID uuid.UUID, name string) (model.Tag, error)
-	GetCategory(ctx context.Context, typeCategory string) (*model.TagCategory, error)
-	CreateCategory(ctx context.Context, typeCategory, color string) (model.TagCategory, error)
+	GetOrCreateCategory(ctx context.Context, typeCategory, color string) (model.TagCategory, error)
 }
 
 type GeoService interface {
@@ -53,29 +55,11 @@ func NewService(logger log.Logger, tagService TagPhoto, storage Storage, geoServ
 	}
 }
 
-func (s *Service) getOrCreateTagCategory(ctx context.Context, tagCategory, color string) (model.TagCategory, error) {
-	findCategory, err := s.tagService.GetCategory(ctx, tagCategory)
-	if err != nil {
-		return model.TagCategory{}, serviceerr.MakeErr(err, "tagService.GetCategory")
-	}
-
-	if findCategory != nil {
-		return *findCategory, nil
-	}
-
-	category, err := s.tagService.CreateCategory(ctx, tagCategory, color)
-	if err != nil {
-		return model.TagCategory{}, serviceerr.MakeErr(err, "tagService.CreateCategory")
-	}
-
-	return category, nil
-}
-
 func (s *Service) createYearTag(ctx context.Context, photo model.Photo, metaData *model.PhotoMetadata) error {
 	if metaData.DateTime == nil {
 		return nil
 	}
-	yearCategory, err := s.getOrCreateTagCategory(ctx, YearTag, YearTagColor)
+	yearCategory, err := s.tagService.GetOrCreateCategory(ctx, YearTag, YearTagColor)
 	if err != nil {
 		return serviceerr.MakeErr(err, "s.getOrCreateTagCategory")
 	}
@@ -96,7 +80,7 @@ func (s *Service) createCameraModelTag(ctx context.Context, photo model.Photo, m
 	if metaData.ModelInfo == nil || (*metaData.ModelInfo == "") {
 		return nil
 	}
-	cameraCategory, err := s.getOrCreateTagCategory(ctx, CameraModelTag, CameraModelTagColor)
+	cameraCategory, err := s.tagService.GetOrCreateCategory(ctx, CameraModelTag, CameraModelTagColor)
 	if err != nil {
 		return serviceerr.MakeErr(err, "getOrCreateTagCategory")
 	}
@@ -112,16 +96,45 @@ func (s *Service) createCameraModelTag(ctx context.Context, photo model.Photo, m
 	return nil
 }
 
+func (s *Service) reverseGeocode(ctx context.Context, photoID uuid.UUID, latitude, longitude float64) (*geo.Address, error) {
+	findLocation, err := s.storage.GetGeoAddress(ctx, photoID)
+	if err != nil {
+		return nil, serviceerr.MakeErr(err, "s.storage.GetGeoAddress")
+	}
+	if findLocation != nil {
+		return &findLocation.Geo, nil
+	}
+
+	location, err := s.geocoder.ReverseGeocode(ctx, latitude, longitude)
+	if err != nil {
+		return nil, serviceerr.MakeErr(err, "geocoder.ReverseGeocode")
+	}
+
+	saveLocation := model.Location{
+		PhotoID:   photoID,
+		CreatedAt: time.Now(),
+		Latitude:  latitude,
+		Longitude: longitude,
+		Geo:       *location,
+	}
+	if err := s.storage.SaveGeoAddress(ctx, saveLocation); err != nil {
+		return nil, fmt.Errorf("s.storage.SaveGeoAddress: %w", err)
+	}
+
+	return location, nil
+}
+
 func (s *Service) createLocationTag(ctx context.Context, photo model.Photo, metaData *model.PhotoMetadata) error {
 	if metaData.Geo == nil {
 		return nil
 	}
-	locationCategory, err := s.getOrCreateTagCategory(ctx, LocationTag, LocationTagColor)
+
+	locationCategory, err := s.tagService.GetOrCreateCategory(ctx, LocationTag, LocationTagColor)
 	if err != nil {
 		return serviceerr.MakeErr(err, "getOrCreateTagCategory")
 	}
 
-	location, err := s.geocoder.ReverseGeocode(ctx, metaData.Geo.Latitude, metaData.Geo.Longitude)
+	location, err := s.reverseGeocode(ctx, photo.ID, metaData.Geo.Latitude, metaData.Geo.Longitude)
 	if err != nil {
 		return serviceerr.MakeErr(err, "geocoder.ReverseGeocode")
 	}
@@ -156,7 +169,7 @@ func (s *Service) createLocationTag(ctx context.Context, photo model.Photo, meta
 	return nil
 }
 
-func (s *Service) Init(ctx context.Context) error {
+func (s *Service) Init(_ context.Context) error {
 	return nil
 }
 

@@ -92,12 +92,10 @@ func (p *HandlerPhotosService) GetPhotoContent(w http.ResponseWriter, r *http.Re
 
 	var contentType string
 	switch photoContent.Extension {
-	case model.PhotoExtensionJpg, model.PhotoExtensionJpeg:
+	case model.PhotoExtensionJpeg:
 		contentType = "image/jpeg"
 	case model.PhotoExtensionPng:
 		contentType = "image/png"
-	case model.PhotoExtensionBmb:
-		contentType = "image/bmp"
 	default:
 		http.Error(w, "Unsupported image format", http.StatusBadRequest)
 		return

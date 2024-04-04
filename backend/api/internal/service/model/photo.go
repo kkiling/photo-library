@@ -50,10 +50,10 @@ var PhotoProcessingStatuses = []PhotoProcessingStatus{
 type PhotoExtension string
 
 const (
-	PhotoExtensionJpg  PhotoExtension = "JPG"
+	// PhotoExtensionJpg  PhotoExtension = "JPG"
 	PhotoExtensionJpeg PhotoExtension = "JPEG"
 	PhotoExtensionPng  PhotoExtension = "PNG"
-	PhotoExtensionBmb  PhotoExtension = "BMP"
+	// PhotoExtensionBmb  PhotoExtension = "BMP"
 )
 
 type Photo struct {

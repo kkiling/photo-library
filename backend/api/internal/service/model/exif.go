@@ -2,93 +2,55 @@ package model
 
 import "github.com/google/uuid"
 
+const (
+	GPSLongitudeExifData     = "GPSLongitude"
+	GPSLatitudeExifData      = "GPSLatitude"
+	ModelExifData            = "Model"
+	MakeExifData             = "Make"
+	DateTimeExifData         = "DateTime"
+	DateTimeOriginalExifData = "DateTimeOriginal"
+)
+
 type ExifPhotoData struct {
-	PhotoID                          uuid.UUID
-	Sharpness                        *int
-	MakerNote                        *string
-	XResolution                      *float64
-	ExposureBiasValue                *float64
-	ApertureValue                    *float64
-	ResolutionUnit                   *int
-	ThumbJPEGInterchangeFormat       *int
-	Model                            *string
-	FocalPlaneXResolution            *float64
-	BitsPerSample                    []int
-	DeviceSettingDescription         *string
-	SubSecTimeDigitized              *string
-	ImageLength                      *int
-	GPSVersionID                     *int
-	XPAuthor                         []int
-	MaxApertureValue                 *float64
-	ISOSpeedRatings                  *int
-	SensingMethod                    *int
-	FileSource                       *string
-	ExifVersion                      *string
-	ImageWidth                       *int
-	GPSAltitudeRef                   *float64
-	SamplesPerPixel                  *int
-	Software                         *string
-	Saturation                       *int
-	LightSource                      *int
-	GPSLatitude                      []float64
-	LensModel                        *string
-	PixelXDimension                  *int
-	UserComment                      *string
-	GPSInfoIFDPointer                *int
-	ExifIFDPointer                   *int
-	ExposureTime                     *float64
-	CFAPattern                       *string
-	GPSLongitude                     []float64
-	Copyright                        *string
-	Flash                            *int
-	YResolution                      *float64
-	MeteringMode                     *int
-	InteroperabilityIFDPointer       *int
-	GPSAltitude                      *float64
-	SceneType                        *string
-	ImageDescription                 *string
-	BrightnessValue                  *float64
-	Artist                           *string
-	FocalLengthIn35mmFilm            *int
-	ExposureMode                     *int
-	WhiteBalance                     *int
-	PixelYDimension                  *int
-	SubSecTimeOriginal               *string
-	DigitalZoomRatio                 *float64
-	CompressedBitsPerPixel           *float64
-	DateTime                         *string
-	GainControl                      *int
-	XPKeywords                       []int
-	Contrast                         *int
-	GPSProcessingMethod              *string
-	FocalPlaneResolutionUnit         *int
-	ShutterSpeedValue                *float64
-	SubSecTime                       *string
-	GPSLatitudeRef                   *string
-	ImageUniqueID                    *string
-	ColorSpace                       *int
-	ExposureProgram                  *int
-	GPSLongitudeRef                  *string
-	DateTimeOriginal                 *string
-	ComponentsConfiguration          *string
-	FNumber                          *float64
-	XPComment                        []int
-	XPTitle                          []int
-	ThumbJPEGInterchangeFormatLength *int
-	YCbCrPositioning                 *int
-	Orientation                      *int
-	PhotometricInterpretation        *int
-	FocalLength                      *float64
-	SceneCaptureType                 *int
-	Make                             *string
-	GPSDateStamp                     *string
-	RelatedSoundFile                 *string
-	FlashpixVersion                  *string
-	CustomRendered                   *int
-	DateTimeDigitized                *string
-	ExposureIndex                    *float64
-	FocalPlaneYResolution            *float64
-	InteroperabilityIndex            *string
-	SubjectDistanceRange             *int
-	GPSTimeStamp                     []float64
+	PhotoID uuid.UUID
+	Data    map[string]interface{}
+}
+
+func (e *ExifPhotoData) GetString(fileName string) (string, bool) {
+	v, ok := e.Data[fileName]
+	if !ok {
+		return "", false
+	}
+	res, ok := v.(string)
+	return res, ok
+}
+
+func (e *ExifPhotoData) GetFloat(fileName string) (float64, bool) {
+	v, ok := e.Data[fileName]
+	if !ok {
+		return 0, false
+	}
+	res, ok := v.(float64)
+	return res, ok
+}
+
+func (e *ExifPhotoData) GetFloatArray(fileName string) ([]float64, bool) {
+	v, ok := e.Data[fileName]
+	if !ok {
+		return nil, false
+	}
+	resInterface, ok := v.([]interface{})
+
+	res := make([]float64, 0, len(resInterface))
+
+	for _, r := range resInterface {
+		vv, ok := r.(float64)
+		if ok {
+			res = append(res, vv)
+		} else {
+			return nil, false
+		}
+	}
+
+	return res, true
 }

@@ -13,6 +13,7 @@ const (
 	RuntimeErrorType          ErrorServiceType = 1
 	NotFoundErrorType         ErrorServiceType = 2
 	ConflictErrorType         ErrorServiceType = 3
+	FailPreconditionErrorType ErrorServiceType = 4
 )
 
 type FieldViolation struct {
@@ -37,6 +38,10 @@ func (r *ErrorService) Error() string {
 		return ""
 	}
 	return r.Err.Error()
+}
+
+func (r *ErrorService) Unwrap() error {
+	return r.Err
 }
 
 func IsNotFound(err error) bool {
@@ -87,6 +92,17 @@ func Conflictf(description string, a ...any) error {
 		Err:  fmt.Errorf(description, a...),
 		ErrInfo: ErrorInfo{
 			Description: "Conflict",
+		},
+	}
+}
+
+// FailPreconditionf создание ошибки fail prediction
+func FailPreconditionf(description string, a ...any) error {
+	return &ErrorService{
+		Type: FailPreconditionErrorType,
+		Err:  fmt.Errorf(description, a...),
+		ErrInfo: ErrorInfo{
+			Description: "FailPrecondition",
 		},
 	}
 }

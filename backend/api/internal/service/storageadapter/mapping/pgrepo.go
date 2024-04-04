@@ -2,6 +2,7 @@ package mapping
 
 import (
 	"fmt"
+	"github.com/kkiling/photo-library/backend/api/internal/adapter/geo"
 	"reflect"
 
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/entity"
@@ -89,17 +90,6 @@ func mapExifData(in interface{}, outTemplate interface{}) interface{} {
 	}
 
 	return outTemplate
-}
-
-func ExifPhotoDataEntityToModel(in *entity.ExifPhotoData) *model.ExifPhotoData {
-	if in == nil {
-		return nil
-	}
-	return mapExifData(in, &model.ExifPhotoData{}).(*model.ExifPhotoData)
-}
-
-func ExifPhotoDataModelToEntity(in *model.ExifPhotoData) *entity.ExifPhotoData {
-	return mapExifData(in, &entity.ExifPhotoData{}).(*entity.ExifPhotoData)
 }
 
 func PhotoMetadataModelToEntity(in *model.PhotoMetadata) *entity.PhotoMetadata {
@@ -312,5 +302,63 @@ func PhotoPreviewModelToEntity(in *model.PhotoPreview) *entity.PhotoPreview {
 		WidthPixel:  in.WidthPixel,
 		HeightPixel: in.HeightPixel,
 		SizePixel:   in.SizePixel,
+	}
+}
+
+func RocketLockIDEntityToModel(in *model.RocketLockID) *entity.RocketLockID {
+	return &entity.RocketLockID{
+		Key: in.Key,
+		Ts:  in.Ts,
+	}
+}
+
+func RocketLockIDModelToEntity(in *entity.RocketLockID) *model.RocketLockID {
+	return &model.RocketLockID{
+		Key: in.Key,
+		Ts:  in.Ts,
+	}
+}
+
+func LocationModelToEntity(in *model.Location) *entity.Location {
+	return &entity.Location{
+		PhotoID:          in.PhotoID,
+		CreatedAt:        in.CreatedAt,
+		Latitude:         in.Latitude,
+		Longitude:        in.Longitude,
+		FormattedAddress: in.Geo.FormattedAddress,
+		Street:           in.Geo.Street,
+		HouseNumber:      in.Geo.HouseNumber,
+		Suburb:           in.Geo.Suburb,
+		Postcode:         in.Geo.Postcode,
+		State:            in.Geo.State,
+		StateCode:        in.Geo.StateCode,
+		StateDistrict:    in.Geo.StateDistrict,
+		County:           in.Geo.County,
+		Country:          in.Geo.Country,
+		CountryCode:      in.Geo.CountryCode,
+		City:             in.Geo.City,
+	}
+}
+
+func LocationEntityToModel(in *entity.Location) *model.Location {
+	return &model.Location{
+		PhotoID:   in.PhotoID,
+		CreatedAt: in.CreatedAt,
+		Latitude:  in.Latitude,
+		Longitude: in.Longitude,
+		Geo: geo.Address{
+			FormattedAddress: in.FormattedAddress,
+			Street:           in.Street,
+			HouseNumber:      in.HouseNumber,
+			Suburb:           in.Suburb,
+			Postcode:         in.Postcode,
+			State:            in.State,
+			StateCode:        in.StateCode,
+			StateDistrict:    in.StateDistrict,
+			County:           in.County,
+			Country:          in.Country,
+			CountryCode:      in.CountryCode,
+			City:             in.City,
+		},
 	}
 }

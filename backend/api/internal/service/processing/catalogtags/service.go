@@ -25,8 +25,7 @@ type Storage interface {
 
 type TagPhoto interface {
 	AddPhotoTag(ctx context.Context, photoID, categoryID uuid.UUID, name string) (model.Tag, error)
-	GetCategory(ctx context.Context, typeCategory string) (*model.TagCategory, error)
-	CreateCategory(ctx context.Context, typeCategory, color string) (model.TagCategory, error)
+	GetOrCreateCategory(ctx context.Context, typeCategory, color string) (model.TagCategory, error)
 }
 
 type Service struct {
@@ -43,24 +42,6 @@ func NewService(logger log.Logger, tagService TagPhoto, storage Storage) *Servic
 	}
 }
 
-func (s *Service) getOrCreateTagCategory(ctx context.Context, tagCategory, color string) (model.TagCategory, error) {
-	findCategory, err := s.tagService.GetCategory(ctx, tagCategory)
-	if err != nil {
-		return model.TagCategory{}, serviceerr.MakeErr(err, "tagService.GetCategory")
-	}
-
-	if findCategory != nil {
-		return *findCategory, nil
-	}
-
-	category, err := s.tagService.CreateCategory(ctx, tagCategory, color)
-	if err != nil {
-		return model.TagCategory{}, serviceerr.MakeErr(err, "tagService.CreateCategory")
-	}
-
-	return category, nil
-}
-
 func (s *Service) createPhotoCatalogTag(ctx context.Context, photo model.Photo, uploadData *model.PhotoUploadData) error {
 	tags := make(map[string]struct{})
 	for _, path := range uploadData.Paths {
@@ -70,7 +51,7 @@ func (s *Service) createPhotoCatalogTag(ctx context.Context, photo model.Photo, 
 		}
 	}
 
-	photoCatalog, err := s.getOrCreateTagCategory(ctx, PhotoCatalogTag, PhotoCatalogTagColor)
+	photoCatalog, err := s.tagService.GetOrCreateCategory(ctx, PhotoCatalogTag, PhotoCatalogTagColor)
 	if err != nil {
 		return serviceerr.MakeErr(err, "getOrCreateTagCategory")
 	}

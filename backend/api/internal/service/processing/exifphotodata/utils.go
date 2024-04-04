@@ -2,63 +2,70 @@ package exifphotodata
 
 import (
 	"fmt"
-	"reflect"
+	"github.com/rwcarlsen/goexif/tiff"
 )
 
-func setField(obj interface{}, name string, value interface{}) error {
-	structValue := reflect.ValueOf(obj).Elem()
-	fieldVal := structValue.FieldByName(name)
-
-	if !fieldVal.IsValid() {
-		return fmt.Errorf("no such field: %s in obj", name)
+func ratToFloat(tag *tiff.Tag, i int) (float64, error) {
+	r1, r2, err := tag.Rat2(i)
+	if err != nil {
+		return 0, err
 	}
-
-	if !fieldVal.CanSet() {
-		return fmt.Errorf("cannot set %s field value", name)
+	if r2 == 0 {
+		return 0, nil
 	}
-
-	val := reflect.ValueOf(value)
-	// Если тип поля является указателем, получим соответствующий тип без указателя
-	if fieldVal.Type().Kind() == reflect.Ptr {
-		if val.Type() == fieldVal.Type().Elem() {
-			valPtr := reflect.New(val.Type())
-			valPtr.Elem().Set(val)
-			fieldVal.Set(valPtr)
-			return nil
-		}
-	} else if fieldVal.Type() == val.Type() {
-		fieldVal.Set(val)
-		return nil
-	}
-
-	return fmt.Errorf("provided value type (%s) didn't match obj field type (%s)", val.Type(), fieldVal.Type())
+	return float64(r1) / float64(r2), nil
 }
 
-func determineDataType(obj interface{}, fieldName string) dataType {
-	structValue := reflect.ValueOf(obj).Elem()
-	fieldVal := structValue.FieldByName(fieldName)
-
-	kind := fieldVal.Type().Kind()
-	if kind == reflect.Ptr {
-		kind = fieldVal.Type().Elem().Kind()
+func getIntFromTag(tag *tiff.Tag) (int, error) {
+	if tag.Format() == tiff.IntVal {
+		return tag.Int(0)
 	}
+	return 0, fmt.Errorf("unexpected tag format")
+}
 
-	switch kind {
-	case reflect.Int:
-		return dataTypeInt
-	case reflect.String:
-		return dataTypeString
-	case reflect.Float32, reflect.Float64:
-		return dataTypeFloat
-	case reflect.Slice:
-		kind = fieldVal.Type().Elem().Kind()
-		switch kind {
-		case reflect.Int:
-			return dataTypeIntArray
-		case reflect.Float32, reflect.Float64:
-			return dataTypeFloatArray
+func getFloatFromTag(tag *tiff.Tag) (float64, error) {
+	switch tag.Format() {
+	case tiff.RatVal:
+		return ratToFloat(tag, 0)
+	case tiff.FloatVal:
+		return tag.Float(0)
+	default:
+		return 0, fmt.Errorf("unexpected tag format")
+	}
+}
+
+func getIntArrayFromTag(tag *tiff.Tag) ([]int, error) {
+	if tag.Format() != tiff.IntVal {
+		return nil, fmt.Errorf("unexpected tag format")
+	}
+	res := make([]int, tag.Count)
+	for i := 0; i < int(tag.Count); i++ {
+		val, err := tag.Int(i)
+		if err != nil {
+			return nil, err
+		}
+		res[i] = val
+	}
+	return res, nil
+}
+
+func getFloatArrayFromTag(tag *tiff.Tag) ([]float64, error) {
+	count := int(tag.Count)
+	res := make([]float64, count)
+
+	var err error
+	for i := 0; i < count; i++ {
+		switch tag.Format() {
+		case tiff.RatVal:
+			res[i], err = ratToFloat(tag, i)
+		case tiff.FloatVal:
+			res[i], err = tag.Float(i)
+		default:
+			return nil, fmt.Errorf("unexpected tag format")
+		}
+		if err != nil {
+			return nil, err
 		}
 	}
-
-	return dataTypeUnknown
+	return res, nil
 }

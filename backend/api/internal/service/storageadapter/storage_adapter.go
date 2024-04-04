@@ -1,13 +1,18 @@
-package storage
+package storageadapter
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/entity"
-	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/mapping"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/pgrepo"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
+	"github.com/kkiling/photo-library/backend/api/internal/service/storageadapter/mapping"
 )
 
 type Adapter struct {
@@ -108,16 +113,34 @@ func (r *Adapter) GetUploadPhotoData(ctx context.Context, photoID uuid.UUID) (*m
 }
 
 func (r *Adapter) SaveExif(ctx context.Context, data *model.ExifPhotoData) error {
-	in := mapping.ExifPhotoDataModelToEntity(data)
-	return r.photoRepo.SaveExif(ctx, in)
+	jsonData, err := json.Marshal(data.Data)
+	if err != nil {
+		return fmt.Errorf("json.Marshal: %w", err)
+	}
+
+	return r.photoRepo.SaveExif(ctx, &entity.ExifPhotoData{
+		PhotoID: data.PhotoID,
+		Data:    jsonData,
+	})
 }
 
 func (r *Adapter) GetExif(ctx context.Context, photoID uuid.UUID) (*model.ExifPhotoData, error) {
 	res, err := r.photoRepo.GetExif(ctx, photoID)
 	if err != nil {
 		return nil, err
+	} else if res == nil {
+		return nil, nil
 	}
-	return mapping.ExifPhotoDataEntityToModel(res), nil
+
+	data := make(map[string]interface{})
+	if err := json.Unmarshal(res.Data, &data); err != nil {
+		return nil, fmt.Errorf("json.Unmarshal: %w", err)
+	}
+
+	return &model.ExifPhotoData{
+		PhotoID: res.PhotoID,
+		Data:    data,
+	}, nil
 }
 
 func (r *Adapter) SavePhotoMetadata(ctx context.Context, data model.PhotoMetadata) error {
@@ -258,6 +281,14 @@ func (r *Adapter) GetPhotoGroupsCount(ctx context.Context) (uint64, error) {
 	return r.photoRepo.GetPhotoGroupsCount(ctx)
 }
 
+func (r *Adapter) DeleteGroupByID(ctx context.Context, groupID uuid.UUID) error {
+	return r.photoRepo.DeleteGroupByID(ctx, groupID)
+}
+
+func (r *Adapter) GetGroupPhotoIDs(ctx context.Context, groupID uuid.UUID) ([]uuid.UUID, error) {
+	return r.photoRepo.GetGroupPhotoIDs(ctx, groupID)
+}
+
 func (r *Adapter) GetGroupByID(ctx context.Context, id uuid.UUID) (*model.PhotoGroup, error) {
 	group, err := r.photoRepo.GetGroupByID(ctx, id)
 	if err != nil {
@@ -284,4 +315,31 @@ func (r *Adapter) GetPhotoPreviews(ctx context.Context, photoID uuid.UUID) ([]mo
 
 func (r *Adapter) GetPhotoPreviewFileName(ctx context.Context, photoID uuid.UUID, photoSize *int) (string, error) {
 	return r.photoRepo.GetPhotoPreviewFileName(ctx, photoID, photoSize)
+}
+
+func (r *Adapter) RocketLock(ctx context.Context, key string, ttl time.Duration) (*model.RocketLockID, error) {
+	res, err := r.photoRepo.RocketLock(ctx, key, ttl)
+	if err != nil {
+		if errors.Is(err, pgrepo.ErrAlreadyLocked) {
+			return nil, serviceerr.ErrAlreadyLocked
+		}
+		return nil, err
+	}
+	return mapping.RocketLockIDModelToEntity(res), nil
+}
+
+func (r *Adapter) RocketLockDelete(ctx context.Context, lockID *model.RocketLockID) error {
+	return r.photoRepo.RocketLockDelete(ctx, mapping.RocketLockIDEntityToModel(lockID))
+}
+
+func (r *Adapter) SaveGeoAddress(ctx context.Context, location model.Location) error {
+	return r.photoRepo.SaveGeoAddress(ctx, mapping.LocationModelToEntity(&location))
+}
+
+func (r *Adapter) GetGeoAddress(ctx context.Context, photoID uuid.UUID) (*model.Location, error) {
+	geo, err := r.photoRepo.GetGeoAddress(ctx, photoID)
+	if err != nil {
+		return nil, err
+	}
+	return mapping.LocationEntityToModel(geo), nil
 }

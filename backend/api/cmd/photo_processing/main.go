@@ -37,15 +37,14 @@ func main() {
 
 	application.Logger().Infof("start processing photos")
 	for {
-		eof, processingErr := processingPhotos.ProcessingPhotos(ctx)
+		stats, processingErr := processingPhotos.ProcessingPhotos(ctx)
 		if processingErr != nil {
-			application.Logger().Fatalf("processingPhotos.ProcessingPhotos: %v", processingErr)
+			application.Logger().Fatalf("fatal processing error")
 		}
-		if eof == false {
+		application.Logger().Infof("processing photos (%d/%d/%d)", stats.SuccessProcessedPhotos, stats.LockProcessedPhotos, stats.ErrorProcessedPhotos)
+		if stats.EOF {
 			break
 		}
-		application.Logger().Infof("processing photos...")
-
 	}
 
 	application.Logger().Infof("stop processing photos")

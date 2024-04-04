@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
@@ -30,12 +31,15 @@ type Storage interface {
 }
 
 type Service struct {
-	storage Storage
+	storage    Storage
+	categories map[string]model.TagCategory
+	mu         sync.Mutex
 }
 
 func NewService(storage Storage) *Service {
 	return &Service{
-		storage: storage,
+		storage:    storage,
+		categories: make(map[string]model.TagCategory),
 	}
 }
 
@@ -66,16 +70,24 @@ func validateCreateCategory(typeCategory, color string) error {
 	return nil
 }
 
-// CreateCategory создание категории тегов
-func (s *Service) CreateCategory(ctx context.Context, typeCategory, color string) (model.TagCategory, error) {
-	if err := validateCreateCategory(typeCategory, color); err != nil {
-		return model.TagCategory{}, serviceerr.InvalidInputErr(err, "validateCreateCategory")
+func (s *Service) GetOrCreateCategory(ctx context.Context, typeCategory, color string) (model.TagCategory, error) {
+	// Категории создаются много из каких мест, может быть гонка
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if find, ok := s.categories[typeCategory]; ok {
+		return find, nil
 	}
 
 	if findCategory, err := s.storage.GetTagCategoryByType(ctx, typeCategory); err != nil {
-		return model.TagCategory{}, serviceerr.MakeErr(err, "storage.GetTagCategoryByName")
+		return model.TagCategory{}, serviceerr.InvalidInputErr(err, "s.storage.GetTagCategoryByType")
 	} else if findCategory != nil {
-		return model.TagCategory{}, serviceerr.Conflictf("category already exist")
+		s.categories[typeCategory] = *findCategory
+		return *findCategory, nil
+	}
+
+	if err := validateCreateCategory(typeCategory, color); err != nil {
+		return model.TagCategory{}, serviceerr.InvalidInputErr(err, "validateCreateCategory")
 	}
 
 	newCategory := model.TagCategory{
@@ -88,18 +100,8 @@ func (s *Service) CreateCategory(ctx context.Context, typeCategory, color string
 		return model.TagCategory{}, serviceerr.MakeErr(err, "storage.SaveTagCategory")
 	}
 
+	s.categories[typeCategory] = newCategory
 	return newCategory, nil
-}
-
-func (s *Service) GetCategory(ctx context.Context, typeCategory string) (*model.TagCategory, error) {
-	// TODO: кешировать
-	if findCategory, err := s.storage.GetTagCategoryByType(ctx, typeCategory); err != nil {
-		return nil, serviceerr.MakeErr(err, "storage.GetTagCategoryByName")
-	} else if findCategory != nil {
-		return findCategory, nil
-	}
-
-	return nil, nil
 }
 
 func (s *Service) GetCategoryByID(ctx context.Context, categoryID uuid.UUID) (*model.TagCategory, error) {

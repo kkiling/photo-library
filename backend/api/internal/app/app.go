@@ -8,12 +8,12 @@ import (
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/fsstore"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/geo"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/photoml"
-	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage"
-	pgrepo2 "github.com/kkiling/photo-library/backend/api/internal/adapter/storage/pgrepo"
+	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/pgrepo"
 	"github.com/kkiling/photo-library/backend/api/internal/handler"
 	photosservice "github.com/kkiling/photo-library/backend/api/internal/handler/photos_service"
 	syncphotosservice "github.com/kkiling/photo-library/backend/api/internal/handler/sync_photos_service"
 	tagsservice "github.com/kkiling/photo-library/backend/api/internal/handler/tags_service"
+	"github.com/kkiling/photo-library/backend/api/internal/service/lock"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/internal/service/photos"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing"
@@ -25,6 +25,7 @@ import (
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing/photopreview"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing/similarphotos"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing/vectorphoto"
+	"github.com/kkiling/photo-library/backend/api/internal/service/storageadapter"
 	"github.com/kkiling/photo-library/backend/api/internal/service/syncphotos"
 	"github.com/kkiling/photo-library/backend/api/internal/service/tagphoto"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/config"
@@ -37,8 +38,8 @@ type App struct {
 	// connect
 	pgxPool *pgxpool.Pool
 	// adapter
-	storageAdapter *storage.Adapter
-	pgRepo         *pgrepo2.PhotoRepository
+	storageAdapter *storageadapter.Adapter
+	pgRepo         *pgrepo.PhotoRepository
 	fsStore        *fsstore.Store
 	photoML        *photoml.Service
 	// handler
@@ -48,6 +49,7 @@ type App struct {
 	similarPhotos *similarphotos.Service
 	syncPhoto     *syncphotos.Service
 	geoService    *geo.Service
+	lockService   *lock.Service
 	//
 	tagPhoto *tagphoto.Service
 	photos   *photos.Service
@@ -116,17 +118,19 @@ func (a *App) Create(ctx context.Context) error {
 		return fmt.Errorf("getPhotoPreviewConfig: %w", err)
 	}
 
-	pool, err := pgrepo2.NewPgConn(ctx, pgCfg)
+	pool, err := pgrepo.NewPgConn(ctx, pgCfg)
 	if err != nil {
 		return fmt.Errorf("newPgConn: %w", err)
 	}
 
 	a.pgxPool = pool
 	a.logger = log.NewLogger()
-	a.pgRepo = pgrepo2.NewPhotoRepository(a.pgxPool)
-	a.storageAdapter = storage.NewStorageAdapter(a.pgRepo)
+	a.pgRepo = pgrepo.NewPhotoRepository(a.pgxPool)
+	a.storageAdapter = storageadapter.NewStorageAdapter(a.pgRepo)
 	a.fsStore = fsstore.NewStore(fsStoreCfg)
 	a.geoService = geo.NewService(a.logger.Named("geo_service"))
+	a.lockService = lock.NewService(a.storageAdapter)
+
 	a.photoML = photoml.NewService(
 		a.logger.Named("photo_ml"),
 		photoMlCfg,
@@ -174,6 +178,7 @@ func (a *App) Create(ctx context.Context) error {
 		a.logger.Named("photo_group"),
 		photoGroupCfg,
 		a.storageAdapter,
+		a.lockService,
 	)
 	a.photoPreview = photopreview.NewService(
 		a.logger.Named("photo_preview"),
@@ -185,6 +190,7 @@ func (a *App) Create(ctx context.Context) error {
 		a.logger.Named("similar_photos"),
 		getSimilarPhotosCfg,
 		a.storageAdapter,
+		a.lockService,
 	)
 
 	a.processingPhotos = processing.NewService(
@@ -192,6 +198,7 @@ func (a *App) Create(ctx context.Context) error {
 		processingPhotosCfg,
 		a.storageAdapter,
 		a.fsStore,
+		a.lockService,
 		map[model.PhotoProcessingStatus]processing.PhotoProcessor{
 			model.ExifDataProcessing:           a.exifPhoto,
 			model.MetaDataProcessing:           a.metaPhoto,

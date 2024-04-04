@@ -15,6 +15,5 @@ goose create [name] sql
 ```
 SQLite migration
 ```
-goose -dir=./migrations sqlite3 ./files.db up
-goose -dir=./migrations sqlite3 ./files.db down
+goose -dir=migrations sqlite3 ./files.db up
 ```

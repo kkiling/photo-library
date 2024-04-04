@@ -3,6 +3,7 @@ package similarphotos
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/kkiling/photo-library/backend/api/internal/service"
@@ -12,9 +13,18 @@ import (
 	"gonum.org/v1/gonum/floats"
 )
 
+const (
+	defaultTimeout = 6 * time.Second
+)
+
 type Config struct {
 	MinSimilarCoefficient float64 `yaml:"min_similar_coefficient"`
 	Limit                 uint64  `yaml:"limit"`
+}
+
+type RocketLockService interface {
+	Lock(ctx context.Context, key string, ttl time.Duration) (*model.RocketLockID, error)
+	UnLock(ctx context.Context, lockID *model.RocketLockID) error
 }
 
 type Storage interface {
@@ -29,15 +39,17 @@ type Service struct {
 	logger       log.Logger
 	cfg          Config
 	storage      Storage
+	lock         RocketLockService
 	mu           sync.Mutex
 	photoVectors map[uuid.UUID]model.PhotoVector
 }
 
-func NewService(logger log.Logger, cfg Config, storage Storage) *Service {
+func NewService(logger log.Logger, cfg Config, storage Storage, lock RocketLockService) *Service {
 	return &Service{
 		logger:       logger,
 		cfg:          cfg,
 		storage:      storage,
+		lock:         lock,
 		mu:           sync.Mutex{},
 		photoVectors: make(map[uuid.UUID]model.PhotoVector),
 	}
@@ -82,6 +94,21 @@ func (s *Service) Processing(ctx context.Context, photo model.Photo, _ []byte) (
 	// Расчет векторов должен быть не конкурентным, а один за другим
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
+	defer cancel()
+
+	// Так же ставим лок (на случай если идет обработка из нескольких подов
+	lockID, err := s.lock.Lock(ctx, "similar_coefficient", defaultTimeout)
+	if err != nil {
+		return false, err
+	}
+	defer func() {
+		err := s.lock.UnLock(ctx, lockID)
+		if err != nil {
+			s.logger.Errorf("unlock: %v", err)
+		}
+	}()
 
 	currentPhotoVector, ok := s.photoVectors[photo.ID]
 	if !ok {

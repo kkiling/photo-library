@@ -15,15 +15,15 @@ func GetPhotoExtension(path string) *model.PhotoExtension {
 
 	// Определяем, какому PhotoExtension соответствует извлеченное расширение.
 	switch ext {
-	case string(model.PhotoExtensionJpg), string(model.PhotoExtensionJpeg):
+	case "JPEG", "JPG":
 		photoExt := model.PhotoExtensionJpeg
 		return &photoExt
 	case string(model.PhotoExtensionPng):
 		photoExt := model.PhotoExtensionPng
 		return &photoExt
-	case string(model.PhotoExtensionBmb):
-		photoExt := model.PhotoExtensionBmb
-		return &photoExt
+	/*case string(model.PhotoExtensionBmb):
+	photoExt := model.PhotoExtensionBmb
+	return &photoExt*/
 	default:
 		// Если расширение не соответствует известным типам, возвращаем nil.
 		return nil

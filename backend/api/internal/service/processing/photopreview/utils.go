@@ -1,14 +1,10 @@
 package photopreview
 
 import (
-	"bytes"
+	"fmt"
 	"image"
-	"image/jpeg"
-	"image/png"
 
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
-	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
-	"golang.org/x/image/draw"
 )
 
 // Пример функции для поворота на 90 градусов по часовой стрелке
@@ -103,11 +99,8 @@ type imagePreview struct {
 	height    int
 }
 
-func createImagePreview(originalImage image.Image, extension model.PhotoExtension, orientation int, maxSize int) (imagePreview, error) {
+func createImagePreview(originalImage ImageCV, originalWidth, originalHeight, maxSize int, fileExt model.PhotoExtension) (imagePreview, error) {
 	// Вычисление новых размеров для сохранения пропорций
-	originalWidth := originalImage.Bounds().Dx()
-	originalHeight := originalImage.Bounds().Dy()
-
 	newWidth, newHeight := originalWidth, originalHeight
 	if originalWidth > maxSize || originalHeight > maxSize {
 		if originalWidth > originalHeight {
@@ -120,34 +113,21 @@ func createImagePreview(originalImage image.Image, extension model.PhotoExtensio
 	}
 
 	// Создание нового изображения с новыми размерами
-	targetRect := image.Rect(0, 0, newWidth, newHeight)
-	resizedImg := image.NewRGBA(targetRect)
-	draw.CatmullRom.Scale(resizedImg, targetRect, originalImage, originalImage.Bounds(), draw.Src, nil)
-
-	// Применение ориентации к измененному по размеру изображению
-	resizedAndOrientedImg := applyOrientation(resizedImg, orientation)
-
 	// Кодирование в соответствующий формат
-	var buf bytes.Buffer
-	switch extension {
-	case model.PhotoExtensionJpg, model.PhotoExtensionJpeg:
-		if err := jpeg.Encode(&buf, resizedAndOrientedImg, nil); err != nil {
-			return imagePreview{}, serviceerr.MakeErr(err, "failed to encode jpeg")
-		}
-	case model.PhotoExtensionPng:
-		if err := png.Encode(&buf, resizedAndOrientedImg); err != nil {
-			return imagePreview{}, serviceerr.MakeErr(err, "failed to encode png")
-		}
-	default:
-		return imagePreview{}, serviceerr.NotFoundf("unsupported format")
+	newImg := originalImage.Resize(newWidth, newHeight)
+	defer newImg.Close()
+
+	photoBody, err := newImg.ToBytes(fileExt)
+	if err != nil {
+		return imagePreview{}, fmt.Errorf("newImg.ToByte: %w", err)
 	}
 
-	if orientation == 6 || orientation == 8 {
+	/*if orientation == 6 || orientation == 8 {
 		newWidth, newHeight = newHeight, newWidth
-	}
+	}*/
 
 	return imagePreview{
-		photoBody: buf.Bytes(),
+		photoBody: photoBody,
 		width:     newWidth,
 		height:    newHeight,
 	}, nil

@@ -4,23 +4,21 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 	"io"
 	"net/http"
 	"strings"
-	"sync"
-
-	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 )
 
 type Service struct {
 	logger log.Logger
-	mu     sync.Mutex
+	//mu     sync.Mutex
 }
 
 func NewService(logger log.Logger) *Service {
 	return &Service{
 		logger: logger,
-		mu:     sync.Mutex{},
+		//mu:     sync.Mutex{},
 	}
 }
 
@@ -61,13 +59,13 @@ func response(ctx context.Context, url string, obj *geocodeResponse) error {
 }
 
 func (s *Service) ReverseGeocode(ctx context.Context, lat, lng float64) (*Address, error) {
-	s.mu.Lock()
+	// s.mu.Lock()
 	res := geocodeResponse{}
 	geoUrl := reverseGeocodeURL(lat, lng)
 	if err := response(ctx, geoUrl, &res); err != nil {
 		return nil, fmt.Errorf("ReverseGeocode: %w", err)
 	}
-	s.mu.Unlock()
+	// s.mu.Unlock()
 
 	return res.Address(), nil
 }

@@ -21,7 +21,7 @@ require (
 	github.com/swaggo/http-swagger v1.3.4
 	go.uber.org/config v1.4.0
 	go.uber.org/zap v1.26.0
-	golang.org/x/image v0.15.0
+	gocv.io/x/gocv v0.35.0
 	gonum.org/v1/gonum v0.14.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20240125205218-1f4bbc51befe
 	google.golang.org/grpc v1.61.0
