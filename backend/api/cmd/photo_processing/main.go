@@ -31,22 +31,24 @@ func main() {
 
 	processingPhotos := application.GetProcessingPhotos()
 
-	application.Logger().Infof("init processing photos")
+	logger := application.GetLogger()
+
+	logger.Infof("init processing photos")
 	if err := processingPhotos.Init(ctx); err != nil {
 		panic(err)
 	}
 
-	application.Logger().Infof("start processing photos")
+	logger.Infof("start processing photos")
 	for {
-		stats, processingErr := processingPhotos.ProcessingPhotos(ctx)
+		res, processingErr := processingPhotos.ProcessingPhotos(ctx)
 		if processingErr != nil {
-			application.Logger().Fatalf("fatal processing error")
+			logger.Fatalf("fatal processing error")
 		}
-		application.Logger().Infof("processing photos (%d/%d/%d)", stats.SuccessProcessedPhotos, stats.LockProcessedPhotos, stats.ErrorProcessedPhotos)
-		if stats.EOF {
+
+		logger.Infof("processing photos (%d/%d/%d)", res.SuccessProcessedPhotos, res.LockProcessedPhotos, res.ErrorProcessedPhotos)
+		if res.EOF {
 			break
 		}
 	}
-
-	application.Logger().Infof("stop processing photos")
+	logger.Infof("stop processing photos")
 }

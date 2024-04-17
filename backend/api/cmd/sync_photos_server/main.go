@@ -9,6 +9,7 @@ import (
 	"github.com/jessevdk/go-flags"
 
 	"github.com/kkiling/photo-library/backend/api/internal/app"
+	"github.com/kkiling/photo-library/backend/api/internal/server"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/config"
 )
 
@@ -28,15 +29,24 @@ func main() {
 	defer cancel()
 
 	application := app.NewApp(cfgProvider)
-	if err := application.Create(ctx); err != nil {
-
+	if err = application.Create(ctx); err != nil {
 		panic(err)
 	}
 
+	log := application.GetLogger()
+
+	srv := server.NewPhotoLibraryServer(
+		application.GetLogger(),
+		application.GetServerConfig(),
+		application.GetPhotoGroupService(),
+		application.GetPhotoTagsService(),
+		application.GetPhotoMetadataService(),
+	)
+
 	go func() {
-		err = application.StartSyncPhotosServer(ctx)
+		err = srv.Start(ctx)
 		if err != nil {
-			application.Logger().Fatalf("fail start app: %v", err)
+			log.Fatalf("fail start app: %v", err)
 		}
 	}()
 
@@ -44,12 +54,12 @@ func main() {
 		sig := make(chan os.Signal, 1)
 		signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 		<-sig
-		application.Logger().Infof("--- shutdown application ---")
+		log.Infof("--- shutdown application ---")
 		cancel()
 	}()
 
 	<-ctx.Done()
-	application.Logger().Infof("--- stopped application ---")
-	application.StopSyncPhotosServer()
-	application.Logger().Infof("--- stop application ---")
+	log.Infof("--- stopped application ---")
+	srv.Stop()
+	log.Infof("--- stop application ---")
 }

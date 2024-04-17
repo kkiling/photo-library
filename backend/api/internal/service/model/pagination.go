@@ -24,21 +24,21 @@ type Pagination struct {
 }
 
 // GetLimit возвращает количество строк на странице
-func (g *Pagination) GetLimit() uint64 {
+func (g *Pagination) GetLimit() int32 {
 	if g.PerPage == 0 || g.PerPage > PerPageMax {
 		return PerPageDefault
 	}
 
-	return g.PerPage
+	return int32(g.PerPage)
 }
 
 // GetOffset возвращает номер строки, с которой надо начинать выборку
-func (g *Pagination) GetOffset() uint64 {
+func (g *Pagination) GetOffset() int32 {
 	if g.Page == 0 {
 		return 0
 	}
 
-	return (g.Page - 1) * g.GetLimit()
+	return int32(g.Page-1) * g.GetLimit()
 }
 
 func (g *Pagination) Validate() error {

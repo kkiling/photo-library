@@ -29,7 +29,3 @@ func GetPhotoExtension(path string) *model.PhotoExtension {
 		return nil
 	}
 }
-
-func FileNameWithoutExtSliceNotation(fileName string) string {
-	return fileName[:len(fileName)-len(filepath.Ext(fileName))]
-}

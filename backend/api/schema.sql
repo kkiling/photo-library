@@ -17,10 +17,30 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- Name: photo_processing_status; Type: TYPE; Schema: public; Owner: -
+-- Name: photo_extension; Type: TYPE; Schema: public; Owner: -
 --
 
-CREATE TYPE public.photo_processing_status AS ENUM (
+CREATE TYPE public.photo_extension AS ENUM (
+    'JPEG',
+    'PNG'
+);
+
+
+--
+-- Name: photo_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.photo_status AS ENUM (
+    'ACTIVE',
+    'NOT_VALID'
+);
+
+
+--
+-- Name: processing_type; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.processing_type AS ENUM (
     'EXIF_DATA',
     'META_DATA',
     'CATALOG_TAGS',
@@ -32,23 +52,13 @@ CREATE TYPE public.photo_processing_status AS ENUM (
 );
 
 
---
--- Name: photo_status; Type: TYPE; Schema: public; Owner: -
---
-
-CREATE TYPE public.photo_status AS ENUM (
-    'NEW_PHOTO',
-    'NOT_VALID'
-);
-
-
 SET default_table_access_method = heap;
 
 --
--- Name: coeffs_similar_photos; Type: TABLE; Schema: public; Owner: -
+-- Name: coefficients_similar_photos; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.coeffs_similar_photos (
+CREATE TABLE public.coefficients_similar_photos (
     photo_id1 uuid NOT NULL,
     photo_id2 uuid NOT NULL,
     coefficient double precision NOT NULL
@@ -98,26 +108,20 @@ ALTER SEQUENCE public.goose_db_version_id_seq OWNED BY public.goose_db_version.i
 
 
 --
--- Name: locations; Type: TABLE; Schema: public; Owner: -
+-- Name: meta_photo_data; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.locations (
+CREATE TABLE public.meta_photo_data (
     photo_id uuid NOT NULL,
-    created_at timestamp without time zone NOT NULL,
+    model_info text,
+    size_bytes integer NOT NULL,
+    width_pixel integer NOT NULL,
+    height_pixel integer NOT NULL,
+    date_time timestamp with time zone,
+    updated_at timestamp with time zone NOT NULL,
     geo_latitude double precision,
     geo_longitude double precision,
-    formatted_address text,
-    street text,
-    house_number text,
-    suburb text,
-    postcode text,
-    state text,
-    state_code text,
-    state_district text,
-    county text,
-    country text,
-    country_code text,
-    city text
+    CONSTRAINT meta_photo_data_model_info_check CHECK ((length(model_info) <= 512))
 );
 
 
@@ -128,7 +132,8 @@ CREATE TABLE public.locations (
 CREATE TABLE public.photo_groups (
     id uuid NOT NULL,
     main_photo_id uuid NOT NULL,
-    update_at timestamp without time zone NOT NULL
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL
 );
 
 
@@ -143,19 +148,38 @@ CREATE TABLE public.photo_groups_photos (
 
 
 --
--- Name: photo_metadata; Type: TABLE; Schema: public; Owner: -
+-- Name: photo_locations; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.photo_metadata (
+CREATE TABLE public.photo_locations (
     photo_id uuid NOT NULL,
-    model_info text,
-    size_bytes integer NOT NULL,
-    width_pixel integer NOT NULL,
-    height_pixel integer NOT NULL,
-    date_time timestamp without time zone,
-    update_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    geo_latitude double precision,
-    geo_longitude double precision
+    created_at timestamp with time zone NOT NULL,
+    geo_latitude double precision NOT NULL,
+    geo_longitude double precision NOT NULL,
+    formatted_address text NOT NULL,
+    street text NOT NULL,
+    house_number text NOT NULL,
+    suburb text NOT NULL,
+    postcode text NOT NULL,
+    state text NOT NULL,
+    state_code text NOT NULL,
+    state_district text NOT NULL,
+    county text NOT NULL,
+    country text NOT NULL,
+    country_code text NOT NULL,
+    city text NOT NULL,
+    CONSTRAINT photo_locations_city_check CHECK ((length(city) <= 1024)),
+    CONSTRAINT photo_locations_country_check CHECK ((length(country) <= 1024)),
+    CONSTRAINT photo_locations_country_code_check CHECK ((length(country_code) <= 1024)),
+    CONSTRAINT photo_locations_county_check CHECK ((length(county) <= 1024)),
+    CONSTRAINT photo_locations_formatted_address_check CHECK ((length(formatted_address) <= 1024)),
+    CONSTRAINT photo_locations_house_number_check CHECK ((length(house_number) <= 1024)),
+    CONSTRAINT photo_locations_postcode_check CHECK ((length(postcode) <= 1024)),
+    CONSTRAINT photo_locations_state_check CHECK ((length(state) <= 1024)),
+    CONSTRAINT photo_locations_state_code_check CHECK ((length(state_code) <= 1024)),
+    CONSTRAINT photo_locations_state_district_check CHECK ((length(state_district) <= 1024)),
+    CONSTRAINT photo_locations_street_check CHECK ((length(street) <= 1024)),
+    CONSTRAINT photo_locations_suburb_check CHECK ((length(suburb) <= 1024))
 );
 
 
@@ -166,22 +190,37 @@ CREATE TABLE public.photo_metadata (
 CREATE TABLE public.photo_previews (
     id uuid NOT NULL,
     photo_id uuid NOT NULL,
-    file_name character varying(2048) NOT NULL,
+    file_key text NOT NULL,
+    size_pixel integer NOT NULL,
     width_pixel integer NOT NULL,
     height_pixel integer NOT NULL,
-    size_pixel integer NOT NULL
+    original boolean DEFAULT false NOT NULL,
+    CONSTRAINT photo_previews_file_key_check CHECK ((length(file_key) <= 1024))
 );
 
 
 --
--- Name: photo_processing_statuses; Type: TABLE; Schema: public; Owner: -
+-- Name: photo_processing; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.photo_processing_statuses (
+CREATE TABLE public.photo_processing (
     photo_id uuid NOT NULL,
-    processed_at timestamp without time zone NOT NULL,
-    status public.photo_processing_status NOT NULL,
-    success boolean DEFAULT false
+    processed_at timestamp with time zone NOT NULL,
+    type public.processing_type NOT NULL,
+    success boolean NOT NULL
+);
+
+
+--
+-- Name: photo_tags; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.photo_tags (
+    id uuid NOT NULL,
+    category_id uuid NOT NULL,
+    photo_id uuid NOT NULL,
+    name text NOT NULL,
+    CONSTRAINT photo_tags_name_check CHECK ((length(name) <= 128))
 );
 
 
@@ -190,10 +229,11 @@ CREATE TABLE public.photo_processing_statuses (
 --
 
 CREATE TABLE public.photo_upload_data (
-    upload_at timestamp without time zone NOT NULL,
     photo_id uuid NOT NULL,
+    upload_at timestamp with time zone NOT NULL,
     paths text[] NOT NULL,
-    client_id character varying(256) NOT NULL,
+    client_id text NOT NULL,
+    CONSTRAINT photo_upload_data_client_id_check CHECK ((length(client_id) <= 256)),
     CONSTRAINT photo_upload_data_paths_check CHECK ((cardinality(paths) <= 2048))
 );
 
@@ -215,12 +255,14 @@ CREATE TABLE public.photo_vectors (
 
 CREATE TABLE public.photos (
     id uuid NOT NULL,
-    file_name character varying(2048) NOT NULL,
-    hash character varying(512) NOT NULL,
-    update_at timestamp without time zone NOT NULL,
-    extension character varying(8) NOT NULL,
-    status public.photo_status DEFAULT 'NEW_PHOTO'::public.photo_status,
-    error text
+    file_key text NOT NULL,
+    hash text NOT NULL,
+    updated_at timestamp with time zone NOT NULL,
+    extension public.photo_extension NOT NULL,
+    status public.photo_status DEFAULT 'ACTIVE'::public.photo_status NOT NULL,
+    error text,
+    CONSTRAINT photos_file_key_check CHECK ((length(file_key) <= 1024)),
+    CONSTRAINT photos_hash_check CHECK ((length(hash) <= 512))
 );
 
 
@@ -230,30 +272,21 @@ CREATE TABLE public.photos (
 
 CREATE TABLE public.rocket_locks (
     key text NOT NULL,
-    locked_until timestamp with time zone NOT NULL
+    locked_until timestamp with time zone NOT NULL,
+    CONSTRAINT rocket_locks_key_check CHECK ((length(key) <= 128))
 );
 
 
 --
--- Name: tags; Type: TABLE; Schema: public; Owner: -
+-- Name: tag_categories; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.tags (
+CREATE TABLE public.tag_categories (
     id uuid NOT NULL,
-    category_id uuid NOT NULL,
-    photo_id uuid NOT NULL,
-    name character varying(128) NOT NULL
-);
-
-
---
--- Name: tags_category; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.tags_category (
-    id uuid NOT NULL,
-    type character varying(128) NOT NULL,
-    color character varying(7) NOT NULL
+    type text NOT NULL,
+    color text NOT NULL,
+    CONSTRAINT tag_categories_color_check CHECK ((length(color) <= 7)),
+    CONSTRAINT tag_categories_type_check CHECK ((length(type) <= 64))
 );
 
 
@@ -265,11 +298,11 @@ ALTER TABLE ONLY public.goose_db_version ALTER COLUMN id SET DEFAULT nextval('pu
 
 
 --
--- Name: coeffs_similar_photos coeffs_similar_photos_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: coefficients_similar_photos coefficients_similar_photos_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.coeffs_similar_photos
-    ADD CONSTRAINT coeffs_similar_photos_pkey PRIMARY KEY (photo_id1, photo_id2);
+ALTER TABLE ONLY public.coefficients_similar_photos
+    ADD CONSTRAINT coefficients_similar_photos_pkey PRIMARY KEY (photo_id1, photo_id2);
 
 
 --
@@ -289,11 +322,19 @@ ALTER TABLE ONLY public.goose_db_version
 
 
 --
--- Name: locations locations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: meta_photo_data meta_photo_data_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.locations
-    ADD CONSTRAINT locations_pkey PRIMARY KEY (photo_id);
+ALTER TABLE ONLY public.meta_photo_data
+    ADD CONSTRAINT meta_photo_data_pkey PRIMARY KEY (photo_id);
+
+
+--
+-- Name: photo_groups photo_groups_main_photo_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.photo_groups
+    ADD CONSTRAINT photo_groups_main_photo_id_key UNIQUE (main_photo_id);
 
 
 --
@@ -301,7 +342,7 @@ ALTER TABLE ONLY public.locations
 --
 
 ALTER TABLE ONLY public.photo_groups_photos
-    ADD CONSTRAINT photo_groups_photos_pkey PRIMARY KEY (photo_id);
+    ADD CONSTRAINT photo_groups_photos_pkey PRIMARY KEY (photo_id, group_id);
 
 
 --
@@ -313,11 +354,11 @@ ALTER TABLE ONLY public.photo_groups
 
 
 --
--- Name: photo_metadata photo_metadata_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: photo_locations photo_locations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.photo_metadata
-    ADD CONSTRAINT photo_metadata_pkey PRIMARY KEY (photo_id);
+ALTER TABLE ONLY public.photo_locations
+    ADD CONSTRAINT photo_locations_pkey PRIMARY KEY (photo_id);
 
 
 --
@@ -326,6 +367,22 @@ ALTER TABLE ONLY public.photo_metadata
 
 ALTER TABLE ONLY public.photo_previews
     ADD CONSTRAINT photo_previews_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: photo_processing photo_processing_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.photo_processing
+    ADD CONSTRAINT photo_processing_pkey PRIMARY KEY (photo_id, type);
+
+
+--
+-- Name: photo_tags photo_tags_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.photo_tags
+    ADD CONSTRAINT photo_tags_pkey PRIMARY KEY (id);
 
 
 --
@@ -345,6 +402,22 @@ ALTER TABLE ONLY public.photo_vectors
 
 
 --
+-- Name: photos photos_file_key_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.photos
+    ADD CONSTRAINT photos_file_key_key UNIQUE (file_key);
+
+
+--
+-- Name: photos photos_hash_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.photos
+    ADD CONSTRAINT photos_hash_key UNIQUE (hash);
+
+
+--
 -- Name: photos photos_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -361,33 +434,33 @@ ALTER TABLE ONLY public.rocket_locks
 
 
 --
--- Name: tags_category tags_category_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: tag_categories tag_categories_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.tags_category
-    ADD CONSTRAINT tags_category_pkey PRIMARY KEY (id);
-
-
---
--- Name: tags tags_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tags
-    ADD CONSTRAINT tags_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.tag_categories
+    ADD CONSTRAINT tag_categories_pkey PRIMARY KEY (id);
 
 
 --
--- Name: idx_coeffs_similar_photos_photo_id2; Type: INDEX; Schema: public; Owner: -
+-- Name: tag_categories tag_categories_type_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_coeffs_similar_photos_photo_id2 ON public.coeffs_similar_photos USING btree (photo_id2);
+ALTER TABLE ONLY public.tag_categories
+    ADD CONSTRAINT tag_categories_type_key UNIQUE (type);
 
 
 --
--- Name: idx_photo_groups_photos_group_id; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_coefficients_similar_photos_photo_id2; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_photo_groups_photos_group_id ON public.photo_groups_photos USING btree (group_id);
+CREATE INDEX idx_coefficients_similar_photos_photo_id2 ON public.coefficients_similar_photos USING btree (photo_id2);
+
+
+--
+-- Name: idx_photo_previews_file_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_photo_previews_file_key ON public.photo_previews USING btree (file_key);
 
 
 --
@@ -398,126 +471,49 @@ CREATE INDEX idx_photo_previews_photo_id ON public.photo_previews USING btree (p
 
 
 --
--- Name: idx_photo_processing_statuses_photo_id_status; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_photos_groups_references_group_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX idx_photo_processing_statuses_photo_id_status ON public.photo_processing_statuses USING btree (photo_id, status);
-
-
---
--- Name: idx_photos_file_name; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_photos_file_name ON public.photos USING btree (file_name);
-
-
---
--- Name: idx_photos_hash; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_photos_hash ON public.photos USING btree (hash);
-
-
---
--- Name: idx_tags_category_type; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_tags_category_type ON public.tags_category USING btree (type);
+CREATE INDEX idx_photos_groups_references_group_id ON public.photo_groups_photos USING btree (group_id);
 
 
 --
 -- Name: idx_tags_photo_id_name; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX idx_tags_photo_id_name ON public.tags USING btree (photo_id, name);
+CREATE UNIQUE INDEX idx_tags_photo_id_name ON public.photo_tags USING btree (photo_id, name);
 
 
 --
--- Name: coeffs_similar_photos coeffs_similar_photos_photo_id1_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: coefficients_similar_photos coefficients_similar_photos_photo_id1_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.coeffs_similar_photos
-    ADD CONSTRAINT coeffs_similar_photos_photo_id1_fkey FOREIGN KEY (photo_id1) REFERENCES public.photos(id);
-
-
---
--- Name: coeffs_similar_photos coeffs_similar_photos_photo_id2_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.coeffs_similar_photos
-    ADD CONSTRAINT coeffs_similar_photos_photo_id2_fkey FOREIGN KEY (photo_id2) REFERENCES public.photos(id);
+ALTER TABLE ONLY public.coefficients_similar_photos
+    ADD CONSTRAINT coefficients_similar_photos_photo_id1_fkey FOREIGN KEY (photo_id1) REFERENCES public.photos(id);
 
 
 --
--- Name: exif_photo_data fk_exif_photo_data_photo_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: coefficients_similar_photos coefficients_similar_photos_photo_id2_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.coefficients_similar_photos
+    ADD CONSTRAINT coefficients_similar_photos_photo_id2_fkey FOREIGN KEY (photo_id2) REFERENCES public.photos(id);
+
+
+--
+-- Name: exif_photo_data exif_photo_data_photo_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.exif_photo_data
-    ADD CONSTRAINT fk_exif_photo_data_photo_id FOREIGN KEY (photo_id) REFERENCES public.photos(id) ON DELETE CASCADE;
+    ADD CONSTRAINT exif_photo_data_photo_id_fkey FOREIGN KEY (photo_id) REFERENCES public.photos(id);
 
 
 --
--- Name: locations fk_locations_photo_id; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: meta_photo_data meta_photo_data_photo_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.locations
-    ADD CONSTRAINT fk_locations_photo_id FOREIGN KEY (photo_id) REFERENCES public.photos(id) ON DELETE CASCADE;
-
-
---
--- Name: photo_metadata fk_photo_metadata_photo_id; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.photo_metadata
-    ADD CONSTRAINT fk_photo_metadata_photo_id FOREIGN KEY (photo_id) REFERENCES public.photos(id) ON DELETE CASCADE;
-
-
---
--- Name: photo_processing_statuses fk_photo_processing_statuses_photo_id; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.photo_processing_statuses
-    ADD CONSTRAINT fk_photo_processing_statuses_photo_id FOREIGN KEY (photo_id) REFERENCES public.photos(id);
-
-
---
--- Name: photo_upload_data fk_photo_upload_data_photo_id; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.photo_upload_data
-    ADD CONSTRAINT fk_photo_upload_data_photo_id FOREIGN KEY (photo_id) REFERENCES public.photos(id) ON DELETE CASCADE;
-
-
---
--- Name: photo_vectors fk_photo_vector_photo_id; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.photo_vectors
-    ADD CONSTRAINT fk_photo_vector_photo_id FOREIGN KEY (photo_id) REFERENCES public.photos(id);
-
-
---
--- Name: tags fk_tag_category_id; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tags
-    ADD CONSTRAINT fk_tag_category_id FOREIGN KEY (category_id) REFERENCES public.tags_category(id) ON DELETE CASCADE;
-
-
---
--- Name: tags fk_tag_photo_id; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.tags
-    ADD CONSTRAINT fk_tag_photo_id FOREIGN KEY (photo_id) REFERENCES public.photos(id) ON DELETE CASCADE;
-
-
---
--- Name: locations locations_photo_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.locations
-    ADD CONSTRAINT locations_photo_id_fkey FOREIGN KEY (photo_id) REFERENCES public.photos(id);
+ALTER TABLE ONLY public.meta_photo_data
+    ADD CONSTRAINT meta_photo_data_photo_id_fkey FOREIGN KEY (photo_id) REFERENCES public.photos(id);
 
 
 --
@@ -545,11 +541,59 @@ ALTER TABLE ONLY public.photo_groups_photos
 
 
 --
+-- Name: photo_locations photo_locations_photo_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.photo_locations
+    ADD CONSTRAINT photo_locations_photo_id_fkey FOREIGN KEY (photo_id) REFERENCES public.photos(id);
+
+
+--
 -- Name: photo_previews photo_previews_photo_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.photo_previews
     ADD CONSTRAINT photo_previews_photo_id_fkey FOREIGN KEY (photo_id) REFERENCES public.photos(id);
+
+
+--
+-- Name: photo_processing photo_processing_photo_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.photo_processing
+    ADD CONSTRAINT photo_processing_photo_id_fkey FOREIGN KEY (photo_id) REFERENCES public.photos(id);
+
+
+--
+-- Name: photo_tags photo_tags_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.photo_tags
+    ADD CONSTRAINT photo_tags_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.tag_categories(id);
+
+
+--
+-- Name: photo_tags photo_tags_photo_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.photo_tags
+    ADD CONSTRAINT photo_tags_photo_id_fkey FOREIGN KEY (photo_id) REFERENCES public.photos(id);
+
+
+--
+-- Name: photo_upload_data photo_upload_data_photo_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.photo_upload_data
+    ADD CONSTRAINT photo_upload_data_photo_id_fkey FOREIGN KEY (photo_id) REFERENCES public.photos(id);
+
+
+--
+-- Name: photo_vectors photo_vectors_photo_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.photo_vectors
+    ADD CONSTRAINT photo_vectors_photo_id_fkey FOREIGN KEY (photo_id) REFERENCES public.photos(id);
 
 
 --

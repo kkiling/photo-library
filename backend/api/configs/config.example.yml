@@ -7,26 +7,28 @@ server:
   shutdown_timeout: 3
 
 pg_db:
-  conn_string: "postgresql://root:q9ckMfi6xQUc1@10.10.10.201:5501/photos?sslmode=disable"
+  conn_string: "postgresql://root@localhost/photo_library?sslmode=disable"
 
 fs_store:
-  base_files_dir: "Y:\\documents\\photos_storage"
+  base_files_dir: "D:\\photo_library"
+  photo_server_url: "http://localhost:8080/photos"
 
 photo_ml:
   url: "http://127.0.0.1:5000"
 
 processing_photo:
   max_goroutines: 16
+  limit: 100
+  debug: false
 
 similar_photo:
   limit: 1000
   min_similar_coefficient: 0.75
+  debug: false
 
 photo_group:
   min_similar_coefficient: 0.95
-
-photos:
-  photo_server_url: "http://localhost:8080/photos"
+  debug: false
 
 photo_preview:
   sizes:

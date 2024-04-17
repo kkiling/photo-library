@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/samber/lo"
 
+	"github.com/kkiling/photo-library/backend/api/internal/service/lock"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
@@ -20,29 +21,31 @@ const (
 )
 
 type Config struct {
-	MaxGoroutines int    `yaml:"max_goroutines"`
-	Limit         uint64 `yaml:"limit"`
+	MaxGoroutines int  `yaml:"max_goroutines"`
+	Limit         int  `yaml:"limit"`
+	Debug         bool `yaml:"debug"`
 }
 
 type RocketLockService interface {
-	Lock(ctx context.Context, key string, ttl time.Duration) (*model.RocketLockID, error)
-	UnLock(ctx context.Context, lockID *model.RocketLockID) error
+	Lock(ctx context.Context, key string, ttl time.Duration) (lock.RocketLockID, error)
+	UnLock(ctx context.Context, lockID lock.RocketLockID) error
 }
 
 type Storage interface {
-	GetPhotoById(ctx context.Context, id uuid.UUID) (*model.Photo, error)
-	GetPhotoProcessingStatuses(ctx context.Context, photoID uuid.UUID) ([]model.PhotoProcessingStatus, error)
-	GetUnprocessedPhotoIDs(ctx context.Context, lastProcessingStatus model.PhotoProcessingStatus, perPage uint64) ([]uuid.UUID, error)
-	AddPhotosProcessingStatus(ctx context.Context, photoID uuid.UUID, status model.PhotoProcessingStatus, success bool) error
+	GetPhotoById(ctx context.Context, id uuid.UUID) (model.Photo, error)
 	MakeNotValidPhoto(ctx context.Context, photoID uuid.UUID, error string) error
+	GetPhotoProcessingTypes(ctx context.Context, photoID uuid.UUID) ([]model.PhotoProcessing, error)
+	GetUnprocessedPhotoIDs(ctx context.Context, processingTypes []model.ProcessingType, limit int) ([]uuid.UUID, error)
+	AddPhotoProcessing(ctx context.Context, processing model.PhotoProcessing) error
 }
 
 type FileStore interface {
-	GetFileBody(ctx context.Context, fileName string) ([]byte, error)
+	GetFileBody(ctx context.Context, fileKey string) ([]byte, error)
 }
 
 type PhotoProcessor interface {
 	Init(ctx context.Context) error
+	Compensate(ctx context.Context, photoID uuid.UUID) error
 	Processing(ctx context.Context, photo model.Photo, photoBody []byte) (bool, error)
 	NeedLoadPhotoBody() bool
 }
@@ -53,7 +56,7 @@ type Service struct {
 	storage         Storage
 	lock            RocketLockService
 	fileStorage     FileStore
-	photoProcessors map[model.PhotoProcessingStatus]PhotoProcessor
+	photoProcessors map[model.ProcessingType]PhotoProcessor
 }
 
 func NewService(logger log.Logger,
@@ -61,7 +64,7 @@ func NewService(logger log.Logger,
 	storage Storage,
 	fileStorage FileStore,
 	lock RocketLockService,
-	photoProcessors map[model.PhotoProcessingStatus]PhotoProcessor,
+	photoProcessors map[model.ProcessingType]PhotoProcessor,
 ) *Service {
 	return &Service{
 		logger:          logger,
@@ -74,7 +77,7 @@ func NewService(logger log.Logger,
 }
 
 func (s *Service) Init(ctx context.Context) error {
-	for _, nextStatus := range model.PhotoProcessingStatuses {
+	for _, nextStatus := range model.ProcessingTypes {
 		processor, ok := s.photoProcessors[nextStatus]
 		if !ok {
 			return serviceerr.NotFoundf("not found processing service for photo status: %s", string(nextStatus))
@@ -90,77 +93,89 @@ func (s *Service) Init(ctx context.Context) error {
 }
 
 func (s *Service) processingPhoto(ctx context.Context, photoID uuid.UUID) error {
-	// Тут нужно ставить лок на обработку фотографии
-	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
-	defer cancel()
+	if !s.cfg.Debug {
+		// Тут нужно ставить лок на обработку фотографии
+		ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
+		defer cancel()
 
-	key := fmt.Sprintf("processing_photo_%s", photoID.String())
-	lockID, err := s.lock.Lock(ctx, key, defaultTimeout)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		err := s.lock.UnLock(ctx, lockID)
+		key := fmt.Sprintf("processing_photo_%s", photoID.String())
+		lockID, err := s.lock.Lock(ctx, key, defaultTimeout)
 		if err != nil {
-			s.logger.Errorf("unlock: %v", err)
+			return err
 		}
-	}()
+		defer func() {
+			err := s.lock.UnLock(ctx, lockID)
+			if err != nil {
+				s.logger.Errorf("unlock: %v", err)
+			}
+		}()
+	}
 
 	photo, err := s.storage.GetPhotoById(ctx, photoID)
 	if err != nil {
 		return serviceerr.NotFoundf("photo not found")
 	}
 
-	actualPhotoProcessingStatuses, err := s.storage.GetPhotoProcessingStatuses(ctx, photoID)
+	actualPhotoProcessingStatuses, err := s.storage.GetPhotoProcessingTypes(ctx, photoID)
 	if err != nil {
 		return serviceerr.MakeErr(err, "s.storage.GetPhotoProcessingStatuses")
 	}
 
 	var photoBody []byte
 
-	for _, nextStatus := range model.PhotoProcessingStatuses {
-		if lo.Contains(actualPhotoProcessingStatuses, nextStatus) {
+	for _, nextType := range model.ProcessingTypes {
+		if lo.ContainsBy(actualPhotoProcessingStatuses, func(item model.PhotoProcessing) bool {
+			return item.ProcessingType == nextType
+		}) {
 			continue
 		}
 
-		processor, ok := s.photoProcessors[nextStatus]
+		processor, ok := s.photoProcessors[nextType]
 		if !ok {
-			return serviceerr.NotFoundf("not found processing service for photo status: %s", string(nextStatus))
+			return serviceerr.NotFoundf("not found processing service for photo status: %s", string(nextType))
+		}
+
+		if compensateErr := processor.Compensate(ctx, photoID); compensateErr != nil {
+			compensateErr = fmt.Errorf("status %s: %w", nextType, compensateErr)
+			return serviceerr.MakeErr(compensateErr, "processor.Compensate")
 		}
 
 		// Ленивая загрузка фото, если нужно
 		if len(photoBody) == 0 && processor.NeedLoadPhotoBody() {
-			photoBody, err = s.fileStorage.GetFileBody(ctx, photo.FileName)
+			photoBody, err = s.fileStorage.GetFileBody(ctx, photo.FileKey)
 			if err != nil {
 				return serviceerr.MakeErr(err, "s.fileStorage.GetFileBody")
 			}
 		}
 
-		// TODO: С учетом того что группы постоянно меняются, сливаются и тд, пока не закончен процесс обработки фотографий
-		// Группы этих фотографий нельзя отдавать пользователям
-		// TODO: МОЖЕТ БЫТЬ ТАКАЯ СИТУАЦИЯ ЧТО Processing сохранит данные
-		// Но при этом AddPhotosProcessingStatus не обновит состояние
-		// Либо в одной транзакции, либо все Processing должны быть идемпотентными
-		success, err := processor.Processing(ctx, *photo, photoBody)
-		if err != nil {
-			err = fmt.Errorf("status %s: %w", nextStatus, err)
-			return serviceerr.MakeErr(err, "processor.Processing")
+		success, processingErr := processor.Processing(ctx, photo, photoBody)
+		if processingErr != nil {
+			processingErr = fmt.Errorf("status %s: %w", nextType, processingErr)
+			return serviceerr.MakeErr(processingErr, "processor.Processing")
 		}
 
-		if err := s.storage.AddPhotosProcessingStatus(ctx, photo.ID, nextStatus, success); err != nil {
-			err = fmt.Errorf("status %s: %w", nextStatus, err)
-			return serviceerr.MakeErr(err, "s.storage.UpdatePhotosProcessingStatus")
+		data := model.PhotoProcessing{
+			PhotoID:        photoID,
+			ProcessedAt:    time.Now(),
+			ProcessingType: nextType,
+			Success:        success,
+		}
+
+		addProcessingErr := s.storage.AddPhotoProcessing(ctx, data)
+		if addProcessingErr != nil {
+			addProcessingErr = fmt.Errorf("status %s: %w", nextType, addProcessingErr)
+			return serviceerr.MakeErr(err, "s.storage.AddPhotoProcessing")
 		}
 	}
 
 	return nil
 }
 
-func (s *Service) ProcessingPhotos(ctx context.Context) (model.ProcessingPhotos, error) {
-	var stats = model.ProcessingPhotos{
+func (s *Service) ProcessingPhotos(ctx context.Context) (model.PhotoProcessingResult, error) {
+	var stats = model.PhotoProcessingResult{
 		EOF: true,
 	}
-	photoIDs, err := s.storage.GetUnprocessedPhotoIDs(ctx, model.LastProcessingStatus, s.cfg.Limit)
+	photoIDs, err := s.storage.GetUnprocessedPhotoIDs(ctx, model.ProcessingTypes, s.cfg.Limit)
 	if err != nil {
 		return stats, serviceerr.MakeErr(err, "s.storage.GetUnprocessedPhotoIDs")
 	}
@@ -211,8 +226,8 @@ func (s *Service) ProcessingPhotos(ctx context.Context) (model.ProcessingPhotos,
 					}
 
 					if errors.Is(processedErr, serviceerr.ErrAlreadyLocked) {
-						stats.LockProcessedPhotos++
 						// Установленна блокировка, просто стоит подождать
+						stats.LockProcessedPhotos++
 						// s.logger.Errorf("ErrAlreadyLocked: %v: %v\n", photoID, processedErr)
 					} else if errors.Is(processedErr, serviceerr.ErrPhotoIsNotValid) { // Необходимо сделать фото невалидным
 						if notValidErr := s.storage.MakeNotValidPhoto(ctx, photoID, processedErr.Error()); notValidErr != nil {

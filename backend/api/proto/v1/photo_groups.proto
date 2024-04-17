@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package pb.v1;
+
+option go_package = "github.com/kkiling/photo-library/backend/sync_photos_server/pkg/common/gen/pbv1";
+
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+service PhotoGroupsService {
+  rpc GetPhotoGroups(GetPhotoGroupsRequest) returns (GetPhotoGroupsResponse) {
+    option (google.api.http) = {
+      get: "/v1/photos/groups";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Получение списка групп фотографий";
+    };
+  };
+  rpc GetPhotoGroup(GetPhotoGroupRequest) returns (GetPhotoGroupResponse) {
+    option (google.api.http) = {
+      get: "/v1/photos/groups/{group_id}";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Получение группы фотографий";
+    };
+  };
+  rpc SetMainPhotoGroup(SetMainPhotoGroupRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/v1/photos/groups/main_photo";
+      body: "*";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Изменить главную фотографию группы";
+    };
+  };
+}
+
+// MODELS
+message PhotoPreview {
+  string src = 1;
+  int32 width = 2;
+  int32 height = 3;
+  int32 size = 4;
+}
+
+message PhotoWithPreviews {
+  string id = 1;
+  PhotoPreview original = 2;
+  repeated PhotoPreview previews = 3;
+}
+
+message PhotoGroup {
+  string id = 1;
+  PhotoWithPreviews main_photo = 2;
+  int32 photos_count = 3;
+  repeated PhotoWithPreviews photos = 4;
+}
+
+// REQUEST/RESPONSE
+message GetPhotoGroupsRequest {
+  int32 page = 1;
+  int32 per_page = 2;
+}
+
+message GetPhotoGroupsResponse {
+  repeated PhotoGroup items = 1;
+  int32 total_items = 2;
+}
+
+message GetPhotoGroupRequest {
+  string group_id = 1;
+}
+
+message GetPhotoGroupResponse {
+  PhotoGroup item = 1;
+}
+
+message SetMainPhotoGroupRequest {
+  string group_id = 1;
+  string main_photo_id = 2;
+}

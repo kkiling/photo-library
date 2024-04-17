@@ -1,0 +1,91 @@
+syntax = "proto3";
+
+package pb.v1;
+
+option go_package = "github.com/kkiling/photo-library/backend/sync_photos_server/pkg/common/gen/pbv1";
+
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+service PhotoTagsService {
+  // --- PhotoTags ---
+  rpc AddPhotoTag(AddPhotoTagRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/v1/photos/{photo_id}/tags";
+      body: "*";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Добавление нового тега фотографии";
+    };
+  };
+  rpc GetPhotoTags(GetPhotoTagsRequest) returns (GetPhotoTagsResponse) {
+    option (google.api.http) = {
+      get: "/v1/photos/{photo_id}/tags";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Получение metadata группы";
+    };
+  };
+  rpc DeletePhotoTag(DeletePhotoTagRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/v1/tags/{tag_id}";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Удаление тега фотографии";
+    };
+  };
+  // --- TAGS ---
+  rpc GetTagCategories(GetTagCategoriesRequest) returns (GetTagCategoriesResponse) {
+    option (google.api.http) = {
+      get: "/v1/tags/categories";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Получение списка категорий тегов";
+    };
+  };
+  // TODO: Добавить новую категорию
+  // TODO: Удалить категорию * С проверкой использования тегов *
+  // TODO: Удалить все теги данной категории
+}
+
+// MODELS
+message PhotoTag {
+  string id = 1;
+  string name = 2;
+  string type = 3;
+  string color = 4;
+}
+
+message TagCategory {
+  string id = 1;
+  string type = 2;
+  string color = 3;
+}
+
+// REQUEST / RESPONSE
+message AddPhotoTagRequest {
+  string photo_id = 1;
+  string category_id = 2;
+  string tag_name = 3;
+}
+
+message GetPhotoTagsRequest {
+  string photo_id = 1;
+}
+
+message GetPhotoTagsResponse {
+  repeated PhotoTag tags = 1;
+}
+
+message DeletePhotoTagRequest {
+  string tag_id = 1;
+}
+
+message GetTagCategoriesRequest {
+}
+
+message GetTagCategoriesResponse {
+  repeated TagCategory items = 1;
+}

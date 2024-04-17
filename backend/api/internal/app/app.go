@@ -8,69 +8,63 @@ import (
 
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/fsstore"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/geo"
+	pgrepo2 "github.com/kkiling/photo-library/backend/api/internal/adapter/pgrepo"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/photoml"
-	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/pgrepo"
-	"github.com/kkiling/photo-library/backend/api/internal/handler"
-	photosservice "github.com/kkiling/photo-library/backend/api/internal/handler/photos_service"
-	syncphotosservice "github.com/kkiling/photo-library/backend/api/internal/handler/sync_photos_service"
-	tagsservice "github.com/kkiling/photo-library/backend/api/internal/handler/tags_service"
 	"github.com/kkiling/photo-library/backend/api/internal/service/lock"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
-	"github.com/kkiling/photo-library/backend/api/internal/service/photos"
+	"github.com/kkiling/photo-library/backend/api/internal/service/photos/photo_groups_service"
+	"github.com/kkiling/photo-library/backend/api/internal/service/photos/photo_metadata_service"
+	"github.com/kkiling/photo-library/backend/api/internal/service/photos/photo_tags_service"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing"
-	"github.com/kkiling/photo-library/backend/api/internal/service/processing/catalogtags"
-	"github.com/kkiling/photo-library/backend/api/internal/service/processing/exifphotodata"
-	"github.com/kkiling/photo-library/backend/api/internal/service/processing/metatags"
-	"github.com/kkiling/photo-library/backend/api/internal/service/processing/photogroup"
-	"github.com/kkiling/photo-library/backend/api/internal/service/processing/photometadata"
-	"github.com/kkiling/photo-library/backend/api/internal/service/processing/photopreview"
-	"github.com/kkiling/photo-library/backend/api/internal/service/processing/similarphotos"
-	"github.com/kkiling/photo-library/backend/api/internal/service/processing/vectorphoto"
-	"github.com/kkiling/photo-library/backend/api/internal/service/storageadapter"
-	"github.com/kkiling/photo-library/backend/api/internal/service/syncphotos"
-	"github.com/kkiling/photo-library/backend/api/internal/service/tagphoto"
+	"github.com/kkiling/photo-library/backend/api/internal/service/processing/catalog_tags"
+	"github.com/kkiling/photo-library/backend/api/internal/service/processing/exif_photo_data"
+	"github.com/kkiling/photo-library/backend/api/internal/service/processing/meta_tags"
+	"github.com/kkiling/photo-library/backend/api/internal/service/processing/photo_group"
+	"github.com/kkiling/photo-library/backend/api/internal/service/processing/photo_metadata"
+	"github.com/kkiling/photo-library/backend/api/internal/service/processing/photo_preview"
+	"github.com/kkiling/photo-library/backend/api/internal/service/processing/similar_photos"
+	"github.com/kkiling/photo-library/backend/api/internal/service/processing/vector_photo"
+	"github.com/kkiling/photo-library/backend/api/internal/service/storage"
+	"github.com/kkiling/photo-library/backend/api/internal/service/sync_photos"
+	"github.com/kkiling/photo-library/backend/api/internal/service/tags"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/config"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
+	"github.com/kkiling/photo-library/backend/api/pkg/common/server"
 )
 
 type App struct {
 	cfgProvider config.Provider
 	logger      log.Logger
+	// cfg
+	serverCfg server.Config
 	// connect
 	pgxPool *pgxpool.Pool
 	// adapter
-	storageAdapter *storageadapter.Adapter
-	pgRepo         *pgrepo.PhotoRepository
+	storageAdapter *storage.Adapter
 	fsStore        *fsstore.Store
 	photoML        *photoml.Service
-	// handler
-	syncPhotosServer    *handler.CustomServer
-	photosLibraryServer *handler.CustomServer
+	geoService     *geo.Service
 	// service
-	similarPhotos *similarphotos.Service
-	syncPhoto     *syncphotos.Service
-	geoService    *geo.Service
-	lockService   *lock.Service
-	//
-	tagPhoto *tagphoto.Service
-	photos   *photos.Service
+	lockService          *lock.Service
+	tagsServices         *tags.Service
+	photoGroupService    *photo_groups_service.Service
+	photoMetadataService *photo_metadata_service.Service
+	photoTagsService     *photo_tags_service.Service
+	syncPhotoService     *sync_photos.Service
 	// Processing
-	exifPhoto        *exifphotodata.Service
-	metaPhoto        *photometadata.Service
-	metaTagsPhoto    *metatags.Service
-	catalogTagsPhoto *catalogtags.Service
-	vectorPhoto      *vectorphoto.Service
-	photoGroup       *photogroup.Service
-	photoPreview     *photopreview.Service
+	similarPhotos    *similar_photos.Processing
+	exifPhoto        *exif_photo_data.Processing
+	metaPhoto        *photo_metadata.Processing
+	metaTagsPhoto    *meta_tags.Processing
+	catalogTagsPhoto *catalog_tags.Processing
+	vectorPhoto      *vector_photo.Processing
+	photoGroup       *photo_group.Processing
+	photoPreview     *photo_preview.Processing
 	processingPhotos *processing.Service
 }
 
 func NewApp(cfgProvider config.Provider) *App {
 	return &App{cfgProvider: cfgProvider}
-}
-
-func (a *App) Logger() log.Logger {
-	return a.logger.Named("application")
 }
 
 func (a *App) Create(ctx context.Context) error {
@@ -83,6 +77,8 @@ func (a *App) Create(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("getServerConfig: %w", err)
 	}
+
+	a.serverCfg = serverCfg
 
 	fsStoreCfg, err := a.getFsStoreConfig()
 	if err != nil {
@@ -109,153 +105,143 @@ func (a *App) Create(ctx context.Context) error {
 		return fmt.Errorf("getPhotoGroupConfig: %w", err)
 	}
 
-	photosCfg, err := a.getPhotosConfig()
-	if err != nil {
-		return fmt.Errorf("getPhotosConfig: %w", err)
-	}
-
 	photoPreviewCfg, err := a.getPhotoPreviewConfig()
 	if err != nil {
 		return fmt.Errorf("getPhotoPreviewConfig: %w", err)
 	}
 
-	pool, err := pgrepo.NewPgConn(ctx, pgCfg)
+	pool, err := pgrepo2.NewPgConn(ctx, pgCfg)
 	if err != nil {
 		return fmt.Errorf("newPgConn: %w", err)
 	}
 
 	a.pgxPool = pool
 	a.logger = log.NewLogger()
-	a.pgRepo = pgrepo.NewPhotoRepository(a.pgxPool)
-	a.storageAdapter = storageadapter.NewStorageAdapter(a.pgRepo)
+	a.storageAdapter = storage.NewStorageAdapter(a.pgxPool)
 	a.fsStore = fsstore.NewStore(fsStoreCfg)
 	a.geoService = geo.NewService(a.logger.Named("geo_service"))
 	a.lockService = lock.NewService(a.storageAdapter)
-
 	a.photoML = photoml.NewService(
 		a.logger.Named("photo_ml"),
 		photoMlCfg,
 	)
-	a.tagPhoto = tagphoto.NewService(
+	a.tagsServices = tags.NewService(
 		a.storageAdapter,
 	)
-	a.photos = photos.NewService(
-		a.logger.Named("photos"),
-		photosCfg,
-		a.tagPhoto,
+	a.photoGroupService = photo_groups_service.NewService(
+		a.logger.Named("photo_groups_service"),
 		a.fsStore,
 		a.storageAdapter,
 	)
-	a.syncPhoto = syncphotos.NewService(
+	a.photoMetadataService = photo_metadata_service.NewService(
+		a.logger.Named("photo_metadata_service"),
+		a.storageAdapter,
+	)
+	a.photoTagsService = photo_tags_service.NewService(
+		a.logger.Named("photo_tags_service"),
+		a.tagsServices,
+		a.storageAdapter,
+	)
+	a.syncPhotoService = sync_photos.NewService(
 		a.logger.Named("sync_photo"),
 		a.storageAdapter,
 		a.fsStore,
 	)
-	a.exifPhoto = exifphotodata.NewService(
+	a.exifPhoto = exif_photo_data.NewService(
 		a.logger.Named("exif_photo"),
 		a.storageAdapter,
 	)
-	a.metaPhoto = photometadata.NewService(
+	a.metaPhoto = photo_metadata.NewService(
 		a.logger.Named("meta_photo"),
 		a.storageAdapter,
 	)
-	a.metaTagsPhoto = metatags.NewService(
+	a.metaTagsPhoto = meta_tags.NewService(
 		a.logger.Named("meta_photo_service_photo"),
-		a.tagPhoto,
+		a.tagsServices,
 		a.storageAdapter,
 		a.geoService,
 	)
-	a.catalogTagsPhoto = catalogtags.NewService(
+	a.catalogTagsPhoto = catalog_tags.NewService(
 		a.logger.Named("catalog_photo_service_photo"),
-		a.tagPhoto,
+		a.tagsServices,
 		a.storageAdapter,
 	)
-	a.vectorPhoto = vectorphoto.NewService(
+	a.vectorPhoto = vector_photo.NewService(
 		a.logger.Named("vector_photo"),
 		a.storageAdapter,
 		a.photoML,
 	)
-	a.photoGroup = photogroup.NewService(
+	a.photoGroup = photo_group.NewService(
 		a.logger.Named("photo_group"),
 		photoGroupCfg,
 		a.storageAdapter,
 		a.lockService,
 	)
-	a.photoPreview = photopreview.NewService(
+	a.photoPreview = photo_preview.NewService(
 		a.logger.Named("photo_preview"),
 		photoPreviewCfg,
 		a.storageAdapter,
 		a.fsStore,
 	)
-	a.similarPhotos = similarphotos.NewService(
+	a.similarPhotos = similar_photos.NewService(
 		a.logger.Named("similar_photos"),
 		getSimilarPhotosCfg,
 		a.storageAdapter,
 		a.lockService,
 	)
-
 	a.processingPhotos = processing.NewService(
 		a.logger.Named("processing_photos"),
 		processingPhotosCfg,
 		a.storageAdapter,
 		a.fsStore,
 		a.lockService,
-		map[model.PhotoProcessingStatus]processing.PhotoProcessor{
+		map[model.ProcessingType]processing.PhotoProcessor{
 			model.ExifDataProcessing:           a.exifPhoto,
 			model.MetaDataProcessing:           a.metaPhoto,
 			model.CatalogTagsProcessing:        a.catalogTagsPhoto,
 			model.MetaTagsProcessing:           a.metaTagsPhoto,
 			model.PhotoVectorProcessing:        a.vectorPhoto,
 			model.SimilarCoefficientProcessing: a.similarPhotos,
-			model.PhotoGroupProcessing:         a.photoGroup,
 			model.PhotoPreviewProcessing:       a.photoPreview,
+			model.PhotoGroupProcessing:         a.photoGroup,
 		},
-	)
-
-	a.syncPhotosServer = handler.NewCustomServer(
-		a.logger.Named("sync_photos_server"),
-		serverCfg,
-		syncphotosservice.NewHandlerSyncPhotosService(
-			a.logger.Named("sync_photo_service_photo"),
-			a.syncPhoto,
-		),
-	)
-
-	a.photosLibraryServer = handler.NewCustomServer(
-		a.logger.Named("photos_library_server"),
-		serverCfg,
-		photosservice.NewHandlerPhotosService(
-			a.logger.Named("photos_service_handler"),
-			a.photos,
-		),
-		tagsservice.NewHandlerTagsService(
-			a.logger.Named("tags_service_handler"),
-		),
 	)
 
 	return nil
 }
 
-func (a *App) StartSyncPhotosServer(ctx context.Context) error {
-	return a.syncPhotosServer.Start(ctx, syncPhotosSwaggerName)
-}
-
-func (a *App) StopSyncPhotosServer() {
-	a.syncPhotosServer.Stop()
-}
-
-func (a *App) StartPhotosLibraryServer(ctx context.Context) error {
-	return a.photosLibraryServer.Start(ctx, photoLibrarySwaggerName)
-}
-
-func (a *App) StopPhotosLibraryServer() {
-	a.photosLibraryServer.Stop()
+func (a *App) GetLogger() log.Logger {
+	return a.logger
 }
 
 func (a *App) GetProcessingPhotos() *processing.Service {
 	return a.processingPhotos
 }
 
-func (a *App) GetLogger() log.Logger {
-	return a.logger
+func (a *App) GetServerConfig() server.Config {
+	return a.serverCfg
+}
+
+func (a *App) GetLockService() *lock.Service {
+	return a.lockService
+}
+
+func (a *App) GetTagsServices() *tags.Service {
+	return a.tagsServices
+}
+
+func (a *App) GetPhotoGroupService() *photo_groups_service.Service {
+	return a.photoGroupService
+}
+
+func (a *App) GetPhotoMetadataService() *photo_metadata_service.Service {
+	return a.photoMetadataService
+}
+
+func (a *App) GetPhotoTagsService() *photo_tags_service.Service {
+	return a.photoTagsService
+}
+
+func (a *App) GetSyncPhotoService() *sync_photos.Service {
+	return a.syncPhotoService
 }

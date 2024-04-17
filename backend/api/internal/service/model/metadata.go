@@ -17,11 +17,10 @@ type PhotoMetadata struct {
 	SizeBytes   int
 	WidthPixel  int
 	HeightPixel int
-	// Дата и время снимка берем из exif // если нет то пробуем из имени файла
+	// Дата и время снимка берем из exif, если нет то пробуем из имени файла
 	DateTime *time.Time
-	// Дата последнего обновления файла
-	// Берем из файла
-	UpdateAt time.Time
+	// Дата последнего обновления файла (берем из файла)
+	UpdatedAt time.Time
 	// Geo локация
 	Geo *Geo
 }

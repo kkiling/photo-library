@@ -4,19 +4,13 @@ import (
 	"fmt"
 
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/fsstore"
+	"github.com/kkiling/photo-library/backend/api/internal/adapter/pgrepo"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/photoml"
-	"github.com/kkiling/photo-library/backend/api/internal/adapter/storage/pgrepo"
-	"github.com/kkiling/photo-library/backend/api/internal/service/photos"
 	"github.com/kkiling/photo-library/backend/api/internal/service/processing"
-	"github.com/kkiling/photo-library/backend/api/internal/service/processing/photogroup"
-	"github.com/kkiling/photo-library/backend/api/internal/service/processing/photopreview"
-	"github.com/kkiling/photo-library/backend/api/internal/service/processing/similarphotos"
+	"github.com/kkiling/photo-library/backend/api/internal/service/processing/photo_group"
+	"github.com/kkiling/photo-library/backend/api/internal/service/processing/photo_preview"
+	"github.com/kkiling/photo-library/backend/api/internal/service/processing/similar_photos"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/server"
-)
-
-const (
-	photoLibrarySwaggerName = "photo_library"
-	syncPhotosSwaggerName   = "sync_photos"
 )
 
 // Config
@@ -28,7 +22,6 @@ const (
 	ProcessingPhotosName = "processing_photo"
 	SimilarPhotosName    = "similar_photo"
 	PhotoGroupName       = "photo_group"
-	PhotosName           = "photos"
 	PhotoPreviewName     = "photo_preview"
 )
 
@@ -84,41 +77,31 @@ func (a *App) getProcessingPhotosConfig() (processing.Config, error) {
 	return config, nil
 }
 
-func (a *App) getSimilarPhotosConfig() (similarphotos.Config, error) {
-	var config similarphotos.Config
+func (a *App) getSimilarPhotosConfig() (similar_photos.Config, error) {
+	var config similar_photos.Config
 	err := a.cfgProvider.PopulateByKey(SimilarPhotosName, &config)
 	if err != nil {
-		return similarphotos.Config{}, fmt.Errorf("PopulateByKey: %w", err)
+		return similar_photos.Config{}, fmt.Errorf("PopulateByKey: %w", err)
 	}
 
 	return config, nil
 }
 
-func (a *App) getPhotoGroupConfig() (photogroup.Config, error) {
-	var config photogroup.Config
+func (a *App) getPhotoGroupConfig() (photo_group.Config, error) {
+	var config photo_group.Config
 	err := a.cfgProvider.PopulateByKey(PhotoGroupName, &config)
 	if err != nil {
-		return photogroup.Config{}, fmt.Errorf("PopulateByKey: %w", err)
+		return photo_group.Config{}, fmt.Errorf("PopulateByKey: %w", err)
 	}
 
 	return config, nil
 }
 
-func (a *App) getPhotosConfig() (photos.Config, error) {
-	var config photos.Config
-	err := a.cfgProvider.PopulateByKey(PhotosName, &config)
-	if err != nil {
-		return photos.Config{}, fmt.Errorf("PopulateByKey: %w", err)
-	}
-
-	return config, nil
-}
-
-func (a *App) getPhotoPreviewConfig() (photopreview.Config, error) {
-	var config photopreview.Config
+func (a *App) getPhotoPreviewConfig() (photo_preview.Config, error) {
+	var config photo_preview.Config
 	err := a.cfgProvider.PopulateByKey(PhotoPreviewName, &config)
 	if err != nil {
-		return photopreview.Config{}, fmt.Errorf("PopulateByKey: %w", err)
+		return photo_preview.Config{}, fmt.Errorf("PopulateByKey: %w", err)
 	}
 
 	return config, nil

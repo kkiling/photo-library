@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package pb.v1;
+
+option go_package = "github.com/kkiling/photo-library/backend/sync_photos_server/pkg/common/gen/pbv1";
+
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+service PhotoMetadataService {
+  // --- MetaData ---
+  rpc GetPhotoMetaData(GetPhotoMetaDataRequest) returns (Metadata) {
+    option (google.api.http) = {
+      get: "/v1/photos/{photo_id}/metadata";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Получение metadata группы";
+    };
+  };
+};
+
+// MODELS
+message Geo {
+  double Latitude = 1;
+  double Longitude = 2;
+}
+
+message Metadata {
+  optional string model_info = 1;
+  int32 size_bytes = 2;
+  int32 width_pixel = 3;
+  int32 height_pixel = 4;
+  google.protobuf.Timestamp data_time = 5;
+  google.protobuf.Timestamp updated_at = 6;
+  Geo geo = 7;
+}
+
+// REQUEST / RESPONSE
+message GetPhotoMetaDataRequest {
+  string photo_id = 1;
+}
+
+message GetPhotoMetaDataResponse {
+   Metadata item = 1;
+}

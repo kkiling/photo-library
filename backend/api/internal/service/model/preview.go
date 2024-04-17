@@ -5,8 +5,9 @@ import "github.com/google/uuid"
 type PhotoPreview struct {
 	ID          uuid.UUID
 	PhotoID     uuid.UUID
-	FileName    string
+	FileKey     string
 	WidthPixel  int
 	HeightPixel int
 	SizePixel   int
+	Original    bool
 }

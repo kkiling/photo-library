@@ -13,5 +13,5 @@ type Location struct {
 	CreatedAt time.Time
 	Latitude  float64
 	Longitude float64
-	Geo       geo.Address
+	Address   geo.Address
 }

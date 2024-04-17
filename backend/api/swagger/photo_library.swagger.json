@@ -6,10 +6,13 @@
   },
   "tags": [
     {
-      "name": "PhotosService"
+      "name": "PhotoGroupsService"
     },
     {
-      "name": "TagsService"
+      "name": "PhotoMetadataService"
+    },
+    {
+      "name": "PhotoTagsService"
     }
   ],
   "host": "localhost:8080",
@@ -26,12 +29,12 @@
     "/v1/photos/groups": {
       "get": {
         "summary": "Получение списка групп фотографий",
-        "operationId": "PhotosService_GetPhotoGroups",
+        "operationId": "PhotoGroupsService_GetPhotoGroups",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/PaginatedPhotoGroups"
+              "$ref": "#/definitions/GetPhotoGroupsResponse"
             }
           },
           "default": {
@@ -58,14 +61,14 @@
           }
         ],
         "tags": [
-          "PhotosService"
+          "PhotoGroupsService"
         ]
       }
     },
     "/v1/photos/groups/main_photo": {
       "post": {
         "summary": "Изменить главную фотографию группы",
-        "operationId": "PhotosService_SetMainPhotoGroup",
+        "operationId": "PhotoGroupsService_SetMainPhotoGroup",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -92,19 +95,19 @@
           }
         ],
         "tags": [
-          "PhotosService"
+          "PhotoGroupsService"
         ]
       }
     },
     "/v1/photos/groups/{group_id}": {
       "get": {
         "summary": "Получение группы фотографий",
-        "operationId": "PhotosService_GetPhotoGroup",
+        "operationId": "PhotoGroupsService_GetPhotoGroup",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/PhotoGroupData"
+              "$ref": "#/definitions/GetPhotoGroupResponse"
             }
           },
           "default": {
@@ -123,19 +126,19 @@
           }
         ],
         "tags": [
-          "PhotosService"
+          "PhotoGroupsService"
         ]
       }
     },
-    "/v1/tags": {
+    "/v1/photos/{photo_id}/metadata": {
       "get": {
-        "summary": "Получение списка категорий тегов",
-        "operationId": "TagsService_GetTagsCategory",
+        "summary": "Получение metadata группы",
+        "operationId": "PhotoMetadataService_GetPhotoMetaData",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/GetTagsCategoryResponse"
+              "$ref": "#/definitions/Metadata"
             }
           },
           "default": {
@@ -147,32 +150,155 @@
         },
         "parameters": [
           {
-            "name": "page",
-            "in": "query",
-            "required": false,
-            "type": "integer",
-            "format": "int32"
-          },
-          {
-            "name": "per_page",
-            "in": "query",
-            "required": false,
-            "type": "integer",
-            "format": "int32"
+            "name": "photo_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
           }
         ],
         "tags": [
-          "TagsService"
-        ],
-        "security": [
-          {
-            "Bearer": []
+          "PhotoMetadataService"
+        ]
+      }
+    },
+    "/v1/photos/{photo_id}/tags": {
+      "get": {
+        "summary": "Получение metadata группы",
+        "operationId": "PhotoTagsService_GetPhotoTags",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/GetPhotoTagsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/Status"
+            }
           }
+        },
+        "parameters": [
+          {
+            "name": "photo_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PhotoTagsService"
+        ]
+      },
+      "post": {
+        "summary": "Добавление нового тега фотографии",
+        "operationId": "PhotoTagsService_AddPhotoTag",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/Status"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "photo_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/AddPhotoTagBody"
+            }
+          }
+        ],
+        "tags": [
+          "PhotoTagsService"
+        ]
+      }
+    },
+    "/v1/tags/categories": {
+      "get": {
+        "summary": "Получение списка категорий тегов",
+        "operationId": "PhotoTagsService_GetTagCategories",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/GetTagCategoriesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/Status"
+            }
+          }
+        },
+        "tags": [
+          "PhotoTagsService"
+        ]
+      }
+    },
+    "/v1/tags/{tag_id}": {
+      "delete": {
+        "summary": "Удаление тега фотографии",
+        "operationId": "PhotoTagsService_DeletePhotoTag",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/Status"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "tag_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PhotoTagsService"
         ]
       }
     }
   },
   "definitions": {
+    "AddPhotoTagBody": {
+      "type": "object",
+      "properties": {
+        "category_id": {
+          "type": "string"
+        },
+        "tag_name": {
+          "type": "string"
+        }
+      },
+      "title": "REQUEST / RESPONSE"
+    },
     "Any": {
       "type": "object",
       "properties": {
@@ -193,18 +319,54 @@
           "type": "number",
           "format": "double"
         }
-      }
+      },
+      "title": "MODELS"
     },
-    "GetTagsCategoryResponse": {
+    "GetPhotoGroupResponse": {
       "type": "object",
       "properties": {
-        "page": {
-          "type": "integer",
-          "format": "int32"
+        "item": {
+          "$ref": "#/definitions/PhotoGroup"
+        }
+      }
+    },
+    "GetPhotoGroupsResponse": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/PhotoGroup"
+          }
         },
-        "per_page": {
+        "total_items": {
           "type": "integer",
           "format": "int32"
+        }
+      }
+    },
+    "GetPhotoTagsResponse": {
+      "type": "object",
+      "properties": {
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/PhotoTag"
+          }
+        }
+      }
+    },
+    "GetTagCategoriesResponse": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/TagCategory"
+          }
         }
       }
     },
@@ -230,7 +392,7 @@
           "type": "string",
           "format": "date-time"
         },
-        "update_at": {
+        "updated_at": {
           "type": "string",
           "format": "date-time"
         },
@@ -239,38 +401,7 @@
         }
       }
     },
-    "PaginatedPhotoGroups": {
-      "type": "object",
-      "properties": {
-        "items": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/PhotoGroup"
-          }
-        },
-        "total_items": {
-          "type": "integer",
-          "format": "int32"
-        }
-      }
-    },
     "PhotoGroup": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "main_photo": {
-          "$ref": "#/definitions/PhotoWithPreviews"
-        },
-        "photos_count": {
-          "type": "integer",
-          "format": "int32"
-        }
-      }
-    },
-    "PhotoGroupData": {
       "type": "object",
       "properties": {
         "id": {
@@ -288,16 +419,6 @@
           "items": {
             "type": "object",
             "$ref": "#/definitions/PhotoWithPreviews"
-          }
-        },
-        "meta_data": {
-          "$ref": "#/definitions/Metadata"
-        },
-        "tags": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/PhotoTag"
           }
         }
       }
@@ -320,7 +441,8 @@
           "type": "integer",
           "format": "int32"
         }
-      }
+      },
+      "title": "MODELS"
     },
     "PhotoTag": {
       "type": "object",
@@ -337,7 +459,8 @@
         "color": {
           "type": "string"
         }
-      }
+      },
+      "title": "MODELS"
     },
     "PhotoWithPreviews": {
       "type": "object",
@@ -345,16 +468,8 @@
         "id": {
           "type": "string"
         },
-        "src": {
-          "type": "string"
-        },
-        "width": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "height": {
-          "type": "integer",
-          "format": "int32"
+        "original": {
+          "$ref": "#/definitions/PhotoPreview"
         },
         "previews": {
           "type": "array",
@@ -368,6 +483,9 @@
     "SetMainPhotoGroupRequest": {
       "type": "object",
       "properties": {
+        "group_id": {
+          "type": "string"
+        },
         "main_photo_id": {
           "type": "string"
         }
@@ -389,6 +507,20 @@
             "type": "object",
             "$ref": "#/definitions/Any"
           }
+        }
+      }
+    },
+    "TagCategory": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "color": {
+          "type": "string"
         }
       }
     }

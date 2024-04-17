@@ -7,19 +7,20 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 )
 
 type Service struct {
 	logger log.Logger
-	//mu     sync.Mutex
+	mu     sync.Mutex
 }
 
 func NewService(logger log.Logger) *Service {
 	return &Service{
 		logger: logger,
-		//mu:     sync.Mutex{},
+		mu:     sync.Mutex{},
 	}
 }
 
@@ -40,6 +41,10 @@ func response(ctx context.Context, url string, obj *geocodeResponse) error {
 		return err
 	}
 
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("geocodeService returned %s", resp.Status)
+	}
+
 	defer resp.Body.Close()
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -47,12 +52,10 @@ func response(ctx context.Context, url string, obj *geocodeResponse) error {
 	}
 
 	body := strings.Trim(string(data), " []")
-	//DebugLogger.Printf("Received response: %s\n", body)
 	if body == "" {
 		return nil
 	}
 	if err := json.Unmarshal([]byte(body), obj); err != nil {
-		//ErrLogger.Printf("Error unmarshalling response: %s\n", err.Error())
 		return err
 	}
 
@@ -60,13 +63,18 @@ func response(ctx context.Context, url string, obj *geocodeResponse) error {
 }
 
 func (s *Service) ReverseGeocode(ctx context.Context, lat, lng float64) (*Address, error) {
-	// s.mu.Lock()
+	// https://operations.osmfoundation.org/policies/nominatim/
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	res := geocodeResponse{}
 	geoUrl := reverseGeocodeURL(lat, lng)
-	if err := response(ctx, geoUrl, &res); err != nil {
-		return nil, fmt.Errorf("ReverseGeocode: %w", err)
+	if geoUrl == "https://nominatim.openstreetmap.org/reverse?format=json&lat=57.629967&lon=39.895862" {
+		fmt.Printf("")
 	}
-	// s.mu.Unlock()
+	if err := response(ctx, geoUrl, &res); err != nil {
+		return nil, fmt.Errorf("ReverseGeocode (%s): %w", geoUrl, err)
+	}
 
 	return res.Address(), nil
 }
