@@ -4,12 +4,11 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
-	"github.com/kkiling/photo-library/backend/api/internal/service/photos/photo_tags_service"
 	desc "github.com/kkiling/photo-library/backend/api/pkg/common/gen/proto/v1"
 )
 
-func mapTags(tags []photo_tags_service.TagWithCategory) []*desc.PhotoTag {
-	return lo.Map(tags, func(tag photo_tags_service.TagWithCategory, index int) *desc.PhotoTag {
+func mapTags(tags []model.TagWithCategoryDTO) []*desc.PhotoTag {
+	return lo.Map(tags, func(tag model.TagWithCategoryDTO, index int) *desc.PhotoTag {
 		return &desc.PhotoTag{
 			Id:    tag.ID.String(),
 			Name:  tag.Name,

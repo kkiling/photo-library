@@ -9,16 +9,16 @@ import (
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 )
 
-type ImageCV struct {
+type imageCsv struct {
 	mat gocv.Mat
 }
 
-func (icv *ImageCV) Size() (int, int) {
+func (icv *imageCsv) Size() (int, int) {
 	dim := icv.mat.Size()
 	return dim[1], dim[0]
 }
 
-func (icv *ImageCV) Load(inputData []byte) error {
+func (icv *imageCsv) Load(inputData []byte) error {
 	var err error
 	icv.mat, err = gocv.IMDecode(inputData, gocv.IMReadUnchanged)
 	if err != nil {
@@ -27,7 +27,7 @@ func (icv *ImageCV) Load(inputData []byte) error {
 	return nil
 }
 
-func (icv *ImageCV) ToBytes(fileExt model.PhotoExtension) ([]byte, error) {
+func (icv *imageCsv) ToBytes(fileExt model.PhotoExtension) ([]byte, error) {
 	ext := gocv.JPEGFileExt
 	switch fileExt {
 	case model.PhotoExtensionJpeg:
@@ -49,34 +49,34 @@ func (icv *ImageCV) ToBytes(fileExt model.PhotoExtension) ([]byte, error) {
 	return dst, nil
 }
 
-func (icv *ImageCV) Close() {
+func (icv *imageCsv) Close() {
 	_ = icv.mat.Close()
 }
 
 //
-//func (icv *ImageCV) Crop(left, top, right, bottom int) *ImageCV {
+//func (icv *imageCsv) Crop(left, top, right, bottom int) *imageCsv {
 //	croppedMat := icv.mat.Region(image.Rect(left, top, right, bottom))
 //	resultMat := croppedMat.Clone()
-//	return &ImageCV{mat: resultMat}
+//	return &imageCsv{mat: resultMat}
 //}
 
-func (icv *ImageCV) Resize(width, height int) *ImageCV {
+func (icv *imageCsv) Resize(width, height int) *imageCsv {
 	resizeMat := gocv.NewMat()
 	gocv.Resize(icv.mat, &resizeMat, image.Pt(width, height), 0, 0, gocv.InterpolationArea)
 	// _ = icv.mat.Close()
 	// icv.mat = resizeMat
-	return &ImageCV{mat: resizeMat}
+	return &imageCsv{mat: resizeMat}
 }
 
 /*
-func (icv *ImageCV) FlipTB() *ImageCV {
+func (icv *imageCsv) FlipTB() *imageCsv {
 	dstMat := gocv.NewMatWithSize(icv.mat.Rows(), icv.mat.Cols(), icv.mat.Type())
 	gocv.Flip(icv.mat, &dstMat, 0)
-	return &ImageCV{mat: dstMat}
+	return &imageCsv{mat: dstMat}
 }
 
-func (icv *ImageCV) FlipLR() *ImageCV {
+func (icv *imageCsv) FlipLR() *imageCsv {
 	dstMat := gocv.NewMatWithSize(icv.mat.Rows(), icv.mat.Cols(), icv.mat.Type())
 	gocv.Flip(icv.mat, &dstMat, 1)
-	return &ImageCV{mat: dstMat}
+	return &imageCsv{mat: dstMat}
 }*/

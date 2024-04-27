@@ -82,7 +82,7 @@ func (r *Adapter) SaveGroup(ctx context.Context, group model.PhotoGroup) error {
 
 		paramsAdd := photo_library.AddPhotoIDToGroupParams{
 			PhotoID: group.MainPhotoID,
-			GroupID: group.ID,
+			ID: group.ID,
 		}
 		if err := queries.AddPhotoIDToGroup(ctxTx, paramsAdd); err != nil {
 			return err

@@ -6,7 +6,7 @@ import (
 
 	"google.golang.org/grpc"
 
-	"github.com/kkiling/photo-library/backend/api/internal/service/sync_photos"
+	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	desc "github.com/kkiling/photo-library/backend/api/pkg/common/gen/proto/v1"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/server"
@@ -14,7 +14,7 @@ import (
 )
 
 type SyncPhotosService interface {
-	UploadPhoto(ctx context.Context, form *sync_photos.SyncPhotoRequest) (*sync_photos.SyncPhotoResponse, error)
+	UploadPhoto(ctx context.Context, form *model.SyncPhotoRequest) (*model.SyncPhotoResponse, error)
 }
 
 type SyncPhotoHandler struct {

@@ -3,11 +3,11 @@ package codes
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
 
 	"github.com/kkiling/photo-library/backend/api/internal/service"
+	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 )
@@ -15,9 +15,9 @@ import (
 // Storage интерфейс хранения данных
 type Storage interface {
 	service.Transactor
-	SaveConfirmCode(ctx context.Context, confirmCode ConfirmCode) error
-	GetConfirmCode(ctx context.Context, code string) (ConfirmCode, error)
-	UpdateConfirmCode(ctx context.Context, personID uuid.UUID, update UpdateConfirmCode) error
+	SaveConfirmCode(ctx context.Context, confirmCode model.ConfirmCode) error
+	GetConfirmCode(ctx context.Context, code string) (model.ConfirmCode, error)
+	UpdateConfirmCode(ctx context.Context, personID uuid.UUID, confirmCodeType model.ConfirmCodeType, update model.UpdateConfirmCode) error
 }
 
 // Service сервис для работы с кодами повержения
@@ -35,19 +35,18 @@ func NewService(logger log.Logger, storage Storage) *Service {
 }
 
 // GetActiveConfirmCode получение активного кода подтверждения
-func (s *Service) GetActiveConfirmCode(ctx context.Context, code string) (ConfirmCode, error) {
+func (s *Service) GetActiveConfirmCode(ctx context.Context, code string) (model.ConfirmCode, error) {
 	return s.storage.GetConfirmCode(ctx, code)
 }
 
 // SendConfirmCode отправка кода подтверждения
-func (s *Service) SendConfirmCode(ctx context.Context, personID uuid.UUID, confirmType ConfirmCodeType) error {
-	code := ConfirmCode{
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-		Code:      uuid.NewString(), // TODO: сделать более человеческий код
-		PersonID:  personID,
-		Type:      confirmType,
-		Active:    true,
+func (s *Service) SendConfirmCode(ctx context.Context, personID uuid.UUID, confirmType model.ConfirmCodeType) error {
+	code := model.ConfirmCode{
+		Base:     model.NewBase(),
+		Code:     uuid.NewString(), // TODO: сделать более человеческий код
+		PersonID: personID,
+		Type:     confirmType,
+		Active:   true,
 	}
 
 	// Сначала отправляем, потом сохраняем
@@ -65,13 +64,12 @@ func (s *Service) SendConfirmCode(ctx context.Context, personID uuid.UUID, confi
 }
 
 // DeactivateCode деактивация кода подтверждения
-func (s *Service) DeactivateCode(ctx context.Context, personID uuid.UUID, confirmType ConfirmCodeType) error {
-	update := UpdateConfirmCode{
-		UpdatedAt: time.Now(),
-		Type:      confirmType,
-		Active:    false,
+func (s *Service) DeactivateCode(ctx context.Context, personID uuid.UUID, confirmCodeType model.ConfirmCodeType) error {
+	update := model.UpdateConfirmCode{
+		BaseUpdate: model.NewBaseUpdate(),
+		Active:     false,
 	}
-	if err := s.storage.UpdateConfirmCode(ctx, personID, update); err != nil {
+	if err := s.storage.UpdateConfirmCode(ctx, personID, confirmCodeType, update); err != nil {
 		return serviceerr.MakeErr(err, "s.storage.UpdateConfirmCode")
 	}
 	return nil

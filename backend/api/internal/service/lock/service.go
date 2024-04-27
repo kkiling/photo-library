@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
 )
 
@@ -14,8 +15,8 @@ var RocketLockSafetyMargin = 500 * time.Millisecond
 
 // Storage .
 type Storage interface {
-	RocketLock(ctx context.Context, key string, ttl time.Duration) (RocketLockID, error)
-	RocketLockDelete(ctx context.Context, lockID RocketLockID) error
+	RocketLock(ctx context.Context, key string, ttl time.Duration) (model.RocketLockID, error)
+	RocketLockDelete(ctx context.Context, lockID model.RocketLockID) error
 }
 
 // Service .
@@ -44,25 +45,25 @@ func validateLockClientRequest(key string, ttl time.Duration) error {
 	return nil
 }
 
-func (s *Service) Lock(ctx context.Context, key string, ttl time.Duration) (RocketLockID, error) {
+func (s *Service) Lock(ctx context.Context, key string, ttl time.Duration) (model.RocketLockID, error) {
 	err := validateLockClientRequest(key, ttl)
 	if err != nil {
-		return RocketLockID{}, serviceerr.InvalidInputErr(err, "validateLockClientRequest")
+		return model.RocketLockID{}, serviceerr.InvalidInputErr(err, "validateLockClientRequest")
 	}
 
 	lockID, err := s.storage.RocketLock(ctx, key, ttl)
 	switch {
 	case err == nil:
 	case errors.Is(err, serviceerr.ErrAlreadyLocked):
-		return RocketLockID{}, err
+		return model.RocketLockID{}, err
 	default:
-		return RocketLockID{}, fmt.Errorf("s.storage.RocketLock: %w", err)
+		return model.RocketLockID{}, fmt.Errorf("s.storage.RocketLock: %w", err)
 	}
 
 	return lockID, nil
 }
 
-func (s *Service) UnLock(ctx context.Context, lockID RocketLockID) error {
+func (s *Service) UnLock(ctx context.Context, lockID model.RocketLockID) error {
 	err := s.storage.RocketLockDelete(ctx, lockID)
 	if err != nil {
 		return fmt.Errorf("s.storage.RocketLockDelete: %w", err)

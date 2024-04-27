@@ -42,7 +42,7 @@ func NewService(logger log.Logger, storage Storage, fileStorage FileStore) *Serv
 	}
 }
 
-func (s *Service) UploadPhoto(ctx context.Context, form *SyncPhotoRequest) (*SyncPhotoResponse, error) {
+func (s *Service) UploadPhoto(ctx context.Context, form *model.SyncPhotoRequest) (*model.SyncPhotoResponse, error) {
 	if len(form.Paths) == 0 {
 		return nil, serviceerr.InvalidInputf("paths must not be empty")
 	}
@@ -51,7 +51,7 @@ func (s *Service) UploadPhoto(ctx context.Context, form *SyncPhotoRequest) (*Syn
 	switch {
 	case errors.Is(err, serviceerr.ErrNotFound):
 	case err == nil:
-		return &SyncPhotoResponse{
+		return &model.SyncPhotoResponse{
 			HasBeenUploadedBefore: true,
 			Hash:                  findPhoto.Hash,
 		}, nil
@@ -112,7 +112,7 @@ func (s *Service) UploadPhoto(ctx context.Context, form *SyncPhotoRequest) (*Syn
 		return nil, serviceerr.MakeErr(err, "s.storage.RunTransaction")
 	}
 
-	return &SyncPhotoResponse{
+	return &model.SyncPhotoResponse{
 		HasBeenUploadedBefore: false,
 		Hash:                  newPhoto.Hash,
 	}, nil

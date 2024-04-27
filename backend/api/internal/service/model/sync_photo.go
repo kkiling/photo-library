@@ -1,4 +1,4 @@
-package sync_photos
+package model
 
 import "time"
 

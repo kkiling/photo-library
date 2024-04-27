@@ -24,7 +24,7 @@ func (p *PhotoGroupsHandler) GetPhotoGroup(ctx context.Context, request *desc.Ge
 	}
 
 	return &desc.GetPhotoGroupResponse{
-		Item: mapPhotoGroup(response),
+		Item: mapPhotoGroup(&response),
 	}, nil
 }
 
@@ -35,7 +35,7 @@ func (p *PhotoGroupsHandler) GetPhotoGroups(ctx context.Context, request *desc.G
 		return nil, handler.HandleError(err, "p.photosService.GetPhotoGroups")
 	}
 
-	return mapGetPhotoGroupsResponse(response), nil
+	return mapGetPhotoGroupsResponse(&response), nil
 }
 
 func (p *PhotoGroupsHandler) SetMainPhotoGroup(ctx context.Context, request *desc.SetMainPhotoGroupRequest) (*emptypb.Empty, error) {

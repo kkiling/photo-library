@@ -1,13 +1,12 @@
 package session_manager
 
 import (
-	"context"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/pkg/errors"
 
-	"github.com/kkiling/photo-library/backend/api/internal/service/auth"
+	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/server"
@@ -45,9 +44,9 @@ type SessionManager struct {
 }
 
 // CreateTokenBySession создание jwt токена для пользователя
-func (s *SessionManager) CreateTokenBySession(_ context.Context, session auth.Session) (string, time.Time, error) {
+func (s *SessionManager) CreateTokenBySession(session model.Session) (Token, error) {
 	expiresAt := time.Now().Add(s.cfg.AccessTokenDuration)
-	claims := &SessionClaims{
+	accessClaims := &SessionClaims{
 		StandardClaims: jwt.StandardClaims{
 			Audience:  s.cfg.Audience,
 			Issuer:    s.cfg.Issuer,
@@ -56,22 +55,55 @@ func (s *SessionManager) CreateTokenBySession(_ context.Context, session auth.Se
 		},
 		Session: session,
 	}
-	token, err := s.jwtHelper.CreateToken(claims)
+	accessToken, err := s.jwtHelper.CreateToken(accessClaims)
 	if err != nil {
-		return "", time.Time{}, serviceerr.MakeErr(err, "s.jwtHelper.CreateToken")
+		return Token{}, serviceerr.MakeErr(err, "s.jwtHelper.CreateToken")
 	}
-	return token, expiresAt, nil
+
+	return Token{
+		Token:     accessToken,
+		ExpiresAt: expiresAt,
+	}, nil
+}
+
+func (s *SessionManager) CreateTokenByRefresh(refresh model.RefreshSession) (Token, error) {
+	expiresAt := time.Now().Add(s.cfg.AccessTokenDuration)
+	accessClaims := &RefreshSessionClaims{
+		StandardClaims: jwt.StandardClaims{
+			Audience:  s.cfg.Audience,
+			Issuer:    s.cfg.Issuer,
+			IssuedAt:  time.Now().Unix(),
+			ExpiresAt: expiresAt.Unix(),
+		},
+		RefreshSession: refresh,
+	}
+	accessToken, err := s.jwtHelper.CreateToken(accessClaims)
+	if err != nil {
+		return Token{}, serviceerr.MakeErr(err, "s.jwtHelper.CreateToken")
+	}
+
+	return Token{
+		Token:     accessToken,
+		ExpiresAt: expiresAt,
+	}, nil
 }
 
 // GetSessionByToken получить данные авторизованного пользователя по jwt токену
-func (s *SessionManager) GetSessionByToken(ctx context.Context, token string) (auth.Session, error) {
-	logger := s.logger.WithCtx(ctx)
-
+func (s *SessionManager) GetSessionByToken(token string) (model.Session, error) {
 	claims := new(SessionClaims)
 	err := s.jwtHelper.Parse(token, claims)
 	if err != nil {
-		logger.Error(err)
-		return auth.Session{}, server.ErrUnauthenticated(ErrSessionNotFound)
+		return model.Session{}, server.ErrUnauthenticated(ErrSessionNotFound)
 	}
 	return claims.Session, nil
+}
+
+// GetRefreshSessionByToken получить данные авторизованного пользователя по jwt токену
+func (s *SessionManager) GetRefreshSessionByToken(token string) (model.RefreshSession, error) {
+	claims := new(RefreshSessionClaims)
+	err := s.jwtHelper.Parse(token, claims)
+	if err != nil {
+		return model.RefreshSession{}, server.ErrUnauthenticated(ErrSessionNotFound)
+	}
+	return claims.RefreshSession, nil
 }

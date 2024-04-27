@@ -404,7 +404,7 @@
     "PhotoGroup": {
       "type": "object",
       "properties": {
-        "id": {
+        "group_id": {
           "type": "string"
         },
         "main_photo": {
@@ -465,7 +465,7 @@
     "PhotoWithPreviews": {
       "type": "object",
       "properties": {
-        "id": {
+        "photo_id": {
           "type": "string"
         },
         "original": {

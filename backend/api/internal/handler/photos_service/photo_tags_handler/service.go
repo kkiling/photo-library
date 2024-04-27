@@ -9,7 +9,6 @@ import (
 
 	"github.com/kkiling/photo-library/backend/api/internal/interceptor"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
-	"github.com/kkiling/photo-library/backend/api/internal/service/photos/photo_tags_service"
 	desc "github.com/kkiling/photo-library/backend/api/pkg/common/gen/proto/v1"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/server"
@@ -19,7 +18,7 @@ import (
 type PhotoTagsService interface {
 	AddPhotoTag(ctx context.Context, photoID, categoryID uuid.UUID, tagName string) error
 	DeletePhotoTag(ctx context.Context, tagID uuid.UUID) error
-	GetPhotoTags(ctx context.Context, photoID uuid.UUID) ([]photo_tags_service.TagWithCategory, error)
+	GetPhotoTags(ctx context.Context, photoID uuid.UUID) ([]model.TagWithCategoryDTO, error)
 	GetTagCategories(ctx context.Context) ([]model.TagCategory, error)
 }
 

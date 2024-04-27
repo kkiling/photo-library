@@ -8,7 +8,8 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/kkiling/photo-library/backend/api/internal/interceptor"
-	"github.com/kkiling/photo-library/backend/api/internal/service/photos/photo_groups_service"
+	"github.com/kkiling/photo-library/backend/api/internal/service/form"
+	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	desc "github.com/kkiling/photo-library/backend/api/pkg/common/gen/proto/v1"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/server"
@@ -16,9 +17,9 @@ import (
 )
 
 type PhotoGroupsService interface {
-	GetPhotoContent(ctx context.Context, fileKey string) (*photo_groups_service.PhotoContent, error)
-	GetPhotoGroups(ctx context.Context, req *photo_groups_service.GetPhotoGroupsRequest) (*photo_groups_service.PaginatedPhotoGroups, error)
-	GetPhotoGroup(ctx context.Context, groupID uuid.UUID) (*photo_groups_service.PhotoGroup, error)
+	GetPhotoContent(ctx context.Context, fileKey string) (model.PhotoContentDTO, error)
+	GetPhotoGroups(ctx context.Context, req form.GetPhotoGroups) (model.PaginatedPhotoGroupsDTO, error)
+	GetPhotoGroup(ctx context.Context, groupID uuid.UUID) (model.PhotoGroupDTO, error)
 	SetMainPhotoGroup(ctx context.Context, groupID, photoID uuid.UUID) error
 }
 

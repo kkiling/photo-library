@@ -95,7 +95,7 @@ func (s *Processing) Processing(ctx context.Context, photo model.Photo, photoBod
 	//	return true, nil
 	//}
 
-	var originalImage ImageCV
+	var originalImage imageCsv
 	if err := originalImage.Load(photoBody); err != nil {
 		return false, fmt.Errorf("image.Decode: %w, (%w)", err, serviceerr.ErrPhotoIsNotValid)
 	}

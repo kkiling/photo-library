@@ -108,12 +108,23 @@ func FailPreconditionf(description string, a ...any) error {
 	}
 }
 
-func PermissionDeniedErr(description string, a ...any) error {
+func PermissionDeniedf(description string, a ...any) error {
 	return &ErrorService{
 		Type: PermissionDeniedType,
 		Err:  fmt.Errorf(description, a...),
 		ErrInfo: ErrorInfo{
 			Description: "PermissionDenied",
+		},
+	}
+}
+
+// PermissionDeniedErr .
+func PermissionDeniedErr(err error) error {
+	return &ErrorService{
+		Type: PermissionDeniedType,
+		Err:  err,
+		ErrInfo: ErrorInfo{
+			Description: "Permission Denied",
 		},
 	}
 }

@@ -29,14 +29,14 @@ func NewService(logger log.Logger, storage Storage) *Service {
 	}
 }
 
-func (s *Service) GetPhotoMetaData(ctx context.Context, photoID uuid.UUID) (*model.PhotoMetadata, error) {
+func (s *Service) GetPhotoMetaData(ctx context.Context, photoID uuid.UUID) (model.PhotoMetadata, error) {
 	metaData, err := s.storage.GetMetadata(ctx, photoID)
 	switch {
 	case err == nil:
 	case errors.Is(err, serviceerr.ErrNotFound):
-		return nil, serviceerr.NotFoundf("metadata not found")
+		return model.PhotoMetadata{}, serviceerr.NotFoundf("metadata not found")
 	default:
-		return nil, serviceerr.MakeErr(err, "s.storage.GetMetaData")
+		return model.PhotoMetadata{}, serviceerr.MakeErr(err, "s.storage.GetMetaData")
 	}
-	return &metaData, nil
+	return metaData, nil
 }
