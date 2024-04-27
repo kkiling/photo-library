@@ -23,5 +23,5 @@ func (p *PhotoMetadataHandler) GetPhotoMetaData(ctx context.Context, request *de
 		return nil, handler.HandleError(err, "p.photosService.GetPhotoMetaData")
 	}
 
-	return mapMetaData(response), nil
+	return mapMetaData(&response), nil
 }

@@ -1,4 +1,4 @@
-package auth
+package form
 
 import "github.com/kkiling/photo-library/backend/api/internal/service/model"
 

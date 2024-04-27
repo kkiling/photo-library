@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/kkiling/photo-library/backend/api/internal/service/form"
 	"sync/atomic"
 
 	"github.com/go-playground/validator/v10"
@@ -99,7 +100,7 @@ func (s *Service) CheckPersonsExists(ctx context.Context) (bool, error) {
 	return count > 0, nil
 }
 
-func (s *Service) SendInvite(ctx context.Context, form SendInviteForm) error {
+func (s *Service) SendInvite(ctx context.Context, form form.SendInviteForm) error {
 	// Его может отправить только администратор, либо если нет ни одного пользователя
 	if exist, err := s.CheckPersonsExists(ctx); err != nil {
 		return serviceerr.MakeErr(err, "s.CheckAdminExist")
@@ -160,7 +161,7 @@ func (s *Service) SendInvite(ctx context.Context, form SendInviteForm) error {
 }
 
 // ActivateInvite активация инвайта
-func (s *Service) ActivateInvite(ctx context.Context, form ActivateInviteForm) error {
+func (s *Service) ActivateInvite(ctx context.Context, form form.ActivateInviteForm) error {
 	// TODO: пользовтель должне быть не авторизован
 	// TODO: проверка авторизации из контекста
 
@@ -240,7 +241,7 @@ func (s *Service) ActivateInvite(ctx context.Context, form ActivateInviteForm) e
 	return nil
 }
 
-func (s *Service) Login(ctx context.Context, form LoginForm) (model.AuthDataDTO, error) {
+func (s *Service) Login(ctx context.Context, form form.LoginForm) (model.AuthDataDTO, error) {
 	if err := s.validate.Struct(form); err != nil {
 		return model.AuthDataDTO{}, serviceerr.InvalidInputErr(err, "Error in login data")
 	}
@@ -271,7 +272,7 @@ func (s *Service) Login(ctx context.Context, form LoginForm) (model.AuthDataDTO,
 	return s.createAuthData(ctx, personAuth)
 }
 
-func (s *Service) Registration(ctx context.Context, form RegisterForm) error {
+func (s *Service) Registration(ctx context.Context, form form.RegisterForm) error {
 	if !s.cfg.AllowRegistration {
 		return serviceerr.FailPreconditionf("registration is not available")
 	}
@@ -336,7 +337,7 @@ func (s *Service) Registration(ctx context.Context, form RegisterForm) error {
 }
 
 // ActivateRegistration активация инвайта
-func (s *Service) ActivateRegistration(ctx context.Context, form ActivateRegisterForm) error {
+func (s *Service) ActivateRegistration(ctx context.Context, form form.ActivateRegisterForm) error {
 	// TODO: пользовтель должне быть не авторизован
 	// TODO: проверка авторизации из контекста
 
@@ -394,7 +395,7 @@ func (s *Service) ActivateRegistration(ctx context.Context, form ActivateRegiste
 	return nil
 }
 
-func (s *Service) EmailAvailable(ctx context.Context, form EmailAvailableForm) (bool, error) {
+func (s *Service) EmailAvailable(ctx context.Context, form form.EmailAvailableForm) (bool, error) {
 	if err := s.validate.Struct(form); err != nil {
 		return false, serviceerr.InvalidInputErr(err, "error in creating administrator account")
 	}

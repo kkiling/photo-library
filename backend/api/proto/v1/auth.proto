@@ -1,0 +1,157 @@
+syntax = "proto3";
+
+package pb.v1;
+
+option go_package = "github.com/kkiling/photo-library/backend/sync_photos_server/pkg/common/gen/pbv1";
+
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+service AuthService {
+  rpc EmailAvailable(EmailAvailableRequest)  returns (EmailAvailableResponse) {
+    option (google.api.http) = {
+      get: "/v1/auth/email-available";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Проверка доступен ли email для регистрации";
+    };
+  };
+  rpc CheckPersonsExists(google.protobuf.Empty) returns (CheckPersonsExistsResponse) {
+    option (google.api.http) = {
+      get: "/v1/auth/check-person-exists";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Проверить есть ли зарегистрированные пользователи";
+    };
+  };
+  rpc SendInvite(SendInviteRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/v1/auth/invite";
+      body: "*";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Отправка приглашения зарегистрироваться";
+    };
+  };
+  rpc ActivateInvite(ActivateInviteRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      put: "/v1/auth/invite/activate";
+      body: "*";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Активация инвайта регистрации";
+    };
+  };
+  rpc Registration(RegistrationRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/v1/auth/registration";
+      body: "*";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Регистрация нового пользователя";
+    };
+  }
+  rpc ActivateRegistration(ActivateRegistrationRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      put: "/v1/auth/registration/activate";
+      body: "*";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Активация зарегистрированного пользователя";
+    };
+  }
+  rpc Logout(LoginRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/v1/auth/logout";
+      body: "*";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Разлогинить пользователя по refresh токену";
+    };
+  }
+  rpc Login(LoginRequest) returns (AuthData) {
+    option (google.api.http) = {
+      post: "/v1/auth/login";
+      body: "*";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Аутентификация пользователя";
+    };
+  }
+  rpc RefreshToken(RefreshTokenRequest) returns (AuthData) {
+    option (google.api.http) = {
+      post: "/v1/auth/refresh";
+      body: "*";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Обновление аутентификации по refresh токену";
+    };
+  }
+}
+
+enum AuthRole {
+  AUTH_ROLE_UNKNOWN = 0;
+  AUTH_ROLE_ADMIN = 1;
+  AUTH_ROLE_USER = 3;
+}
+
+message EmailAvailableRequest {
+  string email = 1;
+}
+
+message EmailAvailableResponse {
+  bool exists = 1;
+}
+
+message CheckPersonsExistsResponse {
+  bool exists = 1;
+}
+
+message SendInviteRequest {
+  string email = 1;
+  AuthRole role = 2;
+}
+
+message ActivateInviteRequest {
+  string firstname = 1;
+  string surname = 2;
+  optional string patronymic = 3;
+  string code_confirm = 4;
+  string password = 5;
+}
+
+message RegistrationRequest {
+  string firstname = 1;
+  string surname = 2;
+  optional string patronymic = 3;
+  string email = 4;
+  string password = 5;
+}
+
+message ActivateRegistrationRequest {
+  string code_confirm = 4;
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LogoutRequest {
+  string refresh_token = 1;
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+message AuthData {
+  string person_id = 1;
+  string email = 2;
+  string access_token = 3;
+  google.protobuf.Timestamp access_token_expiration = 4;
+  string refresh_token = 5;
+  google.protobuf.Timestamp refresh_token_expiration = 6;
+}

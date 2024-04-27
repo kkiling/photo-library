@@ -16,7 +16,7 @@ install:
 
 .PHONY: generate
 generate:
-	buf generate --template buf.gen.yaml --path proto/v1/common.proto --path proto/v1/photo_library_common.proto --path proto/v1/photo_groups.proto --path proto/v1/photo_metadata.proto --path proto/v1/photo_tags.proto
+	buf generate --template buf.gen.yaml --path proto/v1/common.proto --path proto/v1/photo_library_common.proto --path proto/v1/photo_groups.proto --path proto/v1/photo_metadata.proto --path proto/v1/photo_tags.proto --path proto/v1/auth.proto
 	move swagger\api.swagger.json swagger\photo_library.swagger.json
 
 	buf generate --template buf.gen.yaml --path proto/v1/common.proto --path proto/v1/sync_photos_service.proto
