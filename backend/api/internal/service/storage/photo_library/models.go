@@ -13,6 +13,175 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type ApiTokenType string
+
+const (
+	ApiTokenTypeSYNCPHOTO ApiTokenType = "SYNC_PHOTO"
+)
+
+func (e *ApiTokenType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ApiTokenType(s)
+	case string:
+		*e = ApiTokenType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ApiTokenType: %T", src)
+	}
+	return nil
+}
+
+type NullApiTokenType struct {
+	ApiTokenType ApiTokenType
+	Valid        bool // Valid is true if ApiTokenType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullApiTokenType) Scan(value interface{}) error {
+	if value == nil {
+		ns.ApiTokenType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ApiTokenType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullApiTokenType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ApiTokenType), nil
+}
+
+type AuthRole string
+
+const (
+	AuthRoleADMIN AuthRole = "ADMIN"
+	AuthRoleUSER  AuthRole = "USER"
+)
+
+func (e *AuthRole) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AuthRole(s)
+	case string:
+		*e = AuthRole(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AuthRole: %T", src)
+	}
+	return nil
+}
+
+type NullAuthRole struct {
+	AuthRole AuthRole
+	Valid    bool // Valid is true if AuthRole is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAuthRole) Scan(value interface{}) error {
+	if value == nil {
+		ns.AuthRole, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AuthRole.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAuthRole) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AuthRole), nil
+}
+
+type AuthStatus string
+
+const (
+	AuthStatusNOTACTIVATED AuthStatus = "NOT_ACTIVATED"
+	AuthStatusSENTINVITE   AuthStatus = "SENT_INVITE"
+	AuthStatusACTIVATED    AuthStatus = "ACTIVATED"
+	AuthStatusBLOCKED      AuthStatus = "BLOCKED"
+)
+
+func (e *AuthStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AuthStatus(s)
+	case string:
+		*e = AuthStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AuthStatus: %T", src)
+	}
+	return nil
+}
+
+type NullAuthStatus struct {
+	AuthStatus AuthStatus
+	Valid      bool // Valid is true if AuthStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAuthStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.AuthStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AuthStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAuthStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AuthStatus), nil
+}
+
+type CodeType string
+
+const (
+	CodeTypeACTIVATEINVITE       CodeType = "ACTIVATE_INVITE"
+	CodeTypeACTIVATEREGISTRATION CodeType = "ACTIVATE_REGISTRATION"
+)
+
+func (e *CodeType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = CodeType(s)
+	case string:
+		*e = CodeType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for CodeType: %T", src)
+	}
+	return nil
+}
+
+type NullCodeType struct {
+	CodeType CodeType
+	Valid    bool // Valid is true if CodeType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullCodeType) Scan(value interface{}) error {
+	if value == nil {
+		ns.CodeType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.CodeType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullCodeType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.CodeType), nil
+}
+
 type PhotoExtension string
 
 const (
@@ -145,6 +314,80 @@ func (ns NullProcessingType) Value() (driver.Value, error) {
 	return string(ns.ProcessingType), nil
 }
 
+type RefreshTokenStatus string
+
+const (
+	RefreshTokenStatusACTIVE  RefreshTokenStatus = "ACTIVE"
+	RefreshTokenStatusREVOKED RefreshTokenStatus = "REVOKED"
+	RefreshTokenStatusEXPIRED RefreshTokenStatus = "EXPIRED"
+	RefreshTokenStatusLOGOUT  RefreshTokenStatus = "LOGOUT"
+)
+
+func (e *RefreshTokenStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = RefreshTokenStatus(s)
+	case string:
+		*e = RefreshTokenStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for RefreshTokenStatus: %T", src)
+	}
+	return nil
+}
+
+type NullRefreshTokenStatus struct {
+	RefreshTokenStatus RefreshTokenStatus
+	Valid              bool // Valid is true if RefreshTokenStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullRefreshTokenStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.RefreshTokenStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.RefreshTokenStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullRefreshTokenStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.RefreshTokenStatus), nil
+}
+
+type ApiToken struct {
+	ID        uuid.UUID
+	PersonID  uuid.UUID
+	Caption   string
+	Token     string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	ExpiredAt pgtype.Timestamptz
+	Type      ApiTokenType
+}
+
+type Auth struct {
+	PersonID     uuid.UUID
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	Email        string
+	PasswordHash []byte
+	Status       AuthStatus
+	Role         AuthRole
+}
+
+type Code struct {
+	Code      string
+	PersonID  uuid.UUID
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Active    bool
+	Type      CodeType
+}
+
 type CoefficientsSimilarPhoto struct {
 	PhotoId1    uuid.UUID
 	PhotoId2    uuid.UUID
@@ -175,14 +418,23 @@ type MetaPhotoDatum struct {
 	GeoLongitude *float64
 }
 
+type Person struct {
+	ID         uuid.UUID
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	Firstname  string
+	Surname    string
+	Patronymic *string
+}
+
 type Photo struct {
-	ID        uuid.UUID
-	FileKey   string
-	Hash      string
-	UpdatedAt time.Time
-	Extension PhotoExtension
-	Status    PhotoStatus
-	Error     *string
+	ID             uuid.UUID
+	FileKey        string
+	Hash           string
+	PhotoUpdatedAt time.Time
+	Extension      PhotoExtension
+	Status         PhotoStatus
+	Error          *string
 }
 
 type PhotoGroup struct {
@@ -241,16 +493,25 @@ type PhotoTag struct {
 }
 
 type PhotoUploadDatum struct {
-	PhotoID  uuid.UUID
-	UploadAt time.Time
-	Paths    []string
-	ClientID string
+	PhotoID    uuid.UUID
+	UploadAt   time.Time
+	Paths      []string
+	ClientInfo string
+	PersonID   uuid.UUID
 }
 
 type PhotoVector struct {
 	PhotoID uuid.UUID
 	Vector  []float64
 	Norm    float64
+}
+
+type RefreshCode struct {
+	ID        uuid.UUID
+	PersonID  uuid.UUID
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Status    RefreshTokenStatus
 }
 
 type RocketLock struct {

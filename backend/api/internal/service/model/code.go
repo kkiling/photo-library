@@ -26,5 +26,5 @@ type ConfirmCode struct {
 // UpdateConfirmCode Обновление Person
 type UpdateConfirmCode struct {
 	BaseUpdate
-	Active bool
+	Active UpdateField[bool]
 }

@@ -6,8 +6,10 @@ CREATE TABLE photo_upload_data (
     upload_at TIMESTAMPTZ NOT NULL,
     -- Оригинальные пути файлов фотографий
     paths text[] NOT NULL CHECK (CARDINALITY(paths) <= 2048),
-    -- Идентификатор клиента загрузившего фотографию
-    client_id TEXT NOT NULL CHECK (LENGTH(client_id) <= 256)
+    -- Информация клиента загрузившего фотографию
+    client_info TEXT NOT NULL CHECK (LENGTH(client_info) <= 256),
+    -- Информация о загрузившем фотографию
+   person_id UUID NOT NULL REFERENCES people(id)
 );
 -- +goose StatementEnd
 

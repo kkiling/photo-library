@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/kkiling/photo-library/backend/api/internal/ctxutils"
 	"github.com/kkiling/photo-library/backend/api/internal/service/form"
+	"github.com/kkiling/photo-library/backend/api/internal/service/utils"
 	"sync/atomic"
 
 	"github.com/go-playground/validator/v10"
@@ -15,7 +17,6 @@ import (
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
-	"github.com/kkiling/photo-library/backend/api/pkg/common/utils"
 )
 
 type Config struct {
@@ -25,8 +26,8 @@ type Config struct {
 type Storage interface {
 	service.Transactor
 	GetPeopleCount(ctx context.Context) (int64, error)
-	CreatePerson(ctx context.Context, person model.Person) error
-	AddPersonAuth(ctx context.Context, auth model.Auth) error
+	SavePerson(ctx context.Context, person model.Person) error
+	SavePersonAuth(ctx context.Context, auth model.Auth) error
 	EmailExists(ctx context.Context, email string) (bool, error)
 	GetAuth(ctx context.Context, personID uuid.UUID) (model.Auth, error)
 	GetPerson(ctx context.Context, personID uuid.UUID) (model.Person, error)
@@ -80,7 +81,7 @@ func NewService(logger log.Logger,
 		cfg:                cfg,
 		logger:             logger,
 		storage:            storage,
-		validate:           validator.New(),
+		validate:           utils.NewValidator(),
 		confirmCodeService: confirmCodeService,
 		passwordService:    passwordService,
 		sessionService:     sessionService,
@@ -100,72 +101,44 @@ func (s *Service) CheckPersonsExists(ctx context.Context) (bool, error) {
 	return count > 0, nil
 }
 
-func (s *Service) SendInvite(ctx context.Context, form form.SendInviteForm) error {
-	// Его может отправить только администратор, либо если нет ни одного пользователя
-	if exist, err := s.CheckPersonsExists(ctx); err != nil {
-		return serviceerr.MakeErr(err, "s.CheckAdminExist")
-	} else if exist {
-		// Если пользователи уже есть, то проверяем права зарегистрированного пользователя
-		// Достаем его роль из контекста
-		// TODO: проверка пользователя
-		return serviceerr.PermissionDeniedf("you do not have the rights to send an invite")
-	} else {
-		if form.Role != model.AuthRoleAdmin {
-			return serviceerr.InvalidInputf("first user must have the Admin role")
-		}
-	}
-
+func (s *Service) AdminInitInvite(ctx context.Context, form form.AdminInitInviteForm) error {
 	if err := s.validate.Struct(form); err != nil {
 		return serviceerr.InvalidInputErr(err, "error in creating administrator account")
 	}
 
-	if emailExists, err := s.storage.EmailExists(ctx, form.Email); err != nil {
-		return serviceerr.MakeErr(err, "s.storage.EmailExists")
-	} else if emailExists {
-		return serviceerr.Conflictf("email already exists")
+	// Его может отправить только администратор, либо если нет ни одного пользователя
+	if exist, err := s.CheckPersonsExists(ctx); err != nil {
+		return serviceerr.MakeErr(err, "s.CheckAdminExist")
+	} else if exist {
+		return serviceerr.Conflictf("people already exist")
 	}
 
-	newPerson := model.Person{
-		Base: model.NewBase(),
-		ID:   uuid.New(),
+	return s.sendInvite(ctx, form.Email, model.AuthRoleAdmin)
+}
+
+func (s *Service) SendInvite(ctx context.Context, form form.SendInviteForm) error {
+	if _, err := utils.GetSession(ctx, model.AuthRoleAdmin); err != nil {
+		return err
 	}
-
-	newAuth := model.Auth{
-		Base:     model.NewBase(),
-		PersonID: newPerson.ID,
-		Email:    form.Email,
-		Status:   model.AuthStatusSentInvite,
-		Role:     form.Role,
+	if err := s.validate.Struct(form); err != nil {
+		return serviceerr.InvalidInputErr(err, "error in creating administrator account")
 	}
-
-	err := s.confirmCodeService.SendConfirmCode(ctx, newPerson.ID, model.ConfirmCodeTypeActivateInvite)
-	if err != nil {
-		return serviceerr.MakeErr(err, "s.confirmCodeService.SendConfirmCode")
-	}
-
-	err = s.storage.RunTransaction(ctx, func(ctxTx context.Context) error {
-		if saveErr := s.storage.CreatePerson(ctxTx, newPerson); saveErr != nil {
-			return fmt.Errorf("s.storage.CreatePerson: %w", saveErr)
-		}
-		if saveErr := s.storage.AddPersonAuth(ctxTx, newAuth); saveErr != nil {
-			return fmt.Errorf("s.storage.AddPersonAuth: %w", saveErr)
-		}
-		return nil
-	})
-
-	if err != nil {
-		return serviceerr.MakeErr(err, " s.storage.RunTransaction")
-	}
-
-	return nil
+	// TODO: Нужно указать кто отправил invite (session.PersonID)
+	return s.sendInvite(ctx, form.Email, form.Role)
 }
 
 // ActivateInvite активация инвайта
 func (s *Service) ActivateInvite(ctx context.Context, form form.ActivateInviteForm) error {
-	// TODO: пользовтель должне быть не авторизован
-	// TODO: проверка авторизации из контекста
+	_, err := ctxutils.Get[model.Session](ctx, ctxutils.Session)
+	switch {
+	case err == nil:
+		return serviceerr.Conflictf("person is already authorized")
+	case errors.Is(err, ctxutils.ErrNotFound):
+	default:
+		return serviceerr.MakeErr(err, "ctxutils.Get")
+	}
 
-	if err := s.validate.Struct(form); err != nil {
+	if err = s.validate.Struct(form); err != nil {
 		return serviceerr.InvalidInputErr(err, "error in activation account")
 	}
 
@@ -174,7 +147,7 @@ func (s *Service) ActivateInvite(ctx context.Context, form form.ActivateInviteFo
 	switch {
 	case err == nil:
 	case errors.Is(err, serviceerr.ErrNotFound):
-		return serviceerr.NotFoundf("Confirm code not found")
+		return serviceerr.NotFoundf("confirm code not found")
 	default:
 		return serviceerr.MakeErr(err, "s.confirmCodeService.GetActiveConfirmCode")
 	}
@@ -247,7 +220,6 @@ func (s *Service) Login(ctx context.Context, form form.LoginForm) (model.AuthDat
 	}
 
 	personAuth, err := s.storage.GetAuthByEmail(ctx, form.Email)
-
 	switch {
 	case err == nil:
 	case errors.Is(err, serviceerr.ErrNotFound):
@@ -256,11 +228,9 @@ func (s *Service) Login(ctx context.Context, form form.LoginForm) (model.AuthDat
 		return model.AuthDataDTO{}, serviceerr.MakeErr(err, "s.storage.GetPersonAuthByEmail")
 	}
 
-	//
 	if compareErr := s.passwordService.CompareHashAndPassword(personAuth.PasswordHash, form.Password); compareErr != nil {
 		return model.AuthDataDTO{}, serviceerr.PermissionDeniedf("Incorrect username or password")
 	}
-	//
 
 	if personAuth.Status == model.AuthStatusBlocked {
 		return model.AuthDataDTO{}, serviceerr.PermissionDeniedf("Person is blocked")
@@ -314,16 +284,11 @@ func (s *Service) Registration(ctx context.Context, form form.RegisterForm) erro
 		Role:         model.AuthRoleUser,
 	}
 
-	err = s.confirmCodeService.SendConfirmCode(ctx, newPerson.ID, model.ConfirmCodeTypeActivateRegistration)
-	if err != nil {
-		return serviceerr.MakeErr(err, "s.confirmCodeService.SendConfirmCode")
-	}
-
 	err = s.storage.RunTransaction(ctx, func(ctxTx context.Context) error {
-		if saveErr := s.storage.CreatePerson(ctxTx, newPerson); saveErr != nil {
+		if saveErr := s.storage.SavePerson(ctxTx, newPerson); saveErr != nil {
 			return fmt.Errorf("s.storage.CreatePerson: %w", saveErr)
 		}
-		if saveErr := s.storage.AddPersonAuth(ctxTx, newAuth); saveErr != nil {
+		if saveErr := s.storage.SavePersonAuth(ctxTx, newAuth); saveErr != nil {
 			return fmt.Errorf("s.storage.AddPersonAuth: %w", saveErr)
 		}
 		return nil
@@ -331,6 +296,11 @@ func (s *Service) Registration(ctx context.Context, form form.RegisterForm) erro
 
 	if err != nil {
 		return serviceerr.MakeErr(err, " s.storage.RunTransaction")
+	}
+
+	err = s.confirmCodeService.SendConfirmCode(ctx, newPerson.ID, model.ConfirmCodeTypeActivateRegistration)
+	if err != nil {
+		return serviceerr.MakeErr(err, "s.confirmCodeService.SendConfirmCode")
 	}
 
 	return nil
@@ -452,6 +422,15 @@ func (s *Service) RefreshToken(ctx context.Context, token string) (model.AuthDat
 
 	if personAuth.Status == model.AuthStatusNotActivated {
 		return model.AuthDataDTO{}, serviceerr.PermissionDeniedf("Not activated person account")
+	}
+
+	err = s.storage.UpdateRefreshTokenStatus(ctx, refreshSession.RefreshTokenID, model.RefreshTokenStatusRevoked)
+	switch {
+	case err == nil:
+	case errors.Is(err, serviceerr.ErrNotFound):
+		return model.AuthDataDTO{}, serviceerr.PermissionDeniedErr(fmt.Errorf("invalid token"))
+	default:
+		return model.AuthDataDTO{}, serviceerr.MakeErr(err, "s.storage.UpdateRefreshTokenStatus")
 	}
 
 	return s.createAuthData(ctx, personAuth)

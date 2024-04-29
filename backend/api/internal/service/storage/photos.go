@@ -24,11 +24,11 @@ func (r *Adapter) GetPhotoById(ctx context.Context, id uuid.UUID) (model.Photo, 
 	}
 
 	return model.Photo{
-		ID:        res.ID,
-		FileKey:   res.FileKey,
-		Hash:      res.Hash,
-		UpdateAt:  res.UpdatedAt,
-		Extension: model.PhotoExtension(res.Extension),
+		ID:             res.ID,
+		FileKey:        res.FileKey,
+		Hash:           res.Hash,
+		PhotoUpdatedAt: res.PhotoUpdatedAt,
+		Extension:      model.PhotoExtension(res.Extension),
 	}, nil
 }
 
@@ -44,11 +44,11 @@ func (r *Adapter) GetPhotoByFilename(ctx context.Context, fileName string) (mode
 	}
 
 	return model.Photo{
-		ID:        res.ID,
-		FileKey:   res.FileKey,
-		Hash:      res.Hash,
-		UpdateAt:  res.UpdatedAt,
-		Extension: model.PhotoExtension(res.Extension),
+		ID:             res.ID,
+		FileKey:        res.FileKey,
+		Hash:           res.Hash,
+		PhotoUpdatedAt: res.PhotoUpdatedAt,
+		Extension:      model.PhotoExtension(res.Extension),
 	}, nil
 }
 
@@ -64,11 +64,11 @@ func (r *Adapter) GetPhotoByHash(ctx context.Context, hash string) (model.Photo,
 	}
 
 	return model.Photo{
-		ID:        res.ID,
-		FileKey:   res.FileKey,
-		Hash:      res.Hash,
-		UpdateAt:  res.UpdatedAt,
-		Extension: model.PhotoExtension(res.Extension),
+		ID:             res.ID,
+		FileKey:        res.FileKey,
+		Hash:           res.Hash,
+		PhotoUpdatedAt: res.PhotoUpdatedAt,
+		Extension:      model.PhotoExtension(res.Extension),
 	}, nil
 }
 
@@ -76,11 +76,11 @@ func (r *Adapter) SavePhoto(ctx context.Context, photo model.Photo) error {
 	queries := r.getQueries(ctx)
 
 	err := queries.SavePhoto(ctx, photo_library.SavePhotoParams{
-		ID:        photo.ID,
-		FileKey:   photo.FileKey,
-		Hash:      photo.Hash,
-		UpdatedAt: photo.UpdateAt,
-		Extension: photo_library.PhotoExtension(photo.Extension),
+		ID:             photo.ID,
+		FileKey:        photo.FileKey,
+		Hash:           photo.Hash,
+		PhotoUpdatedAt: photo.PhotoUpdatedAt,
+		Extension:      photo_library.PhotoExtension(photo.Extension),
 	})
 
 	if err != nil {

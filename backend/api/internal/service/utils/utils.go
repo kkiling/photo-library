@@ -47,3 +47,16 @@ func TransformToName(str string) string {
 	// Объединяем и возвращаем результат
 	return capitalizedFirst + rest
 }
+
+func TransformToNamePtr(strPtr *string) *string {
+	if strPtr == nil {
+		return nil
+	}
+
+	str := TransformToName(*strPtr)
+
+	if str == "" {
+		return nil
+	}
+	return &str
+}

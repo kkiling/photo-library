@@ -1,4 +1,4 @@
-package session_manager
+package jwt_helper
 
 import (
 	"crypto/rsa"
@@ -7,15 +7,19 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
+type Config struct {
+	CertFile       string `yaml:"cert_file"`
+	PrivateKeyFile string `yaml:"private_key_file"`
+	PublicKeyFile  string `yaml:"public_key_file"`
+}
+
 // Claims .
 type Claims interface {
 	jwt.Claims
 }
 
 // NewHelper .
-func NewHelper(
-	cfg SslConfig,
-) (JWTHelper, error) {
+func NewHelper(cfg Config) (*JwtHelper, error) {
 	buf, err := os.ReadFile(cfg.PrivateKeyFile)
 	if err != nil {
 		return nil, err
@@ -36,18 +40,18 @@ func NewHelper(
 		return nil, err
 	}
 
-	return &jwtHelper{
+	return &JwtHelper{
 		publicKey:  publicKey,
 		privateKey: privateKey,
 	}, nil
 }
 
-type jwtHelper struct {
+type JwtHelper struct {
 	publicKey  *rsa.PublicKey
 	privateKey *rsa.PrivateKey
 }
 
-func (h *jwtHelper) Parse(token string, claims Claims) error {
+func (h *JwtHelper) Parse(token string, claims Claims) error {
 	_, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
 		return h.publicKey, nil
 	})
@@ -58,7 +62,7 @@ func (h *jwtHelper) Parse(token string, claims Claims) error {
 	return claims.Valid()
 }
 
-func (h *jwtHelper) CreateToken(claims Claims) (string, error) {
+func (h *JwtHelper) CreateToken(claims Claims) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 	return token.SignedString(h.privateKey)
 }

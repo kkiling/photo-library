@@ -2,8 +2,14 @@
 -- +goose StatementBegin
 CREATE TYPE auth_status AS ENUM (
     'NOT_ACTIVATED',
+    'SENT_INVITE',
     'ACTIVATED',
     'BLOCKED'
+);
+
+CREATE TYPE auth_role AS ENUM (
+    'ADMIN',
+    'USER'
 );
 
 CREATE TABLE auth (
@@ -12,7 +18,8 @@ CREATE TABLE auth (
     updated_at TIMESTAMPTZ NOT NULL,
     email TEXT NOT NULL CHECK (LENGTH(email) <= 1024) UNIQUE,
     password_hash BYTEA NOT NULL,
-    status auth_status NOT NULL
+    status auth_status NOT NULL,
+    role auth_role NOT NULL
 );
 -- +goose StatementEnd
 

@@ -14,5 +14,5 @@ func (p *SyncPhotoHandler) UploadPhoto(ctx context.Context, request *desc.Upload
 		return nil, handler.HandleError(err, "p.syncPhoto.UploadPhoto")
 	}
 
-	return mapUploadPhotoResponse(response), nil
+	return mapUploadPhotoResponse(&response), nil
 }

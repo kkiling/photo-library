@@ -22,6 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 const (
 	AuthService_EmailAvailable_FullMethodName       = "/pb.v1.AuthService/EmailAvailable"
 	AuthService_CheckPersonsExists_FullMethodName   = "/pb.v1.AuthService/CheckPersonsExists"
+	AuthService_AdminInitInvite_FullMethodName      = "/pb.v1.AuthService/AdminInitInvite"
 	AuthService_SendInvite_FullMethodName           = "/pb.v1.AuthService/SendInvite"
 	AuthService_ActivateInvite_FullMethodName       = "/pb.v1.AuthService/ActivateInvite"
 	AuthService_Registration_FullMethodName         = "/pb.v1.AuthService/Registration"
@@ -29,6 +30,9 @@ const (
 	AuthService_Logout_FullMethodName               = "/pb.v1.AuthService/Logout"
 	AuthService_Login_FullMethodName                = "/pb.v1.AuthService/Login"
 	AuthService_RefreshToken_FullMethodName         = "/pb.v1.AuthService/RefreshToken"
+	AuthService_GetApiTokens_FullMethodName         = "/pb.v1.AuthService/GetApiTokens"
+	AuthService_CreateApiToken_FullMethodName       = "/pb.v1.AuthService/CreateApiToken"
+	AuthService_DeleteApiToken_FullMethodName       = "/pb.v1.AuthService/DeleteApiToken"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -37,13 +41,17 @@ const (
 type AuthServiceClient interface {
 	EmailAvailable(ctx context.Context, in *EmailAvailableRequest, opts ...grpc.CallOption) (*EmailAvailableResponse, error)
 	CheckPersonsExists(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*CheckPersonsExistsResponse, error)
+	AdminInitInvite(ctx context.Context, in *AdminInitInviteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	SendInvite(ctx context.Context, in *SendInviteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	ActivateInvite(ctx context.Context, in *ActivateInviteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Registration(ctx context.Context, in *RegistrationRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	ActivateRegistration(ctx context.Context, in *ActivateRegistrationRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	Logout(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*AuthData, error)
 	RefreshToken(ctx context.Context, in *RefreshTokenRequest, opts ...grpc.CallOption) (*AuthData, error)
+	GetApiTokens(ctx context.Context, in *GetApiTokensRequest, opts ...grpc.CallOption) (*GetApiTokensResponse, error)
+	CreateApiToken(ctx context.Context, in *CreateApiTokenRequest, opts ...grpc.CallOption) (*CreateApiTokenResponse, error)
+	DeleteApiToken(ctx context.Context, in *DeleteApiTokenRequest, opts ...grpc.CallOption) (*DeleteApiTokenResponse, error)
 }
 
 type authServiceClient struct {
@@ -66,6 +74,15 @@ func (c *authServiceClient) EmailAvailable(ctx context.Context, in *EmailAvailab
 func (c *authServiceClient) CheckPersonsExists(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*CheckPersonsExistsResponse, error) {
 	out := new(CheckPersonsExistsResponse)
 	err := c.cc.Invoke(ctx, AuthService_CheckPersonsExists_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) AdminInitInvite(ctx context.Context, in *AdminInitInviteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, AuthService_AdminInitInvite_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +125,7 @@ func (c *authServiceClient) ActivateRegistration(ctx context.Context, in *Activa
 	return out, nil
 }
 
-func (c *authServiceClient) Logout(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *authServiceClient) Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, AuthService_Logout_FullMethodName, in, out, opts...)
 	if err != nil {
@@ -135,19 +152,50 @@ func (c *authServiceClient) RefreshToken(ctx context.Context, in *RefreshTokenRe
 	return out, nil
 }
 
+func (c *authServiceClient) GetApiTokens(ctx context.Context, in *GetApiTokensRequest, opts ...grpc.CallOption) (*GetApiTokensResponse, error) {
+	out := new(GetApiTokensResponse)
+	err := c.cc.Invoke(ctx, AuthService_GetApiTokens_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) CreateApiToken(ctx context.Context, in *CreateApiTokenRequest, opts ...grpc.CallOption) (*CreateApiTokenResponse, error) {
+	out := new(CreateApiTokenResponse)
+	err := c.cc.Invoke(ctx, AuthService_CreateApiToken_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) DeleteApiToken(ctx context.Context, in *DeleteApiTokenRequest, opts ...grpc.CallOption) (*DeleteApiTokenResponse, error) {
+	out := new(DeleteApiTokenResponse)
+	err := c.cc.Invoke(ctx, AuthService_DeleteApiToken_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations should embed UnimplementedAuthServiceServer
 // for forward compatibility
 type AuthServiceServer interface {
 	EmailAvailable(context.Context, *EmailAvailableRequest) (*EmailAvailableResponse, error)
 	CheckPersonsExists(context.Context, *emptypb.Empty) (*CheckPersonsExistsResponse, error)
+	AdminInitInvite(context.Context, *AdminInitInviteRequest) (*emptypb.Empty, error)
 	SendInvite(context.Context, *SendInviteRequest) (*emptypb.Empty, error)
 	ActivateInvite(context.Context, *ActivateInviteRequest) (*emptypb.Empty, error)
 	Registration(context.Context, *RegistrationRequest) (*emptypb.Empty, error)
 	ActivateRegistration(context.Context, *ActivateRegistrationRequest) (*emptypb.Empty, error)
-	Logout(context.Context, *LoginRequest) (*emptypb.Empty, error)
+	Logout(context.Context, *LogoutRequest) (*emptypb.Empty, error)
 	Login(context.Context, *LoginRequest) (*AuthData, error)
 	RefreshToken(context.Context, *RefreshTokenRequest) (*AuthData, error)
+	GetApiTokens(context.Context, *GetApiTokensRequest) (*GetApiTokensResponse, error)
+	CreateApiToken(context.Context, *CreateApiTokenRequest) (*CreateApiTokenResponse, error)
+	DeleteApiToken(context.Context, *DeleteApiTokenRequest) (*DeleteApiTokenResponse, error)
 }
 
 // UnimplementedAuthServiceServer should be embedded to have forward compatible implementations.
@@ -159,6 +207,9 @@ func (UnimplementedAuthServiceServer) EmailAvailable(context.Context, *EmailAvai
 }
 func (UnimplementedAuthServiceServer) CheckPersonsExists(context.Context, *emptypb.Empty) (*CheckPersonsExistsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CheckPersonsExists not implemented")
+}
+func (UnimplementedAuthServiceServer) AdminInitInvite(context.Context, *AdminInitInviteRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminInitInvite not implemented")
 }
 func (UnimplementedAuthServiceServer) SendInvite(context.Context, *SendInviteRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendInvite not implemented")
@@ -172,7 +223,7 @@ func (UnimplementedAuthServiceServer) Registration(context.Context, *Registratio
 func (UnimplementedAuthServiceServer) ActivateRegistration(context.Context, *ActivateRegistrationRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ActivateRegistration not implemented")
 }
-func (UnimplementedAuthServiceServer) Logout(context.Context, *LoginRequest) (*emptypb.Empty, error) {
+func (UnimplementedAuthServiceServer) Logout(context.Context, *LogoutRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Logout not implemented")
 }
 func (UnimplementedAuthServiceServer) Login(context.Context, *LoginRequest) (*AuthData, error) {
@@ -180,6 +231,15 @@ func (UnimplementedAuthServiceServer) Login(context.Context, *LoginRequest) (*Au
 }
 func (UnimplementedAuthServiceServer) RefreshToken(context.Context, *RefreshTokenRequest) (*AuthData, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RefreshToken not implemented")
+}
+func (UnimplementedAuthServiceServer) GetApiTokens(context.Context, *GetApiTokensRequest) (*GetApiTokensResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetApiTokens not implemented")
+}
+func (UnimplementedAuthServiceServer) CreateApiToken(context.Context, *CreateApiTokenRequest) (*CreateApiTokenResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateApiToken not implemented")
+}
+func (UnimplementedAuthServiceServer) DeleteApiToken(context.Context, *DeleteApiTokenRequest) (*DeleteApiTokenResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteApiToken not implemented")
 }
 
 // UnsafeAuthServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -225,6 +285,24 @@ func _AuthService_CheckPersonsExists_Handler(srv interface{}, ctx context.Contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AuthServiceServer).CheckPersonsExists(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_AdminInitInvite_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdminInitInviteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).AdminInitInvite(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_AdminInitInvite_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).AdminInitInvite(ctx, req.(*AdminInitInviteRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -302,7 +380,7 @@ func _AuthService_ActivateRegistration_Handler(srv interface{}, ctx context.Cont
 }
 
 func _AuthService_Logout_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LoginRequest)
+	in := new(LogoutRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -314,7 +392,7 @@ func _AuthService_Logout_Handler(srv interface{}, ctx context.Context, dec func(
 		FullMethod: AuthService_Logout_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).Logout(ctx, req.(*LoginRequest))
+		return srv.(AuthServiceServer).Logout(ctx, req.(*LogoutRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -355,6 +433,60 @@ func _AuthService_RefreshToken_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_GetApiTokens_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetApiTokensRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).GetApiTokens(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_GetApiTokens_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).GetApiTokens(ctx, req.(*GetApiTokensRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_CreateApiToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateApiTokenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).CreateApiToken(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_CreateApiToken_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).CreateApiToken(ctx, req.(*CreateApiTokenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_DeleteApiToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteApiTokenRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).DeleteApiToken(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_DeleteApiToken_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).DeleteApiToken(ctx, req.(*DeleteApiTokenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -369,6 +501,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CheckPersonsExists",
 			Handler:    _AuthService_CheckPersonsExists_Handler,
+		},
+		{
+			MethodName: "AdminInitInvite",
+			Handler:    _AuthService_AdminInitInvite_Handler,
 		},
 		{
 			MethodName: "SendInvite",
@@ -397,6 +533,18 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RefreshToken",
 			Handler:    _AuthService_RefreshToken_Handler,
+		},
+		{
+			MethodName: "GetApiTokens",
+			Handler:    _AuthService_GetApiTokens_Handler,
+		},
+		{
+			MethodName: "CreateApiToken",
+			Handler:    _AuthService_CreateApiToken_Handler,
+		},
+		{
+			MethodName: "DeleteApiToken",
+			Handler:    _AuthService_DeleteApiToken_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

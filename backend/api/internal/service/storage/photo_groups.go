@@ -74,7 +74,7 @@ func (r *Adapter) SaveGroup(ctx context.Context, group model.PhotoGroup) error {
 			ID:          group.ID,
 			MainPhotoID: group.MainPhotoID,
 			CreatedAt:   group.CreatedAt,
-			UpdatedAt:   group.UpdatedAt,
+			PhotoUpdatedAt:   group.PhotoUpdatedAt,
 		}
 		if err := queries.SaveGroup(ctxTx, paramsGroup); err != nil {
 			return err

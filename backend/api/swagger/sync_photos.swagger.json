@@ -50,6 +50,11 @@
         ],
         "tags": [
           "SyncPhotosService"
+        ],
+        "security": [
+          {
+            "Bearer": []
+          }
         ]
       }
     }
@@ -102,18 +107,14 @@
           "format": "byte",
           "title": "Данные фото"
         },
-        "update_at": {
+        "photo_updated_at": {
           "type": "string",
           "format": "date-time",
           "title": "Информация о последнем изменении фото"
         },
-        "client_id": {
+        "client_info": {
           "type": "string",
-          "title": "Идентификатор клиента"
-        },
-        "access_key": {
-          "type": "string",
-          "title": "Ключ доступа"
+          "title": "Информация о клиенте"
         }
       }
     },
@@ -129,6 +130,13 @@
           "title": "Хеш фотографии"
         }
       }
+    }
+  },
+  "securityDefinitions": {
+    "Bearer": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header"
     }
   }
 }

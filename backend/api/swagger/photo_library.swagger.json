@@ -114,6 +114,11 @@
         ],
         "tags": [
           "AuthService"
+        ],
+        "security": [
+          {
+            "Bearer": []
+          }
         ]
       }
     },
@@ -143,6 +148,40 @@
             "required": true,
             "schema": {
               "$ref": "#/definitions/ActivateInviteRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/v1/auth/invite/init": {
+      "post": {
+        "summary": "Отправка приглашения первому администратору",
+        "operationId": "AuthService_AdminInitInvite",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/Status"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/AdminInitInviteRequest"
             }
           }
         ],
@@ -209,7 +248,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/LoginRequest"
+              "$ref": "#/definitions/LogoutRequest"
             }
           }
         ],
@@ -316,6 +355,106 @@
         ],
         "tags": [
           "AuthService"
+        ]
+      }
+    },
+    "/v1/auth/tokens": {
+      "get": {
+        "summary": "Получение токенов API пользователя",
+        "operationId": "AuthService_GetApiTokens",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/GetApiTokensResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/Status"
+            }
+          }
+        },
+        "tags": [
+          "AuthService"
+        ],
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Создание API токена для пользователя",
+        "operationId": "AuthService_CreateApiToken",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/CreateApiTokenResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/Status"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateApiTokenRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ],
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/auth/tokens/{token_id}": {
+      "delete": {
+        "summary": "Удаление API токена пользователя",
+        "operationId": "AuthService_DeleteApiToken",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/DeleteApiTokenResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/Status"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "token_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ],
+        "security": [
+          {
+            "Bearer": []
+          }
         ]
       }
     },
@@ -620,6 +759,14 @@
       },
       "title": "REQUEST / RESPONSE"
     },
+    "AdminInitInviteRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        }
+      }
+    },
     "Any": {
       "type": "object",
       "properties": {
@@ -628,6 +775,33 @@
         }
       },
       "additionalProperties": {}
+    },
+    "ApiToken": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "caption": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/definitions/ApiTokenType"
+        },
+        "expired_at": {
+          "type": "string",
+          "format": "date-time",
+          "title": "string token = 5; -- Токен не показываем передаем из-за соображений безопасности"
+        }
+      }
+    },
+    "ApiTokenType": {
+      "type": "string",
+      "enum": [
+        "API_TOKEN_TYPE_UNKNOWN",
+        "API_TOKEN_TYPE_SYNC_PHOTO"
+      ],
+      "default": "API_TOKEN_TYPE_UNKNOWN"
     },
     "AuthData": {
       "type": "object",
@@ -671,10 +845,37 @@
         }
       }
     },
+    "CreateApiTokenRequest": {
+      "type": "object",
+      "properties": {
+        "caption": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/definitions/ApiTokenType"
+        },
+        "time_duration": {
+          "type": "string",
+          "title": "Время действия токена"
+        }
+      }
+    },
+    "CreateApiTokenResponse": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string",
+          "title": "Токен показываем только при создании, просим запомнить"
+        }
+      }
+    },
+    "DeleteApiTokenResponse": {
+      "type": "object"
+    },
     "EmailAvailableResponse": {
       "type": "object",
       "properties": {
-        "exists": {
+        "available": {
           "type": "boolean"
         }
       }
@@ -692,6 +893,18 @@
         }
       },
       "title": "MODELS"
+    },
+    "GetApiTokensResponse": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/ApiToken"
+          }
+        }
+      }
     },
     "GetPhotoGroupResponse": {
       "type": "object",
@@ -748,6 +961,14 @@
           "type": "string"
         },
         "password": {
+          "type": "string"
+        }
+      }
+    },
+    "LogoutRequest": {
+      "type": "object",
+      "properties": {
+        "refresh_token": {
           "type": "string"
         }
       }

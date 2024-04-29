@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"github.com/kkiling/photo-library/backend/api/internal/interceptor"
 
 	"github.com/kkiling/photo-library/backend/api/internal/handler/sync_photos_handler"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
@@ -11,20 +12,22 @@ import (
 const syncPhotosSwaggerName = "sync_photos"
 
 type SyncPhotosServer struct {
-	*CustomServer
+	*ApiServer
 }
 
 func NewSyncPhotosServer(
 	logger log.Logger,
 	cfg server.Config,
+	apiToken interceptor.ApiTokenService,
 	syncPhotoService sync_photo_handler.SyncPhotosService,
 ) *SyncPhotosServer {
 	return &SyncPhotosServer{
-		CustomServer: NewCustomServer(
+		ApiServer: NewApiServer(
 			logger.Named("sync_photos_server"),
 			cfg,
+			apiToken,
 			sync_photo_handler.NewHandler(
-				logger.Named("sync_photo_handler"),
+				logger.Named("sync_photos_handler"),
 				syncPhotoService,
 			),
 		),
@@ -32,5 +35,5 @@ func NewSyncPhotosServer(
 }
 
 func (s *SyncPhotosServer) Start(ctx context.Context) error {
-	return s.CustomServer.Start(ctx, syncPhotosSwaggerName)
+	return s.ApiServer.Start(ctx, syncPhotosSwaggerName)
 }

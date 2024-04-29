@@ -20,7 +20,7 @@ type PhotoMetadata struct {
 	// Дата и время снимка берем из exif, если нет то пробуем из имени файла
 	DateTime *time.Time
 	// Дата последнего обновления файла (берем из файла)
-	UpdatedAt time.Time
+	PhotoUpdatedAt time.Time
 	// Geo локация
 	Geo *Geo
 }

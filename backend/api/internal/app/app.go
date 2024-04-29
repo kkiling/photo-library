@@ -3,12 +3,18 @@ package app
 import (
 	"context"
 	"fmt"
+	"github.com/kkiling/photo-library/backend/api/internal/service/auth"
+	"github.com/kkiling/photo-library/backend/api/internal/service/auth/api_token"
+	"github.com/kkiling/photo-library/backend/api/internal/service/auth/codes"
+	"github.com/kkiling/photo-library/backend/api/internal/service/auth/jwt_helper"
+	"github.com/kkiling/photo-library/backend/api/internal/service/auth/password"
+	"github.com/kkiling/photo-library/backend/api/internal/service/auth/session_manager"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/fsstore"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/geo"
-	pgrepo2 "github.com/kkiling/photo-library/backend/api/internal/adapter/pgrepo"
+	"github.com/kkiling/photo-library/backend/api/internal/adapter/pgrepo"
 	"github.com/kkiling/photo-library/backend/api/internal/adapter/photoml"
 	"github.com/kkiling/photo-library/backend/api/internal/service/lock"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
@@ -45,12 +51,18 @@ type App struct {
 	photoML        *photoml.Service
 	geoService     *geo.Service
 	// service
-	lockService          *lock.Service
-	tagsServices         *tags.Service
-	photoGroupService    *photo_groups_service.Service
-	photoMetadataService *photo_metadata_service.Service
-	photoTagsService     *photo_tags_service.Service
-	syncPhotoService     *sync_photos.Service
+	lockService           *lock.Service
+	tagsServices          *tags.Service
+	photoGroupService     *photo_groups_service.Service
+	photoMetadataService  *photo_metadata_service.Service
+	photoTagsService      *photo_tags_service.Service
+	syncPhotoService      *sync_photos.Service
+	authService           *auth.Service
+	confirmCodeService    *codes.Service
+	passwordService       *password.Service
+	sessionManagerService *session_manager.SessionManager
+	jwtHelper             *jwt_helper.JwtHelper
+	apiTokenService       *api_token.Service
 	// Processing
 	similarPhotos    *similar_photos.Processing
 	exifPhoto        *exif_photo_data.Processing
@@ -73,12 +85,10 @@ func (a *App) Create(ctx context.Context) error {
 		return fmt.Errorf("getPgConnConfig: %w", err)
 	}
 
-	serverCfg, err := a.getServerConfig()
+	a.serverCfg, err = a.getServerConfig()
 	if err != nil {
 		return fmt.Errorf("getServerConfig: %w", err)
 	}
-
-	a.serverCfg = serverCfg
 
 	fsStoreCfg, err := a.getFsStoreConfig()
 	if err != nil {
@@ -110,9 +120,29 @@ func (a *App) Create(ctx context.Context) error {
 		return fmt.Errorf("getPhotoPreviewConfig: %w", err)
 	}
 
-	pool, err := pgrepo2.NewPgConn(ctx, pgCfg)
+	authCfg, err := a.getAuthConfig()
+	if err != nil {
+		return fmt.Errorf("getAuthConfig: %w", err)
+	}
+
+	sessionManagerCfg, err := a.getSessionManagerConfig()
+	if err != nil {
+		return fmt.Errorf("getSessionManagerConfig: %w", err)
+	}
+
+	jwtHelperCfg, err := a.getJwtHelperConfig()
+	if err != nil {
+		return fmt.Errorf("getJwtHelperConfig: %w", err)
+	}
+
+	pool, err := pgrepo.NewPgConn(ctx, pgCfg)
 	if err != nil {
 		return fmt.Errorf("newPgConn: %w", err)
+	}
+
+	a.jwtHelper, err = jwt_helper.NewHelper(jwtHelperCfg)
+	if err != nil {
+		return fmt.Errorf("jwt_helper.NewHelper: %w", err)
 	}
 
 	a.pgxPool = pool
@@ -121,6 +151,20 @@ func (a *App) Create(ctx context.Context) error {
 	a.fsStore = fsstore.NewStore(fsStoreCfg)
 	a.geoService = geo.NewService(a.logger.Named("geo_service"))
 	a.lockService = lock.NewService(a.storageAdapter)
+	a.confirmCodeService = codes.NewService(
+		a.logger.Named("confirm_code_service"),
+		a.storageAdapter,
+	)
+	a.apiTokenService = api_token.NewService(
+		a.logger.Named("api_token_service"),
+		a.storageAdapter,
+	)
+	a.passwordService = password.NewService(a.logger.Named("password_service"))
+	a.sessionManagerService = session_manager.NewSessionManager(
+		a.logger.Named("confirm_code_service"),
+		sessionManagerCfg,
+		a.jwtHelper,
+	)
 	a.photoML = photoml.NewService(
 		a.logger.Named("photo_ml"),
 		photoMlCfg,
@@ -141,6 +185,14 @@ func (a *App) Create(ctx context.Context) error {
 		a.logger.Named("photo_tags_service"),
 		a.tagsServices,
 		a.storageAdapter,
+	)
+	a.authService = auth.NewService(
+		a.logger.Named("auth_service"),
+		a.storageAdapter,
+		authCfg,
+		a.confirmCodeService,
+		a.passwordService,
+		a.sessionManagerService,
 	)
 	a.syncPhotoService = sync_photos.NewService(
 		a.logger.Named("sync_photo"),
@@ -214,6 +266,10 @@ func (a *App) GetLogger() log.Logger {
 	return a.logger
 }
 
+func (a *App) GetSessionManager() *session_manager.SessionManager {
+	return a.sessionManagerService
+}
+
 func (a *App) GetProcessingPhotos() *processing.Service {
 	return a.processingPhotos
 }
@@ -236,6 +292,14 @@ func (a *App) GetPhotoGroupService() *photo_groups_service.Service {
 
 func (a *App) GetPhotoMetadataService() *photo_metadata_service.Service {
 	return a.photoMetadataService
+}
+
+func (a *App) GetAuthService() *auth.Service {
+	return a.authService
+}
+
+func (a *App) ApiTokenService() *api_token.Service {
+	return a.apiTokenService
 }
 
 func (a *App) GetPhotoTagsService() *photo_tags_service.Service {

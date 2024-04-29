@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
 
@@ -11,10 +12,10 @@ import (
 
 func (s *Service) createAuthData(ctx context.Context, personAuth model.Auth) (model.AuthDataDTO, error) {
 	refreshToken := model.RefreshToken{
-		Base:           model.NewBase(),
-		RefreshTokenID: uuid.New(),
-		PersonID:       personAuth.PersonID,
-		Status:         model.RefreshTokenStatusActive,
+		Base:     model.NewBase(),
+		ID:       uuid.New(),
+		PersonID: personAuth.PersonID,
+		Status:   model.RefreshTokenStatusActive,
 	}
 
 	if err := s.storage.SaveRefreshToken(ctx, refreshToken); err != nil {
@@ -32,7 +33,7 @@ func (s *Service) createAuthData(ctx context.Context, personAuth model.Auth) (mo
 	}
 
 	refreshSession := model.RefreshSession{
-		RefreshTokenID: refreshToken.RefreshTokenID,
+		RefreshTokenID: refreshToken.ID,
 		PersonID:       refreshToken.PersonID,
 	}
 
@@ -49,4 +50,47 @@ func (s *Service) createAuthData(ctx context.Context, personAuth model.Auth) (mo
 		RefreshToken:           refresh.Token,
 		RefreshTokenExpiration: refresh.ExpiresAt,
 	}, nil
+}
+
+func (s *Service) sendInvite(ctx context.Context, email string, role model.AuthRole) error {
+	if emailExists, err := s.storage.EmailExists(ctx, email); err != nil {
+		return serviceerr.MakeErr(err, "s.storage.EmailExists")
+	} else if emailExists {
+		return serviceerr.Conflictf("email already exists")
+	}
+
+	newPerson := model.Person{
+		Base: model.NewBase(),
+		ID:   uuid.New(),
+	}
+
+	newAuth := model.Auth{
+		Base:         model.NewBase(),
+		PersonID:     newPerson.ID,
+		Email:        email,
+		PasswordHash: []byte{},
+		Status:       model.AuthStatusSentInvite,
+		Role:         role,
+	}
+
+	err := s.storage.RunTransaction(ctx, func(ctxTx context.Context) error {
+		if saveErr := s.storage.SavePerson(ctxTx, newPerson); saveErr != nil {
+			return fmt.Errorf("s.storage.CreatePerson: %w", saveErr)
+		}
+		if saveErr := s.storage.SavePersonAuth(ctxTx, newAuth); saveErr != nil {
+			return fmt.Errorf("s.storage.AddPersonAuth: %w", saveErr)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return serviceerr.MakeErr(err, " s.storage.RunTransaction")
+	}
+
+	err = s.confirmCodeService.SendConfirmCode(ctx, newPerson.ID, model.ConfirmCodeTypeActivateInvite)
+	if err != nil {
+		return serviceerr.MakeErr(err, "s.confirmCodeService.SendConfirmCode")
+	}
+
+	return nil
 }

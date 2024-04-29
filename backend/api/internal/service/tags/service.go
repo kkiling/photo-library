@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/kkiling/photo-library/backend/api/internal/service/utils"
 	"sync"
 
 	"github.com/go-playground/validator/v10"
@@ -48,7 +49,7 @@ func NewService(storage Storage) *Service {
 }
 
 func validateCreateCategory(typeCategory, color string) error {
-	validate := validator.New()
+	validate := utils.NewValidator()
 
 	// Валидация имени
 	if err := validate.Var(typeCategory, fmt.Sprintf("min=%d,max=%d", TagCategoryTypeMin, TagCategoryTypeMax)); err != nil {
@@ -142,7 +143,7 @@ func (s *Service) GetTags(ctx context.Context, photoID uuid.UUID) ([]model.Tag, 
 }
 
 func validateAddPhotoTag(name string) error {
-	validate := validator.New()
+	validate := utils.NewValidator()
 
 	// Валидация имени
 	if err := validate.Var(name, fmt.Sprintf("min=%d,max=%d", TagNameMin, TagNameMax)); err != nil {

@@ -1,6 +1,7 @@
 package session_manager
 
 import (
+	"github.com/kkiling/photo-library/backend/api/internal/service/auth/jwt_helper"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -17,30 +18,38 @@ var (
 	ErrSessionNotFound = errors.New("Session not found")
 )
 
-// JWTHelper хелпер для работы с jwt
-type JWTHelper interface {
-	Parse(token string, claims Claims) error
-	CreateToken(claims Claims) (string, error)
+// Config конфигурация выпуска jwt
+type Config struct {
+	Audience             string        `yaml:"audience"`
+	Issuer               string        `yaml:"issuer"`
+	AccessTokenDuration  time.Duration `yaml:"access_token_duration"`
+	RefreshTokenDuration time.Duration `yaml:"refresh_token_duration"`
 }
 
-// NewSessionManager ..
-func NewSessionManager(
-	cfg SessionConfig,
-	logger log.Logger,
-	jwtHelper JWTHelper,
-) (*SessionManager, error) {
-	return &SessionManager{
-		logger:    logger.Named("session_manager"),
-		cfg:       cfg,
-		jwtHelper: jwtHelper,
-	}, nil
+// JWTHelper хелпер для работы с jwt
+type JWTHelper interface {
+	Parse(token string, claims jwt_helper.Claims) error
+	CreateToken(claims jwt_helper.Claims) (string, error)
 }
 
 // SessionManager менеджер работы с токенами и данными авторизованного пользователя
 type SessionManager struct {
 	logger    log.Logger
-	cfg       SessionConfig
+	cfg       Config
 	jwtHelper JWTHelper
+}
+
+// NewSessionManager ..
+func NewSessionManager(
+	logger log.Logger,
+	cfg Config,
+	jwtHelper JWTHelper,
+) *SessionManager {
+	return &SessionManager{
+		logger:    logger.Named("session_manager"),
+		cfg:       cfg,
+		jwtHelper: jwtHelper,
+	}
 }
 
 // CreateTokenBySession создание jwt токена для пользователя

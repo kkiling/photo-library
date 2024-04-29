@@ -25,10 +25,11 @@ func (r *Adapter) GetPhotoUploadData(ctx context.Context, photoID uuid.UUID) (mo
 	}
 
 	return model.PhotoUploadData{
-		PhotoID:  res.PhotoID,
-		UploadAt: res.UploadAt,
-		Paths:    res.Paths,
-		ClientID: res.ClientID,
+		PhotoID:    res.PhotoID,
+		UploadAt:   res.UploadAt,
+		Paths:      res.Paths,
+		ClientInfo: res.ClientInfo,
+		PersonID:   res.PersonID,
 	}, nil
 }
 
@@ -36,10 +37,11 @@ func (r *Adapter) SavePhotoUploadData(ctx context.Context, uploadData model.Phot
 	queries := r.getQueries(ctx)
 
 	err := queries.SavePhotoUploadData(ctx, photo_library.SavePhotoUploadDataParams{
-		PhotoID:  uploadData.PhotoID,
-		Paths:    uploadData.Paths,
-		UploadAt: uploadData.UploadAt,
-		ClientID: uploadData.ClientID,
+		PhotoID:    uploadData.PhotoID,
+		Paths:      uploadData.Paths,
+		UploadAt:   uploadData.UploadAt,
+		ClientInfo: uploadData.ClientInfo,
+		PersonID:   uploadData.PersonID,
 	})
 
 	if err != nil {

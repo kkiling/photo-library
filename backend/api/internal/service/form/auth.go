@@ -2,6 +2,10 @@ package form
 
 import "github.com/kkiling/photo-library/backend/api/internal/service/model"
 
+type AdminInitInviteForm struct {
+	Email string `validate:"required,email"`
+}
+
 // SendInviteForm отправление инвайта на присоединение в системе
 type SendInviteForm struct {
 	Email string         `validate:"required,email"`

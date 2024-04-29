@@ -33,14 +33,14 @@ func (r *Adapter) GetMetadata(ctx context.Context, photoID uuid.UUID) (model.Pho
 	}
 
 	return model.PhotoMetadata{
-		PhotoID:     res.PhotoID,
-		ModelInfo:   res.ModelInfo,
-		SizeBytes:   res.SizeBytes,
-		WidthPixel:  res.WidthPixel,
-		HeightPixel: res.HeightPixel,
-		DateTime:    dataTimePtr(res.DateTime),
-		UpdatedAt:   res.UpdatedAt,
-		Geo:         geo,
+		PhotoID:        res.PhotoID,
+		ModelInfo:      res.ModelInfo,
+		SizeBytes:      res.SizeBytes,
+		WidthPixel:     res.WidthPixel,
+		HeightPixel:    res.HeightPixel,
+		DateTime:       dataTimePtr(res.DateTime),
+		PhotoUpdatedAt: res.UpdatedAt,
+		Geo:            geo,
 	}, nil
 }
 
@@ -61,7 +61,7 @@ func (r *Adapter) SaveMetadata(ctx context.Context, metadata model.PhotoMetadata
 		WidthPixel:   metadata.WidthPixel,
 		HeightPixel:  metadata.HeightPixel,
 		DateTime:     pgTypeTimestamptz(metadata.DateTime),
-		UpdatedAt:    metadata.UpdatedAt,
+		UpdatedAt:    metadata.PhotoUpdatedAt,
 		GeoLatitude:  latitude,
 		GeoLongitude: longitude,
 	}

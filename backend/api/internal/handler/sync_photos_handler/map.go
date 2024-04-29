@@ -7,11 +7,11 @@ import (
 
 func mapUploadPhotoRequest(request *desc.UploadPhotoRequest) *model.SyncPhotoRequest {
 	return &model.SyncPhotoRequest{
-		Paths:    request.Paths,
-		Hash:     request.Hash,
-		Body:     request.Body,
-		UpdateAt: request.UpdateAt.AsTime(),
-		ClientId: request.ClientId,
+		Paths:          request.Paths,
+		Hash:           request.Hash,
+		Body:           request.Body,
+		PhotoUpdatedAt: request.PhotoUpdatedAt.AsTime(),
+		ClientInfo:     request.ClientInfo,
 	}
 }
 

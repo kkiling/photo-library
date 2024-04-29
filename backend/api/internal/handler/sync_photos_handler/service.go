@@ -10,15 +10,14 @@ import (
 	desc "github.com/kkiling/photo-library/backend/api/pkg/common/gen/proto/v1"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/server"
-	methoddescriptor "github.com/kkiling/photo-library/backend/api/pkg/common/server/method_descriptor"
 )
 
 type SyncPhotosService interface {
-	UploadPhoto(ctx context.Context, form *model.SyncPhotoRequest) (*model.SyncPhotoResponse, error)
+	UploadPhoto(ctx context.Context, form *model.SyncPhotoRequest) (model.SyncPhotoResponse, error)
 }
 
 type SyncPhotoHandler struct {
-	desc.UnimplementedSyncPhotosServiceServer
+	// desc.UnimplementedSyncPhotosServiceServer
 	logger    log.Logger
 	syncPhoto SyncPhotosService
 }
@@ -30,7 +29,7 @@ func NewHandler(logger log.Logger, syncPhoto SyncPhotosService) *SyncPhotoHandle
 	}
 }
 
-func (p *SyncPhotoHandler) RegistrationServerHandlers(mux *http.ServeMux) {
+func (p *SyncPhotoHandler) RegistrationServerHandlers(_ *http.ServeMux) {
 
 }
 
@@ -40,10 +39,4 @@ func (p *SyncPhotoHandler) RegisterServiceHandlerFromEndpoint() server.HandlerFr
 
 func (p *SyncPhotoHandler) RegisterServiceServer(server *grpc.Server) {
 	desc.RegisterSyncPhotosServiceServer(server, p)
-}
-
-func (p *SyncPhotoHandler) GetMethodDescriptors() []methoddescriptor.Descriptor {
-	return []methoddescriptor.Descriptor{
-		// server2.NewCustomDescriptor((*SyncPhotoHandler).UploadPhoto),
-	}
 }

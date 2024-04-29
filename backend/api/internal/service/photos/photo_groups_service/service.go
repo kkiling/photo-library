@@ -3,6 +3,7 @@ package photo_groups_service
 import (
 	"context"
 	"errors"
+	"github.com/go-playground/validator/v10"
 
 	"github.com/google/uuid"
 	"github.com/samber/lo"
@@ -33,6 +34,7 @@ type Service struct {
 	logger      log.Logger
 	storage     Storage
 	fileStorage FileStore
+	validate    *validator.Validate
 }
 
 func NewService(logger log.Logger, fileStorage FileStore, storage Storage) *Service {
@@ -40,6 +42,7 @@ func NewService(logger log.Logger, fileStorage FileStore, storage Storage) *Serv
 		logger:      logger,
 		storage:     storage,
 		fileStorage: fileStorage,
+		validate:    utils.NewValidator(),
 	}
 }
 
@@ -56,13 +59,6 @@ func (s *Service) getPreviews(ctx context.Context, photoID uuid.UUID) ([]model.P
 	}
 
 	return previews, nil
-}
-
-func validateGetPhotoGroups(req *form.GetPhotoGroups) error {
-	if err := req.Paginator.Validate(); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (s *Service) getPhotoWithPreviews(ctx context.Context, photoID uuid.UUID) (model.PhotoWithPreviewsDTO, error) {
@@ -99,8 +95,8 @@ func (s *Service) getPhotoWithPreviews(ctx context.Context, photoID uuid.UUID) (
 
 // GetPhotoGroups получение списка групп фотографий
 func (s *Service) GetPhotoGroups(ctx context.Context, req form.GetPhotoGroups) (model.PaginatedPhotoGroupsDTO, error) {
-	if err := validateGetPhotoGroups(&req); err != nil {
-		return model.PaginatedPhotoGroupsDTO{}, serviceerr.InvalidInputErr(err, "validateGetPhotoGroups")
+	if err := s.validate.Struct(req); err != nil {
+		return model.PaginatedPhotoGroupsDTO{}, serviceerr.InvalidInputErr(err, "error get photo groups")
 	}
 
 	groups, err := s.storage.GetPaginatedPhotoGroups(ctx, model.PhotoGroupsParams{

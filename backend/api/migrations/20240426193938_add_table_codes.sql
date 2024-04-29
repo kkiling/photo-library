@@ -1,12 +1,13 @@
 -- +goose Up
 -- +goose StatementBegin
 CREATE TYPE code_type AS ENUM (
-    'ACTIVATE_AUT'
+    'ACTIVATE_INVITE',
+    'ACTIVATE_REGISTRATION'
 );
 
 CREATE TABLE codes (
-    code TEXT PRIMARY KEY NOT NULL,
-    person_id UUID REFERENCES people(id),
+    code TEXT PRIMARY KEY,
+    person_id UUID NOT NULL REFERENCES people(id),
     created_at TIMESTAMPTZ NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL,
     active BOOLEAN NOT NULL,

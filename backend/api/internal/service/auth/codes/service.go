@@ -3,8 +3,8 @@ package codes
 import (
 	"context"
 	"fmt"
-
 	"github.com/google/uuid"
+	"github.com/kkiling/photo-library/backend/api/internal/service/utils"
 
 	"github.com/kkiling/photo-library/backend/api/internal/service"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
@@ -16,7 +16,7 @@ import (
 type Storage interface {
 	service.Transactor
 	SaveConfirmCode(ctx context.Context, confirmCode model.ConfirmCode) error
-	GetConfirmCode(ctx context.Context, code string) (model.ConfirmCode, error)
+	GetActiveConfirmCode(ctx context.Context, code string, confirmType model.ConfirmCodeType) (model.ConfirmCode, error)
 	UpdateConfirmCode(ctx context.Context, personID uuid.UUID, confirmCodeType model.ConfirmCodeType, update model.UpdateConfirmCode) error
 }
 
@@ -35,15 +35,19 @@ func NewService(logger log.Logger, storage Storage) *Service {
 }
 
 // GetActiveConfirmCode получение активного кода подтверждения
-func (s *Service) GetActiveConfirmCode(ctx context.Context, code string) (model.ConfirmCode, error) {
-	return s.storage.GetConfirmCode(ctx, code)
+func (s *Service) GetActiveConfirmCode(ctx context.Context, code string, confirmType model.ConfirmCodeType) (model.ConfirmCode, error) {
+	return s.storage.GetActiveConfirmCode(ctx, code, confirmType)
 }
 
 // SendConfirmCode отправка кода подтверждения
 func (s *Service) SendConfirmCode(ctx context.Context, personID uuid.UUID, confirmType model.ConfirmCodeType) error {
-	code := model.ConfirmCode{
+	code, err := utils.GenerateCode()
+	if err != nil {
+		return serviceerr.MakeErr(err, "utils.GenerateCode")
+	}
+	confirmCode := model.ConfirmCode{
 		Base:     model.NewBase(),
-		Code:     uuid.NewString(), // TODO: сделать более человеческий код
+		Code:     code,
 		PersonID: personID,
 		Type:     confirmType,
 		Active:   true,
@@ -53,10 +57,10 @@ func (s *Service) SendConfirmCode(ctx context.Context, personID uuid.UUID, confi
 	// Не страшно если два рада отправим, страшно если кода не будет в базе
 	// TODO: Реализация отправки кодов
 	fmt.Println("*** *** *** *** *** *** ***")
-	fmt.Printf("Confirm code: %s, for personID: %d", code.Code, personID)
+	fmt.Printf("Confirm code: %s, for personID: %s", confirmCode.Code, personID.String())
 	fmt.Println("*** *** *** *** *** *** ***")
 
-	if err := s.storage.SaveConfirmCode(ctx, code); err != nil {
+	if err := s.storage.SaveConfirmCode(ctx, confirmCode); err != nil {
 		return serviceerr.MakeErr(err, "s.storage.SaveConfirmCode")
 	}
 
@@ -67,7 +71,7 @@ func (s *Service) SendConfirmCode(ctx context.Context, personID uuid.UUID, confi
 func (s *Service) DeactivateCode(ctx context.Context, personID uuid.UUID, confirmCodeType model.ConfirmCodeType) error {
 	update := model.UpdateConfirmCode{
 		BaseUpdate: model.NewBaseUpdate(),
-		Active:     false,
+		Active:     model.NewUpdateField(false),
 	}
 	if err := s.storage.UpdateConfirmCode(ctx, personID, confirmCodeType, update); err != nil {
 		return serviceerr.MakeErr(err, "s.storage.UpdateConfirmCode")

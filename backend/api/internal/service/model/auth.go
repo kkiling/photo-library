@@ -29,6 +29,8 @@ const (
 	AuthRoleUser AuthRole = "USER"
 )
 
+var AuthRoleAll = []AuthRole{AuthRoleAdmin, AuthRoleUser}
+
 type RefreshTokenStatus string
 
 const (
@@ -45,9 +47,9 @@ type Session struct {
 
 type RefreshToken struct {
 	Base
-	RefreshTokenID uuid.UUID
-	PersonID       uuid.UUID
-	Status         RefreshTokenStatus
+	ID       uuid.UUID
+	PersonID uuid.UUID
+	Status   RefreshTokenStatus
 }
 
 type RefreshSession struct {

@@ -38,6 +38,7 @@ func main() {
 	srv := server.NewSyncPhotosServer(
 		application.GetLogger(),
 		application.GetServerConfig(),
+		application.ApiTokenService(),
 		application.GetSyncPhotoService(),
 	)
 

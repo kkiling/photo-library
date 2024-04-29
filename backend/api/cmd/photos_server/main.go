@@ -38,9 +38,12 @@ func main() {
 	srv := server.NewPhotoLibraryServer(
 		application.GetLogger(),
 		application.GetServerConfig(),
+		application.GetSessionManager(),
 		application.GetPhotoGroupService(),
 		application.GetPhotoTagsService(),
 		application.GetPhotoMetadataService(),
+		application.GetAuthService(),
+		application.ApiTokenService(),
 	)
 
 	go func() {

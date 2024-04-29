@@ -52,6 +52,24 @@ func (q *Queries) AddPhotoProcessing(ctx context.Context, arg AddPhotoProcessing
 	return err
 }
 
+const deleteApiToken = `-- name: DeleteApiToken :one
+DELETE FROM api_tokens
+WHERE id=$1 and person_id=$2
+RETURNING id
+`
+
+type DeleteApiTokenParams struct {
+	ID       uuid.UUID
+	PersonID uuid.UUID
+}
+
+func (q *Queries) DeleteApiToken(ctx context.Context, arg DeleteApiTokenParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, deleteApiToken, arg.ID, arg.PersonID)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
 const deleteCoefficientSimilarPhoto = `-- name: DeleteCoefficientSimilarPhoto :exec
 DELETE FROM coefficients_similar_photos
 WHERE photo_id1 = $1 OR photo_id2 = $1
@@ -178,6 +196,17 @@ func (q *Queries) DeleteTag(ctx context.Context, id uuid.UUID) (uuid.UUID, error
 	return id, err
 }
 
+const emailExists = `-- name: EmailExists :one
+SELECT count(1) as count FROM auth WHERE email = $1
+`
+
+func (q *Queries) EmailExists(ctx context.Context, email string) (int64, error) {
+	row := q.db.QueryRow(ctx, emailExists, email)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const findCoefficientSimilarPhoto = `-- name: FindCoefficientSimilarPhoto :many
 SELECT photo_id1, photo_id2, coefficient
 FROM coefficients_similar_photos
@@ -220,6 +249,127 @@ func (q *Queries) FindGroupIDByPhotoID(ctx context.Context, photoID uuid.UUID) (
 	return group_id, err
 }
 
+const getActiveConfirmCode = `-- name: GetActiveConfirmCode :one
+SELECT code, person_id, created_at, updated_at, active, type FROM codes
+WHERE code = $1 AND type = $2 and active = true
+`
+
+type GetActiveConfirmCodeParams struct {
+	Code string
+	Type CodeType
+}
+
+func (q *Queries) GetActiveConfirmCode(ctx context.Context, arg GetActiveConfirmCodeParams) (Code, error) {
+	row := q.db.QueryRow(ctx, getActiveConfirmCode, arg.Code, arg.Type)
+	var i Code
+	err := row.Scan(
+		&i.Code,
+		&i.PersonID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Active,
+		&i.Type,
+	)
+	return i, err
+}
+
+const getApiToken = `-- name: GetApiToken :one
+SELECT id, person_id, caption, token, created_at, updated_at, expired_at, type FROM api_tokens
+WHERE token=$1
+LIMIT 1
+`
+
+func (q *Queries) GetApiToken(ctx context.Context, token string) (ApiToken, error) {
+	row := q.db.QueryRow(ctx, getApiToken, token)
+	var i ApiToken
+	err := row.Scan(
+		&i.ID,
+		&i.PersonID,
+		&i.Caption,
+		&i.Token,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ExpiredAt,
+		&i.Type,
+	)
+	return i, err
+}
+
+const getApiTokens = `-- name: GetApiTokens :many
+
+SELECT id, person_id, caption, token, created_at, updated_at, expired_at, type FROM api_tokens
+WHERE person_id=$1
+ORDER BY created_at
+`
+
+// ----------------------------------------------------------------------------------------------------------------------
+func (q *Queries) GetApiTokens(ctx context.Context, personID uuid.UUID) ([]ApiToken, error) {
+	rows, err := q.db.Query(ctx, getApiTokens, personID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ApiToken
+	for rows.Next() {
+		var i ApiToken
+		if err := rows.Scan(
+			&i.ID,
+			&i.PersonID,
+			&i.Caption,
+			&i.Token,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.ExpiredAt,
+			&i.Type,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAuth = `-- name: GetAuth :one
+SELECT person_id, created_at, updated_at, email, password_hash, status, role FROM auth WHERE person_id = $1
+`
+
+func (q *Queries) GetAuth(ctx context.Context, personID uuid.UUID) (Auth, error) {
+	row := q.db.QueryRow(ctx, getAuth, personID)
+	var i Auth
+	err := row.Scan(
+		&i.PersonID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Email,
+		&i.PasswordHash,
+		&i.Status,
+		&i.Role,
+	)
+	return i, err
+}
+
+const getAuthByEmail = `-- name: GetAuthByEmail :one
+SELECT person_id, created_at, updated_at, email, password_hash, status, role FROM auth WHERE email = $1
+`
+
+func (q *Queries) GetAuthByEmail(ctx context.Context, email string) (Auth, error) {
+	row := q.db.QueryRow(ctx, getAuthByEmail, email)
+	var i Auth
+	err := row.Scan(
+		&i.PersonID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Email,
+		&i.PasswordHash,
+		&i.Status,
+		&i.Role,
+	)
+	return i, err
+}
+
 const getExif = `-- name: GetExif :one
 SELECT photo_id, data FROM exif_photo_data
 WHERE photo_id=$1
@@ -234,22 +384,10 @@ func (q *Queries) GetExif(ctx context.Context, photoID uuid.UUID) (ExifPhotoDatu
 }
 
 const getGeoAddress = `-- name: GetGeoAddress :one
-SELECT photo_id,
-       created_at,
-       geo_latitude,
-       geo_longitude,
-       formatted_address,
-       street,
-       house_number,
-       suburb,
-       postcode,
-       state,
-       state_code,
-       state_district,
-       county,
-       country,
-       country_code,
-       city
+SELECT photo_id, created_at, geo_latitude, geo_longitude,
+       formatted_address, street, house_number, suburb,
+       postcode, state, state_code, state_district, county,
+       country, country_code, city
 FROM photo_locations WHERE photo_id = $1
 `
 
@@ -344,6 +482,26 @@ func (q *Queries) GetGroupPhotoIDs(ctx context.Context, groupID uuid.UUID) ([]uu
 	return items, nil
 }
 
+const getLastActiveRefreshToken = `-- name: GetLastActiveRefreshToken :one
+SELECT id, person_id, created_at, updated_at, status FROM refresh_codes
+WHERE id=$1 and status='ACTIVE'
+ORDER BY created_at DESC
+LIMIT 1
+`
+
+func (q *Queries) GetLastActiveRefreshToken(ctx context.Context, id uuid.UUID) (RefreshCode, error) {
+	row := q.db.QueryRow(ctx, getLastActiveRefreshToken, id)
+	var i RefreshCode
+	err := row.Scan(
+		&i.ID,
+		&i.PersonID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Status,
+	)
+	return i, err
+}
+
 const getMetadata = `-- name: GetMetadata :one
 SELECT photo_id, model_info, size_bytes, width_pixel, height_pixel,
        date_time, updated_at, geo_latitude, geo_longitude FROM meta_photo_data
@@ -413,19 +571,48 @@ func (q *Queries) GetPaginatedPhotoGroups(ctx context.Context, arg GetPaginatedP
 	return items, nil
 }
 
+const getPeopleCount = `-- name: GetPeopleCount :one
+SELECT count(1) as count FROM people
+`
+
+func (q *Queries) GetPeopleCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, getPeopleCount)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const getPerson = `-- name: GetPerson :one
+SELECT id, created_at, updated_at, firstname, surname, patronymic FROM people WHERE id = $1
+`
+
+func (q *Queries) GetPerson(ctx context.Context, id uuid.UUID) (Person, error) {
+	row := q.db.QueryRow(ctx, getPerson, id)
+	var i Person
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Firstname,
+		&i.Surname,
+		&i.Patronymic,
+	)
+	return i, err
+}
+
 const getPhotoByFileKey = `-- name: GetPhotoByFileKey :one
-SELECT id, file_key, hash, updated_at, extension
+SELECT id, file_key, hash, photo_updated_at, extension
 FROM photos
 WHERE file_key = $1 AND status = 'ACTIVE'
 LIMIT 1
 `
 
 type GetPhotoByFileKeyRow struct {
-	ID        uuid.UUID
-	FileKey   string
-	Hash      string
-	UpdatedAt time.Time
-	Extension PhotoExtension
+	ID             uuid.UUID
+	FileKey        string
+	Hash           string
+	PhotoUpdatedAt time.Time
+	Extension      PhotoExtension
 }
 
 func (q *Queries) GetPhotoByFileKey(ctx context.Context, fileKey string) (GetPhotoByFileKeyRow, error) {
@@ -435,25 +622,25 @@ func (q *Queries) GetPhotoByFileKey(ctx context.Context, fileKey string) (GetPho
 		&i.ID,
 		&i.FileKey,
 		&i.Hash,
-		&i.UpdatedAt,
+		&i.PhotoUpdatedAt,
 		&i.Extension,
 	)
 	return i, err
 }
 
 const getPhotoByHash = `-- name: GetPhotoByHash :one
-SELECT id, file_key, hash, updated_at, extension
+SELECT id, file_key, hash, photo_updated_at, extension
 FROM photos
 WHERE hash = $1 AND status = 'ACTIVE'
 LIMIT 1
 `
 
 type GetPhotoByHashRow struct {
-	ID        uuid.UUID
-	FileKey   string
-	Hash      string
-	UpdatedAt time.Time
-	Extension PhotoExtension
+	ID             uuid.UUID
+	FileKey        string
+	Hash           string
+	PhotoUpdatedAt time.Time
+	Extension      PhotoExtension
 }
 
 func (q *Queries) GetPhotoByHash(ctx context.Context, hash string) (GetPhotoByHashRow, error) {
@@ -463,25 +650,25 @@ func (q *Queries) GetPhotoByHash(ctx context.Context, hash string) (GetPhotoByHa
 		&i.ID,
 		&i.FileKey,
 		&i.Hash,
-		&i.UpdatedAt,
+		&i.PhotoUpdatedAt,
 		&i.Extension,
 	)
 	return i, err
 }
 
 const getPhotoById = `-- name: GetPhotoById :one
-SELECT id, file_key, hash, updated_at, extension
+SELECT id, file_key, hash, photo_updated_at, extension
 FROM photos
 WHERE id = $1 AND status = 'ACTIVE'
 LIMIT 1
 `
 
 type GetPhotoByIdRow struct {
-	ID        uuid.UUID
-	FileKey   string
-	Hash      string
-	UpdatedAt time.Time
-	Extension PhotoExtension
+	ID             uuid.UUID
+	FileKey        string
+	Hash           string
+	PhotoUpdatedAt time.Time
+	Extension      PhotoExtension
 }
 
 func (q *Queries) GetPhotoById(ctx context.Context, id uuid.UUID) (GetPhotoByIdRow, error) {
@@ -491,14 +678,14 @@ func (q *Queries) GetPhotoById(ctx context.Context, id uuid.UUID) (GetPhotoByIdR
 		&i.ID,
 		&i.FileKey,
 		&i.Hash,
-		&i.UpdatedAt,
+		&i.PhotoUpdatedAt,
 		&i.Extension,
 	)
 	return i, err
 }
 
 const getPhotoGroupsCount = `-- name: GetPhotoGroupsCount :one
-select count(1) as count FROM photo_groups
+SELECT count(1) as count FROM photo_groups
 `
 
 func (q *Queries) GetPhotoGroupsCount(ctx context.Context) (int64, error) {
@@ -574,17 +761,18 @@ func (q *Queries) GetPhotoProcessing(ctx context.Context, photoID uuid.UUID) ([]
 }
 
 const getPhotoUploadData = `-- name: GetPhotoUploadData :one
-SELECT photo_id, paths, upload_at, client_id
+SELECT photo_id, paths, upload_at, client_info, person_id
 FROM photo_upload_data
 WHERE photo_id=$1
 LIMIT 1
 `
 
 type GetPhotoUploadDataRow struct {
-	PhotoID  uuid.UUID
-	Paths    []string
-	UploadAt time.Time
-	ClientID string
+	PhotoID    uuid.UUID
+	Paths      []string
+	UploadAt   time.Time
+	ClientInfo string
+	PersonID   uuid.UUID
 }
 
 func (q *Queries) GetPhotoUploadData(ctx context.Context, photoID uuid.UUID) (GetPhotoUploadDataRow, error) {
@@ -594,7 +782,8 @@ func (q *Queries) GetPhotoUploadData(ctx context.Context, photoID uuid.UUID) (Ge
 		&i.PhotoID,
 		&i.Paths,
 		&i.UploadAt,
-		&i.ClientID,
+		&i.ClientInfo,
+		&i.PersonID,
 	)
 	return i, err
 }
@@ -709,7 +898,7 @@ const getUnprocessedPhotos = `-- name: GetUnprocessedPhotos :many
 SELECT p.id FROM photos p
 LEFT JOIN photo_processing ps ON p.id = ps.photo_id AND ps.type = $1
 WHERE ps.photo_id is NULL and p.status = 'ACTIVE'
-ORDER BY p.updated_at -- TODO: Индекс на updated_at
+ORDER BY p.photo_updated_at -- TODO: Индекс на updated_at
 LIMIT $2
 `
 
@@ -786,6 +975,36 @@ func (q *Queries) RocketLockDelete(ctx context.Context, arg RocketLockDeletePara
 	return err
 }
 
+const saveApiToken = `-- name: SaveApiToken :exec
+INSERT INTO api_tokens (id, person_id, caption, token, created_at, updated_at, expired_at, type)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+`
+
+type SaveApiTokenParams struct {
+	ID        uuid.UUID
+	PersonID  uuid.UUID
+	Caption   string
+	Token     string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	ExpiredAt pgtype.Timestamptz
+	Type      ApiTokenType
+}
+
+func (q *Queries) SaveApiToken(ctx context.Context, arg SaveApiTokenParams) error {
+	_, err := q.db.Exec(ctx, saveApiToken,
+		arg.ID,
+		arg.PersonID,
+		arg.Caption,
+		arg.Token,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+		arg.ExpiredAt,
+		arg.Type,
+	)
+	return err
+}
+
 const saveCoefficientSimilarPhoto = `-- name: SaveCoefficientSimilarPhoto :exec
 
 INSERT INTO coefficients_similar_photos (photo_id1, photo_id2, coefficient)
@@ -801,6 +1020,34 @@ type SaveCoefficientSimilarPhotoParams struct {
 // ----------------------------------------------------------------------------------------------------------------------
 func (q *Queries) SaveCoefficientSimilarPhoto(ctx context.Context, arg SaveCoefficientSimilarPhotoParams) error {
 	_, err := q.db.Exec(ctx, saveCoefficientSimilarPhoto, arg.PhotoId1, arg.PhotoId2, arg.Coefficient)
+	return err
+}
+
+const saveConfirmCode = `-- name: SaveConfirmCode :exec
+
+INSERT INTO codes (code, person_id, created_at, updated_at, active, type)
+VALUES ($1, $2, $3, $4, $5, $6)
+`
+
+type SaveConfirmCodeParams struct {
+	Code      string
+	PersonID  uuid.UUID
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Active    bool
+	Type      CodeType
+}
+
+// ----------------------------------------------------------------------------------------------------------------------
+func (q *Queries) SaveConfirmCode(ctx context.Context, arg SaveConfirmCodeParams) error {
+	_, err := q.db.Exec(ctx, saveConfirmCode,
+		arg.Code,
+		arg.PersonID,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+		arg.Active,
+		arg.Type,
+	)
 	return err
 }
 
@@ -878,17 +1125,75 @@ func (q *Queries) SaveMetadata(ctx context.Context, arg SaveMetadataParams) erro
 	return err
 }
 
+const savePerson = `-- name: SavePerson :exec
+
+INSERT INTO people (id, created_at, updated_at, firstname, surname, patronymic)
+VALUES ($1, $2, $3, $4, $5, $6)
+`
+
+type SavePersonParams struct {
+	ID         uuid.UUID
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	Firstname  string
+	Surname    string
+	Patronymic *string
+}
+
+// ----------------------------------------------------------------------------------------------------------------------
+func (q *Queries) SavePerson(ctx context.Context, arg SavePersonParams) error {
+	_, err := q.db.Exec(ctx, savePerson,
+		arg.ID,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+		arg.Firstname,
+		arg.Surname,
+		arg.Patronymic,
+	)
+	return err
+}
+
+const savePersonAuth = `-- name: SavePersonAuth :exec
+
+INSERT INTO auth (person_id, created_at, updated_at, email, password_hash, status, role)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+`
+
+type SavePersonAuthParams struct {
+	PersonID     uuid.UUID
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	Email        string
+	PasswordHash []byte
+	Status       AuthStatus
+	Role         AuthRole
+}
+
+// ----------------------------------------------------------------------------------------------------------------------
+func (q *Queries) SavePersonAuth(ctx context.Context, arg SavePersonAuthParams) error {
+	_, err := q.db.Exec(ctx, savePersonAuth,
+		arg.PersonID,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+		arg.Email,
+		arg.PasswordHash,
+		arg.Status,
+		arg.Role,
+	)
+	return err
+}
+
 const savePhoto = `-- name: SavePhoto :exec
-INSERT INTO photos (id, file_key, hash, updated_at, extension, status)
+INSERT INTO photos (id, file_key, hash, photo_updated_at, extension, status)
 VALUES ($1, $2, $3, $4, $5, 'ACTIVE')
 `
 
 type SavePhotoParams struct {
-	ID        uuid.UUID
-	FileKey   string
-	Hash      string
-	UpdatedAt time.Time
-	Extension PhotoExtension
+	ID             uuid.UUID
+	FileKey        string
+	Hash           string
+	PhotoUpdatedAt time.Time
+	Extension      PhotoExtension
 }
 
 func (q *Queries) SavePhoto(ctx context.Context, arg SavePhotoParams) error {
@@ -896,7 +1201,7 @@ func (q *Queries) SavePhoto(ctx context.Context, arg SavePhotoParams) error {
 		arg.ID,
 		arg.FileKey,
 		arg.Hash,
-		arg.UpdatedAt,
+		arg.PhotoUpdatedAt,
 		arg.Extension,
 	)
 	return err
@@ -904,22 +1209,10 @@ func (q *Queries) SavePhoto(ctx context.Context, arg SavePhotoParams) error {
 
 const savePhotoLocation = `-- name: SavePhotoLocation :exec
 
-INSERT INTO photo_locations (photo_id,
-                             created_at,
-                             geo_latitude,
-                             geo_longitude,
-                             formatted_address,
-                             street,
-                             house_number,
-                             suburb,
-                             postcode,
-                             state,
-                             state_code,
-                             state_district,
-                             county,
-                             country,
-                             country_code,
-                             city)
+INSERT INTO photo_locations (photo_id, created_at, geo_latitude, geo_longitude,
+                             formatted_address, street, house_number, suburb,
+                             postcode, state, state_code, state_district, county,
+                             country, country_code, city)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
 `
 
@@ -997,15 +1290,16 @@ func (q *Queries) SavePhotoPreview(ctx context.Context, arg SavePhotoPreviewPara
 
 const savePhotoUploadData = `-- name: SavePhotoUploadData :exec
 
-INSERT INTO photo_upload_data (photo_id, paths, upload_at, client_id)
-VALUES ($1, $2, $3, $4)
+INSERT INTO photo_upload_data (photo_id, paths, upload_at, client_info, person_id)
+VALUES ($1, $2, $3, $4, $5)
 `
 
 type SavePhotoUploadDataParams struct {
-	PhotoID  uuid.UUID
-	Paths    []string
-	UploadAt time.Time
-	ClientID string
+	PhotoID    uuid.UUID
+	Paths      []string
+	UploadAt   time.Time
+	ClientInfo string
+	PersonID   uuid.UUID
 }
 
 // ----------------------------------------------------------------------------------------------------------------------
@@ -1014,7 +1308,8 @@ func (q *Queries) SavePhotoUploadData(ctx context.Context, arg SavePhotoUploadDa
 		arg.PhotoID,
 		arg.Paths,
 		arg.UploadAt,
-		arg.ClientID,
+		arg.ClientInfo,
+		arg.PersonID,
 	)
 	return err
 }
@@ -1034,6 +1329,32 @@ type SavePhotoVectorParams struct {
 // ----------------------------------------------------------------------------------------------------------------------
 func (q *Queries) SavePhotoVector(ctx context.Context, arg SavePhotoVectorParams) error {
 	_, err := q.db.Exec(ctx, savePhotoVector, arg.PhotoID, arg.Vector, arg.Norm)
+	return err
+}
+
+const saveRefreshToken = `-- name: SaveRefreshToken :exec
+
+INSERT INTO refresh_codes (id, person_id, created_at, updated_at, status)
+VALUES ($1, $2, $3, $4, $5)
+`
+
+type SaveRefreshTokenParams struct {
+	ID        uuid.UUID
+	PersonID  uuid.UUID
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Status    RefreshTokenStatus
+}
+
+// ----------------------------------------------------------------------------------------------------------------------
+func (q *Queries) SaveRefreshToken(ctx context.Context, arg SaveRefreshTokenParams) error {
+	_, err := q.db.Exec(ctx, saveRefreshToken,
+		arg.ID,
+		arg.PersonID,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+		arg.Status,
+	)
 	return err
 }
 
@@ -1089,5 +1410,22 @@ type SetPhotoGroupMainPhotoParams struct {
 
 func (q *Queries) SetPhotoGroupMainPhoto(ctx context.Context, arg SetPhotoGroupMainPhotoParams) error {
 	_, err := q.db.Exec(ctx, setPhotoGroupMainPhoto, arg.MainPhotoID, arg.UpdatedAt, arg.ID)
+	return err
+}
+
+const updateRefreshTokenStatus = `-- name: UpdateRefreshTokenStatus :exec
+UPDATE refresh_codes
+SET status = $1, updated_at = $2
+WHERE id = $3
+`
+
+type UpdateRefreshTokenStatusParams struct {
+	Status    RefreshTokenStatus
+	UpdatedAt time.Time
+	ID        uuid.UUID
+}
+
+func (q *Queries) UpdateRefreshTokenStatus(ctx context.Context, arg UpdateRefreshTokenStatusParams) error {
+	_, err := q.db.Exec(ctx, updateRefreshTokenStatus, arg.Status, arg.UpdatedAt, arg.ID)
 	return err
 }

@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"fmt"
-
 	"google.golang.org/grpc"
 
 	"github.com/kkiling/photo-library/backend/api/internal/interceptor"
@@ -18,16 +17,23 @@ type CustomHandlerService interface {
 }
 
 type CustomServer struct {
-	server   *server.Server
-	logger   log.Logger
-	services []CustomHandlerService
+	server         *server.Server
+	logger         log.Logger
+	sessionManager interceptor.SessionManager
+	services       []CustomHandlerService
 }
 
-func NewCustomServer(logger log.Logger, serverConfig server.Config, services ...CustomHandlerService) *CustomServer {
+func NewCustomServer(
+	logger log.Logger,
+	serverConfig server.Config,
+	sessionManager interceptor.SessionManager,
+	services ...CustomHandlerService,
+) *CustomServer {
 	return &CustomServer{
-		server:   server.NewServer(logger, serverConfig),
-		logger:   logger,
-		services: services,
+		server:         server.NewServer(logger, serverConfig),
+		logger:         logger,
+		services:       services,
+		sessionManager: sessionManager,
 	}
 }
 
@@ -45,7 +51,7 @@ func (p *CustomServer) unaryServerInterceptors() ([]grpc.UnaryServerInterceptor,
 	return []grpc.UnaryServerInterceptor{
 		interceptor.NewPanicRecoverInterceptor(p.logger),
 		interceptor.NewLoggerInterceptor(p.logger),
-		interceptor.NewAuthInterceptor(p.logger, descriptorMap),
+		interceptor.NewAuthInterceptor(descriptorMap, p.sessionManager),
 	}, nil
 }
 
@@ -62,7 +68,7 @@ func (p *CustomServer) Start(ctx context.Context, swaggerName string) error {
 		impl = append(impl, service)
 	}
 
-	if err := p.server.Start(ctx, swaggerName, impl...); err != nil {
+	if err = p.server.Start(ctx, swaggerName, impl...); err != nil {
 		return fmt.Errorf("server.Start: %w", err)
 	}
 
