@@ -35,10 +35,15 @@ func main() {
 
 	log := application.GetLogger()
 
-	srv := server.NewSyncPhotosServer(
+	srv := server.NewPhotoLibraryServer(
 		application.GetLogger(),
 		application.GetServerConfig(),
-		application.GetSyncPhotoService(),
+		application.GetSessionManager(),
+		application.GetPhotoGroupService(),
+		application.GetPhotoTagsService(),
+		application.GetPhotoMetadataService(),
+		application.GetAuthService(),
+		application.ApiTokenService(),
 	)
 
 	go func() {

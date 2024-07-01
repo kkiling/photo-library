@@ -14,16 +14,17 @@ const (
 )
 
 type Photo struct {
-	ID        uuid.UUID
-	FileKey   string
-	Hash      string
-	UpdateAt  time.Time
-	Extension PhotoExtension
+	ID             uuid.UUID
+	FileKey        string
+	Hash           string
+	PhotoUpdatedAt time.Time
+	Extension      PhotoExtension
 }
 
 type PhotoUploadData struct {
-	PhotoID  uuid.UUID
-	UploadAt time.Time
-	Paths    []string
-	ClientID string
+	PhotoID    uuid.UUID
+	UploadAt   time.Time
+	Paths      []string
+	ClientInfo string
+	PersonID   uuid.UUID
 }

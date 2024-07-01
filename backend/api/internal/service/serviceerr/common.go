@@ -14,6 +14,7 @@ const (
 	NotFoundErrorType         ErrorServiceType = 2
 	ConflictErrorType         ErrorServiceType = 3
 	FailPreconditionErrorType ErrorServiceType = 4
+	PermissionDeniedType      ErrorServiceType = 5
 )
 
 type FieldViolation struct {
@@ -103,6 +104,27 @@ func FailPreconditionf(description string, a ...any) error {
 		Err:  fmt.Errorf(description, a...),
 		ErrInfo: ErrorInfo{
 			Description: "FailPrecondition",
+		},
+	}
+}
+
+func PermissionDeniedf(description string, a ...any) error {
+	return &ErrorService{
+		Type: PermissionDeniedType,
+		Err:  fmt.Errorf(description, a...),
+		ErrInfo: ErrorInfo{
+			Description: "PermissionDenied",
+		},
+	}
+}
+
+// PermissionDeniedErr .
+func PermissionDeniedErr(err error) error {
+	return &ErrorService{
+		Type: PermissionDeniedType,
+		Err:  err,
+		ErrInfo: ErrorInfo{
+			Description: "Permission Denied",
 		},
 	}
 }

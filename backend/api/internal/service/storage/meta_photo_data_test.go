@@ -17,7 +17,7 @@ func (s *testSuite) equalPhotoMetadata(new, find model.PhotoMetadata) {
 	s.Require().Equal(new.WidthPixel, find.WidthPixel)
 	s.Require().Equal(new.HeightPixel, find.HeightPixel)
 	s.compareTime(new.DateTime, find.DateTime)
-	s.compareTime(&new.UpdatedAt, &find.UpdatedAt)
+	s.compareTime(&new.PhotoUpdatedAt, &find.PhotoUpdatedAt)
 	if new.Geo != nil && find.Geo != nil {
 		s.Require().Equal(new.Geo.Longitude, find.Geo.Longitude)
 		s.Require().Equal(new.Geo.Latitude, find.Geo.Latitude)
@@ -28,13 +28,13 @@ func (s *testSuite) equalPhotoMetadata(new, find model.PhotoMetadata) {
 
 func (s *testSuite) createMetaData(photoID uuid.UUID) model.PhotoMetadata {
 	newMetadata := model.PhotoMetadata{
-		PhotoID:     photoID,
-		ModelInfo:   lo.ToPtr("Model Info"),
-		SizeBytes:   1024,
-		WidthPixel:  512,
-		HeightPixel: 256,
-		DateTime:    lo.ToPtr(time.Now()),
-		UpdatedAt:   time.Now(),
+		PhotoID:        photoID,
+		ModelInfo:      lo.ToPtr("Model Info"),
+		SizeBytes:      1024,
+		WidthPixel:     512,
+		HeightPixel:    256,
+		DateTime:       lo.ToPtr(time.Now()),
+		PhotoUpdatedAt: time.Now(),
 		Geo: &model.Geo{
 			Latitude:  52.1234,
 			Longitude: 53.56,

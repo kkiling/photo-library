@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/kkiling/photo-library/backend/api/internal/server"
 	"os"
 	"os/signal"
 	"syscall"
@@ -9,7 +10,6 @@ import (
 	"github.com/jessevdk/go-flags"
 
 	"github.com/kkiling/photo-library/backend/api/internal/app"
-	"github.com/kkiling/photo-library/backend/api/internal/server"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/config"
 )
 
@@ -35,12 +35,11 @@ func main() {
 
 	log := application.GetLogger()
 
-	srv := server.NewPhotoLibraryServer(
+	srv := server.NewSyncPhotosServer(
 		application.GetLogger(),
 		application.GetServerConfig(),
-		application.GetPhotoGroupService(),
-		application.GetPhotoTagsService(),
-		application.GetPhotoMetadataService(),
+		application.ApiTokenService(),
+		application.GetSyncPhotoService(),
 	)
 
 	go func() {

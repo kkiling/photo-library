@@ -21,7 +21,7 @@ func mapMetaData(metadata *model.PhotoMetadata) *desc.Metadata {
 		WidthPixel:  int32(metadata.WidthPixel),
 		HeightPixel: int32(metadata.HeightPixel),
 		DataTime:    map_utils.ToTimestampPtr(metadata.DateTime),
-		UpdatedAt:   map_utils.ToTimestamp(metadata.UpdatedAt),
+		UpdatedAt:   map_utils.ToTimestamp(metadata.PhotoUpdatedAt),
 		Geo:         geo,
 	}
 }

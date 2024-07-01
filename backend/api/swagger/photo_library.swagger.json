@@ -6,6 +6,9 @@
   },
   "tags": [
     {
+      "name": "AuthService"
+    },
+    {
       "name": "PhotoGroupsService"
     },
     {
@@ -26,6 +29,435 @@
     "application/json"
   ],
   "paths": {
+    "/v1/auth/check-person-exists": {
+      "get": {
+        "summary": "Проверить есть ли зарегистрированные пользователи",
+        "operationId": "AuthService_CheckPersonsExists",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/CheckPersonsExistsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/Status"
+            }
+          }
+        },
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/v1/auth/email-available": {
+      "get": {
+        "summary": "Проверка доступен ли email для регистрации",
+        "operationId": "AuthService_EmailAvailable",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/EmailAvailableResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/Status"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "email",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/v1/auth/invite": {
+      "post": {
+        "summary": "Отправка приглашения зарегистрироваться",
+        "operationId": "AuthService_SendInvite",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/Status"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/SendInviteRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ],
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/auth/invite/activate": {
+      "put": {
+        "summary": "Активация инвайта регистрации",
+        "operationId": "AuthService_ActivateInvite",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/Status"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ActivateInviteRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/v1/auth/invite/init": {
+      "post": {
+        "summary": "Отправка приглашения первому администратору",
+        "operationId": "AuthService_AdminInitInvite",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/Status"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/AdminInitInviteRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/v1/auth/login": {
+      "post": {
+        "summary": "Аутентификация пользователя",
+        "operationId": "AuthService_Login",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/AuthData"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/Status"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/LoginRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/v1/auth/logout": {
+      "post": {
+        "summary": "Разлогинить пользователя по refresh токену",
+        "operationId": "AuthService_Logout",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/Status"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/LogoutRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/v1/auth/refresh": {
+      "post": {
+        "summary": "Обновление аутентификации по refresh токену",
+        "operationId": "AuthService_RefreshToken",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/AuthData"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/Status"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RefreshTokenRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/v1/auth/registration": {
+      "post": {
+        "summary": "Регистрация нового пользователя",
+        "operationId": "AuthService_Registration",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/Status"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RegistrationRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/v1/auth/registration/activate": {
+      "put": {
+        "summary": "Активация зарегистрированного пользователя",
+        "operationId": "AuthService_ActivateRegistration",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/Status"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ActivateRegistrationRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ]
+      }
+    },
+    "/v1/auth/tokens": {
+      "get": {
+        "summary": "Получение токенов API пользователя",
+        "operationId": "AuthService_GetApiTokens",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/GetApiTokensResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/Status"
+            }
+          }
+        },
+        "tags": [
+          "AuthService"
+        ],
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Создание API токена для пользователя",
+        "operationId": "AuthService_CreateApiToken",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/CreateApiTokenResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/Status"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/CreateApiTokenRequest"
+            }
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ],
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
+    "/v1/auth/tokens/{token_id}": {
+      "delete": {
+        "summary": "Удаление API токена пользователя",
+        "operationId": "AuthService_DeleteApiToken",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/DeleteApiTokenResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/Status"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "token_id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "AuthService"
+        ],
+        "security": [
+          {
+            "Bearer": []
+          }
+        ]
+      }
+    },
     "/v1/photos/groups": {
       "get": {
         "summary": "Получение списка групп фотографий",
@@ -287,6 +719,34 @@
     }
   },
   "definitions": {
+    "ActivateInviteRequest": {
+      "type": "object",
+      "properties": {
+        "firstname": {
+          "type": "string"
+        },
+        "surname": {
+          "type": "string"
+        },
+        "patronymic": {
+          "type": "string"
+        },
+        "code_confirm": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      }
+    },
+    "ActivateRegistrationRequest": {
+      "type": "object",
+      "properties": {
+        "code_confirm": {
+          "type": "string"
+        }
+      }
+    },
     "AddPhotoTagBody": {
       "type": "object",
       "properties": {
@@ -299,6 +759,14 @@
       },
       "title": "REQUEST / RESPONSE"
     },
+    "AdminInitInviteRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        }
+      }
+    },
     "Any": {
       "type": "object",
       "properties": {
@@ -307,6 +775,110 @@
         }
       },
       "additionalProperties": {}
+    },
+    "ApiToken": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "caption": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/definitions/ApiTokenType"
+        },
+        "expired_at": {
+          "type": "string",
+          "format": "date-time",
+          "title": "string token = 5; -- Токен не показываем передаем из-за соображений безопасности"
+        }
+      }
+    },
+    "ApiTokenType": {
+      "type": "string",
+      "enum": [
+        "API_TOKEN_TYPE_UNKNOWN",
+        "API_TOKEN_TYPE_SYNC_PHOTO"
+      ],
+      "default": "API_TOKEN_TYPE_UNKNOWN"
+    },
+    "AuthData": {
+      "type": "object",
+      "properties": {
+        "person_id": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "access_token": {
+          "type": "string"
+        },
+        "access_token_expiration": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "refresh_token": {
+          "type": "string"
+        },
+        "refresh_token_expiration": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "AuthRole": {
+      "type": "string",
+      "enum": [
+        "AUTH_ROLE_UNKNOWN",
+        "AUTH_ROLE_ADMIN",
+        "AUTH_ROLE_USER"
+      ],
+      "default": "AUTH_ROLE_UNKNOWN"
+    },
+    "CheckPersonsExistsResponse": {
+      "type": "object",
+      "properties": {
+        "exists": {
+          "type": "boolean"
+        }
+      }
+    },
+    "CreateApiTokenRequest": {
+      "type": "object",
+      "properties": {
+        "caption": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/definitions/ApiTokenType"
+        },
+        "time_duration": {
+          "type": "string",
+          "title": "Время действия токена"
+        }
+      }
+    },
+    "CreateApiTokenResponse": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string",
+          "title": "Токен показываем только при создании, просим запомнить"
+        }
+      }
+    },
+    "DeleteApiTokenResponse": {
+      "type": "object"
+    },
+    "EmailAvailableResponse": {
+      "type": "object",
+      "properties": {
+        "available": {
+          "type": "boolean"
+        }
+      }
     },
     "Geo": {
       "type": "object",
@@ -321,6 +893,18 @@
         }
       },
       "title": "MODELS"
+    },
+    "GetApiTokensResponse": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/ApiToken"
+          }
+        }
+      }
     },
     "GetPhotoGroupResponse": {
       "type": "object",
@@ -370,6 +954,25 @@
         }
       }
     },
+    "LoginRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      }
+    },
+    "LogoutRequest": {
+      "type": "object",
+      "properties": {
+        "refresh_token": {
+          "type": "string"
+        }
+      }
+    },
     "Metadata": {
       "type": "object",
       "properties": {
@@ -404,7 +1007,7 @@
     "PhotoGroup": {
       "type": "object",
       "properties": {
-        "id": {
+        "group_id": {
           "type": "string"
         },
         "main_photo": {
@@ -465,7 +1068,7 @@
     "PhotoWithPreviews": {
       "type": "object",
       "properties": {
-        "id": {
+        "photo_id": {
           "type": "string"
         },
         "original": {
@@ -477,6 +1080,45 @@
             "type": "object",
             "$ref": "#/definitions/PhotoPreview"
           }
+        }
+      }
+    },
+    "RefreshTokenRequest": {
+      "type": "object",
+      "properties": {
+        "refresh_token": {
+          "type": "string"
+        }
+      }
+    },
+    "RegistrationRequest": {
+      "type": "object",
+      "properties": {
+        "firstname": {
+          "type": "string"
+        },
+        "surname": {
+          "type": "string"
+        },
+        "patronymic": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      }
+    },
+    "SendInviteRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "role": {
+          "$ref": "#/definitions/AuthRole"
         }
       }
     },

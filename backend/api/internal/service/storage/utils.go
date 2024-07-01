@@ -3,6 +3,8 @@ package storage
 import (
 	"errors"
 	"fmt"
+	"github.com/jackc/pgx/v5/pgtype"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
 )
@@ -15,6 +17,23 @@ func printError(err error) error {
 		return newErr
 	}
 	return err
+}
+
+func toTimePtr(t pgtype.Timestamptz) *time.Time {
+	if t.Valid {
+		return &t.Time
+	}
+	return nil
+}
+
+func toTimestamptz(t *time.Time) pgtype.Timestamptz {
+	if t != nil {
+		return pgtype.Timestamptz{
+			Time:  *t,
+			Valid: true,
+		}
+	}
+	return pgtype.Timestamptz{}
 }
 
 func isAlreadyExist(err error) bool {

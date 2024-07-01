@@ -37,14 +37,14 @@ func NewService(logger log.Logger, tagService TagPhoto, storage Storage) *Servic
 	}
 }
 
-func (s *Service) GetPhotoTags(ctx context.Context, photoID uuid.UUID) ([]TagWithCategory, error) {
+func (s *Service) GetPhotoTags(ctx context.Context, photoID uuid.UUID) ([]model.TagWithCategoryDTO, error) {
 
 	tags, err := s.tagService.GetTags(ctx, photoID)
 	if err != nil {
 		return nil, serviceerr.MakeErr(err, "s.tagService.GetTags")
 	}
 
-	tagsWithCategories := make([]TagWithCategory, 0, len(tags))
+	tagsWithCategories := make([]model.TagWithCategoryDTO, 0, len(tags))
 
 	// Проще так, потому что категории кешируются
 	for _, tag := range tags {
@@ -52,7 +52,7 @@ func (s *Service) GetPhotoTags(ctx context.Context, photoID uuid.UUID) ([]TagWit
 		if err != nil {
 			return nil, serviceerr.MakeErr(err, "s.tagService.GetCategoryByID")
 		}
-		tagsWithCategories = append(tagsWithCategories, TagWithCategory{
+		tagsWithCategories = append(tagsWithCategories, model.TagWithCategoryDTO{
 			ID:         tag.ID,
 			Name:       tag.Name,
 			IDCategory: category.ID,
@@ -67,7 +67,7 @@ func (s *Service) GetPhotoTags(ctx context.Context, photoID uuid.UUID) ([]TagWit
 func (s *Service) GetTagCategories(ctx context.Context) ([]model.TagCategory, error) {
 	categories, err := s.tagService.GetCategories(ctx)
 	if err != nil {
-		return nil, serviceerr.MakeErr(err, "s.tagService.GetCategoryByID")
+		return nil, serviceerr.MakeErr(err, "s.tagService.GetCategories")
 	}
 	return categories, nil
 }
@@ -83,7 +83,7 @@ func (s *Service) AddPhotoTag(ctx context.Context, photoID, categoryID uuid.UUID
 func (s *Service) DeletePhotoTag(ctx context.Context, tagID uuid.UUID) error {
 	err := s.tagService.DeleteTag(ctx, tagID)
 	if err != nil {
-		return serviceerr.MakeErr(err, "s.tagService.AddPhotoTag")
+		return serviceerr.MakeErr(err, "s.tagService.DeleteTag")
 	}
 	return nil
 }

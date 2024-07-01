@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/kkiling/photo-library/backend/api/internal/service/lock"
+	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
 )
 
@@ -46,7 +46,7 @@ func (s *testSuite) TestStorage_RocketDeleteLock() {
 		s.Require().NotEmpty(id)
 
 		// preserves others locks by lock id
-		err = s.storage.RocketLockDelete(s.ctx, lock.RocketLockID{Key: key, Ts: 0})
+		err = s.storage.RocketLockDelete(s.ctx, model.RocketLockID{Key: key, Ts: 0})
 		s.Require().NoError(err)
 
 		_, err = s.storage.RocketLock(s.ctx, key, ttl)

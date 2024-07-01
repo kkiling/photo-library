@@ -32,6 +32,10 @@ func HandleError(err error, description any) error {
 			return server.ErrNotFound(newErr, &info)
 		case serviceerr.ConflictErrorType:
 			return server.ErrAlreadyExists(newErr, &info)
+		case serviceerr.FailPreconditionErrorType:
+			return server.ErrFailedPrecondition(newErr, &info)
+		case serviceerr.PermissionDeniedType:
+			return server.ErrPermissionDenied(newErr, &info)
 		}
 	}
 

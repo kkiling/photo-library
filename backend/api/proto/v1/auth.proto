@@ -1,0 +1,257 @@
+syntax = "proto3";
+
+package pb.v1;
+
+option go_package = "github.com/kkiling/photo-library/backend/sync_photos_server/pkg/common/gen/pbv1";
+
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+service AuthService {
+  rpc EmailAvailable(EmailAvailableRequest)  returns (EmailAvailableResponse) {
+    option (google.api.http) = {
+      get: "/v1/auth/email-available";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Проверка доступен ли email для регистрации";
+    };
+  };
+  rpc CheckPersonsExists(google.protobuf.Empty) returns (CheckPersonsExistsResponse) {
+    option (google.api.http) = {
+      get: "/v1/auth/check-person-exists";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Проверить есть ли зарегистрированные пользователи";
+    };
+  };
+  rpc AdminInitInvite(AdminInitInviteRequest) returns  (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/v1/auth/invite/init";
+      body: "*";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Отправка приглашения первому администратору";
+    };
+  }
+  rpc SendInvite(SendInviteRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/v1/auth/invite";
+      body: "*";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Отправка приглашения зарегистрироваться";
+      security: {
+        security_requirement: {
+          key: "Bearer"
+          value: {}
+        }
+      };
+    };
+  };
+  rpc ActivateInvite(ActivateInviteRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      put: "/v1/auth/invite/activate";
+      body: "*";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Активация инвайта регистрации";
+    };
+  };
+  rpc Registration(RegistrationRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/v1/auth/registration";
+      body: "*";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Регистрация нового пользователя";
+    };
+  }
+  rpc ActivateRegistration(ActivateRegistrationRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      put: "/v1/auth/registration/activate";
+      body: "*";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Активация зарегистрированного пользователя";
+    };
+  }
+  rpc Logout(LogoutRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/v1/auth/logout";
+      body: "*";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Разлогинить пользователя по refresh токену";
+    };
+  }
+  rpc Login(LoginRequest) returns (AuthData) {
+    option (google.api.http) = {
+      post: "/v1/auth/login";
+      body: "*";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Аутентификация пользователя";
+    };
+  }
+  rpc RefreshToken(RefreshTokenRequest) returns (AuthData) {
+    option (google.api.http) = {
+      post: "/v1/auth/refresh";
+      body: "*";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Обновление аутентификации по refresh токену";
+    };
+  }
+  rpc GetApiTokens(GetApiTokensRequest) returns (GetApiTokensResponse) {
+    option (google.api.http) = {
+      get: "/v1/auth/tokens";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Получение токенов API пользователя";
+      security: {
+        security_requirement: {
+          key: "Bearer"
+          value: {}
+        }
+      };
+    };
+  };
+  rpc CreateApiToken(CreateApiTokenRequest) returns (CreateApiTokenResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth/tokens";
+      body: "*";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Создание API токена для пользователя";
+      security: {
+        security_requirement: {
+          key: "Bearer"
+          value: {}
+        }
+      };
+    };
+  };
+  rpc DeleteApiToken(DeleteApiTokenRequest) returns (DeleteApiTokenResponse) {
+    option (google.api.http) = {
+      delete: "/v1/auth/tokens/{token_id}";
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Удаление API токена пользователя";
+      security: {
+        security_requirement: {
+          key: "Bearer"
+          value: {}
+        }
+      };
+    };
+  };
+}
+
+enum AuthRole {
+  AUTH_ROLE_UNKNOWN = 0;
+  AUTH_ROLE_ADMIN = 1;
+  AUTH_ROLE_USER = 3;
+}
+
+message EmailAvailableRequest {
+  string email = 1;
+}
+
+message EmailAvailableResponse {
+  bool available = 1;
+}
+
+message CheckPersonsExistsResponse {
+  bool exists = 1;
+}
+
+message AdminInitInviteRequest {
+  string email = 1;
+}
+
+message SendInviteRequest {
+  string email = 1;
+  AuthRole role = 2;
+}
+
+message ActivateInviteRequest {
+  string firstname = 1;
+  string surname = 2;
+  optional string patronymic = 3;
+  string code_confirm = 4;
+  string password = 5;
+}
+
+message RegistrationRequest {
+  string firstname = 1;
+  string surname = 2;
+  optional string patronymic = 3;
+  string email = 4;
+  string password = 5;
+}
+
+message ActivateRegistrationRequest {
+  string code_confirm = 4;
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LogoutRequest {
+  string refresh_token = 1;
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+message AuthData {
+  string person_id = 1;
+  string email = 2;
+  string access_token = 3;
+  google.protobuf.Timestamp access_token_expiration = 4;
+  string refresh_token = 5;
+  google.protobuf.Timestamp refresh_token_expiration = 6;
+}
+
+enum ApiTokenType {
+  API_TOKEN_TYPE_UNKNOWN = 0;
+  API_TOKEN_TYPE_SYNC_PHOTO = 1;
+}
+
+message ApiToken {
+  string id = 1;
+  string caption = 2;
+  ApiTokenType type = 3;
+  optional google.protobuf.Timestamp expired_at = 4;
+  // string token = 5; -- Токен не показываем передаем из-за соображений безопасности
+}
+
+message GetApiTokensRequest {
+}
+
+message GetApiTokensResponse {
+  repeated ApiToken items = 1;
+}
+
+message CreateApiTokenRequest {
+  string caption = 1;
+  ApiTokenType type = 2;
+  // Время действия токена
+  optional string time_duration = 3;
+}
+
+message CreateApiTokenResponse {
+  string token = 1; // Токен показываем только при создании, просим запомнить
+}
+
+message DeleteApiTokenRequest {
+  string token_id = 1;
+}
+
+message DeleteApiTokenResponse {
+}

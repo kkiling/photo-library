@@ -171,14 +171,14 @@ func (s *Processing) Processing(ctx context.Context, photo model.Photo, photoBod
 	}
 
 	meta := model.PhotoMetadata{
-		PhotoID:     photo.ID,
-		ModelInfo:   modelInfo,
-		SizeBytes:   len(photoBody),
-		WidthPixel:  widthPixel,
-		HeightPixel: heightPixel,
-		DateTime:    dateTime,
-		UpdatedAt:   photo.UpdateAt,
-		Geo:         geo,
+		PhotoID:        photo.ID,
+		ModelInfo:      modelInfo,
+		SizeBytes:      len(photoBody),
+		WidthPixel:     widthPixel,
+		HeightPixel:    heightPixel,
+		DateTime:       dateTime,
+		PhotoUpdatedAt: photo.PhotoUpdatedAt,
+		Geo:            geo,
 	}
 
 	err = s.storage.SaveMetadata(ctx, meta)

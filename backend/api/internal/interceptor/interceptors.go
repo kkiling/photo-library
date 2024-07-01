@@ -2,6 +2,10 @@ package interceptor
 
 import (
 	"context"
+	"fmt"
+	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
+	"github.com/kkiling/photo-library/backend/api/internal/ctxutils"
+	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -12,13 +16,23 @@ import (
 	methoddescriptor "github.com/kkiling/photo-library/backend/api/pkg/common/server/method_descriptor"
 )
 
-type CustomDescriptor struct {
-	method interface{}
+type SessionManager interface {
+	GetSessionByToken(token string) (model.Session, error)
 }
 
-func NewCustomDescriptor(method interface{}) *CustomDescriptor {
+type ApiTokenService interface {
+	GetApiToken(ctx context.Context, token string) (model.ApiToken, error)
+}
+
+type CustomDescriptor struct {
+	method interface{}
+	roles  []model.AuthRole
+}
+
+func NewCustomDescriptor(method interface{}, roles ...model.AuthRole) *CustomDescriptor {
 	return &CustomDescriptor{
 		method: method,
+		roles:  roles,
 	}
 }
 
@@ -39,24 +53,57 @@ func getCustomDescriptor(descriptors methoddescriptor.DescriptorsMap, fullName s
 	}
 }
 
-func NewAuthInterceptor(logger log.Logger, descriptors methoddescriptor.DescriptorsMap) grpc.UnaryServerInterceptor {
+func containsRole(descriptorRoles []model.AuthRole, sessionRoles model.AuthRole) bool {
+	for _, dr := range descriptorRoles {
+		if dr == sessionRoles {
+			return true
+		}
+	}
+	return false
+}
+
+func NewApiTokenInterceptor(apiToken ApiTokenService) grpc.UnaryServerInterceptor {
+	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+		token, err := grpc_auth.AuthFromMD(ctx, "bearer")
+		if err != nil {
+			return nil, server.ErrUnauthenticated(fmt.Errorf("grpc_auth.AuthFromMD: %w", err))
+		}
+
+		value, err := apiToken.GetApiToken(ctx, token)
+		if err != nil {
+			return nil, server.ErrUnauthenticated(fmt.Errorf("sessionManager.GetApiToken: %w", err))
+		}
+
+		return handler(ctxutils.Set(ctx, ctxutils.ApiToken, value), req)
+	}
+}
+
+func NewAuthInterceptor(descriptors methoddescriptor.DescriptorsMap, sessionManager SessionManager) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		ds := getCustomDescriptor(descriptors, info.FullMethod)
 		if ds == nil {
 			return nil, server.ErrUnauthenticated(methoddescriptor.ErrMethodDescriptorNotFound)
 		}
 
-		// TODO: логика авторизации
-		// logger.Infof("auth method: %s", info.FullMethod)
-
-		/*val := metautils.ExtractIncoming(ctx).Get("authorization")
-		if val == "" {
-			return "", status.Errorf(codes.Unauthenticated, "Request unauthenticated with "+"bearer")
+		if len(ds.roles) == 0 {
+			return handler(ctx, req)
 		}
 
-		logger.Infof("auth method: %s, authorization: %s", info.FullMethod, val)*/
+		token, err := grpc_auth.AuthFromMD(ctx, "bearer")
+		if err != nil {
+			return nil, server.ErrUnauthenticated(fmt.Errorf("grpc_auth.AuthFromMD: %w", err))
+		}
 
-		return handler(ctx, req)
+		session, err := sessionManager.GetSessionByToken(token)
+		if err != nil {
+			return nil, server.ErrUnauthenticated(fmt.Errorf("sessionManager.GetSessionByToken: %w", err))
+		}
+
+		if !containsRole(ds.roles, session.Role) {
+			return nil, server.ErrPermissionDenied(fmt.Errorf("no access"))
+		}
+
+		return handler(ctxutils.Set(ctx, ctxutils.Session, session), req)
 	}
 }
 
@@ -64,6 +111,7 @@ func NewPanicRecoverInterceptor(logger log.Logger) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 		defer func() {
 			if r := recover(); r != nil {
+				logger.Errorf("panic recovered: %v", r)
 				err = server.ErrInternal(err)
 			}
 		}()

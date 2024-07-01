@@ -22,11 +22,15 @@ func newTransactor(pool *pgxpool.Pool) transactor {
 	return transactor{pool: pool}
 }
 
-func (t *transactor) getQueries(ctx context.Context) *photo_library.Queries {
+func (t *transactor) getTX(ctx context.Context) photo_library.DBTX {
 	if tx, ok := ctx.Value(txKey).(pgx.Tx); ok {
-		return photo_library.New(tx)
+		return tx
 	}
-	return photo_library.New(t.pool)
+	return t.pool
+}
+
+func (t *transactor) getQueries(ctx context.Context) *photo_library.Queries {
+	return photo_library.New(t.getTX(ctx))
 }
 
 func (t *transactor) runTransaction(ctx context.Context, txFunc func(ctxTx context.Context) error) error {

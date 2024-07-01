@@ -17,6 +17,16 @@ option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   host: "localhost:8080";
   consumes: "application/json";
   produces: "application/json";
+  security_definitions: {
+    security: {
+      key: "Bearer"
+      value: {
+        type: TYPE_API_KEY;
+        in: IN_HEADER;
+        name: "Authorization"
+      }
+    };
+  };
 };
 
 service SyncPhotosService {
@@ -27,6 +37,12 @@ service SyncPhotosService {
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       summary: "Загрузка новой фотографии";
+      security: {
+        security_requirement: {
+          key: "Bearer"
+          value: {}
+        }
+      };
     };
   };
 }
@@ -39,11 +55,9 @@ message UploadPhotoRequest {
   // Данные фото
   bytes body = 3;
   // Информация о последнем изменении фото
-  google.protobuf.Timestamp update_at = 4;
-  // Идентификатор клиента
-  string client_id = 5;
-  // Ключ доступа
-  string access_key = 6;
+  google.protobuf.Timestamp photo_updated_at = 4;
+  // Информация о клиенте
+  string client_info = 5;
 }
 
 message UploadPhotoResponse {

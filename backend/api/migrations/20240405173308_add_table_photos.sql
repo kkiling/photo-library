@@ -17,7 +17,7 @@ CREATE TABLE photos (
     -- Хеш фотографии
     hash TEXT NOT NULL CHECK (LENGTH(hash) <= 512) UNIQUE,
     -- Дата последнего изменения оригинального фото
-    updated_at TIMESTAMPTZ NOT NULL,
+    photo_updated_at TIMESTAMPTZ NOT NULL,
     -- Расширение фотографии
     extension photo_extension NOT NULL,
     -- Статус текущей фотографии

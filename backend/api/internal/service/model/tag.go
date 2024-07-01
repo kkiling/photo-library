@@ -14,3 +14,17 @@ type Tag struct {
 	PhotoID    uuid.UUID
 	Name       string
 }
+
+// TagWithCategoryDTO тег фотографии (Информация о теге с информацией о категории)
+type TagWithCategoryDTO struct {
+	// ID тега
+	ID uuid.UUID
+	// Имя тега
+	Name string
+	// ID категории
+	IDCategory uuid.UUID
+	// Тип категории
+	Type string
+	// Цвет категории
+	Color string
+}

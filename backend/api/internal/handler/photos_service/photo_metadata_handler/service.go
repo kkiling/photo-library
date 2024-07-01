@@ -16,7 +16,7 @@ import (
 )
 
 type PhotoMetaDataService interface {
-	GetPhotoMetaData(ctx context.Context, photoID uuid.UUID) (*model.PhotoMetadata, error)
+	GetPhotoMetaData(ctx context.Context, photoID uuid.UUID) (model.PhotoMetadata, error)
 }
 
 type PhotoMetadataHandler struct {

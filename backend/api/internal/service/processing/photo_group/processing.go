@@ -10,7 +10,6 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/kkiling/photo-library/backend/api/internal/service"
-	"github.com/kkiling/photo-library/backend/api/internal/service/lock"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
 	"github.com/kkiling/photo-library/backend/api/pkg/common/log"
@@ -26,8 +25,8 @@ type Config struct {
 }
 
 type RocketLockService interface {
-	Lock(ctx context.Context, key string, ttl time.Duration) (lock.RocketLockID, error)
-	UnLock(ctx context.Context, lockID lock.RocketLockID) error
+	Lock(ctx context.Context, key string, ttl time.Duration) (model.RocketLockID, error)
+	UnLock(ctx context.Context, lockID model.RocketLockID) error
 }
 
 type Storage interface {

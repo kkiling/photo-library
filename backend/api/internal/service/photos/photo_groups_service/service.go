@@ -3,11 +3,13 @@ package photo_groups_service
 import (
 	"context"
 	"errors"
+	"github.com/go-playground/validator/v10"
 
 	"github.com/google/uuid"
 	"github.com/samber/lo"
 
 	"github.com/kkiling/photo-library/backend/api/internal/service"
+	"github.com/kkiling/photo-library/backend/api/internal/service/form"
 	"github.com/kkiling/photo-library/backend/api/internal/service/model"
 	"github.com/kkiling/photo-library/backend/api/internal/service/serviceerr"
 	"github.com/kkiling/photo-library/backend/api/internal/service/utils"
@@ -19,8 +21,6 @@ type Storage interface {
 	GetPhotoGroupsCount(ctx context.Context, _ model.PhotoGroupsFilter) (int64, error)
 	GetPaginatedPhotoGroups(ctx context.Context, params model.PhotoGroupsParams) ([]model.PhotoGroupWithPhotoIDs, error)
 	GetGroupByID(ctx context.Context, groupID uuid.UUID) (model.PhotoGroupWithPhotoIDs, error)
-	GetPhotoById(ctx context.Context, id uuid.UUID) (model.Photo, error)
-	GetPhotoByFilename(ctx context.Context, fileName string) (model.Photo, error)
 	GetPhotoPreviews(ctx context.Context, photoID uuid.UUID) ([]model.PhotoPreview, error)
 	SetPhotoGroupMainPhoto(ctx context.Context, groupID, photoID uuid.UUID) error
 }
@@ -34,6 +34,7 @@ type Service struct {
 	logger      log.Logger
 	storage     Storage
 	fileStorage FileStore
+	validate    *validator.Validate
 }
 
 func NewService(logger log.Logger, fileStorage FileStore, storage Storage) *Service {
@@ -41,6 +42,7 @@ func NewService(logger log.Logger, fileStorage FileStore, storage Storage) *Serv
 		logger:      logger,
 		storage:     storage,
 		fileStorage: fileStorage,
+		validate:    utils.NewValidator(),
 	}
 }
 
@@ -59,37 +61,21 @@ func (s *Service) getPreviews(ctx context.Context, photoID uuid.UUID) ([]model.P
 	return previews, nil
 }
 
-func validateGetPhotoGroups(req *GetPhotoGroupsRequest) error {
-	if err := req.Paginator.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *Service) getPhotoWithPreviews(ctx context.Context, photoID uuid.UUID) (PhotoWithPreviews, error) {
-	photo, err := s.storage.GetPhotoById(ctx, photoID)
-	switch {
-	case err == nil:
-	case errors.Is(err, serviceerr.ErrNotFound):
-		return PhotoWithPreviews{}, serviceerr.NotFoundf("photo %s from group not found", photoID.String())
-	default:
-		return PhotoWithPreviews{}, serviceerr.MakeErr(err, "s.storage.GetPhotoById")
-	}
-
+func (s *Service) getPhotoWithPreviews(ctx context.Context, photoID uuid.UUID) (model.PhotoWithPreviewsDTO, error) {
 	// В начале самый маленький, превью всегда есть
 	previews, err := s.getPreviews(ctx, photoID)
 	if err != nil {
-		return PhotoWithPreviews{}, serviceerr.MakeErr(err, "s.getPreview")
+		return model.PhotoWithPreviewsDTO{}, serviceerr.MakeErr(err, "s.getPreview")
 	}
 
 	if len(previews) == 0 {
-		return PhotoWithPreviews{}, serviceerr.NotFoundf("not found previews for photo %s", photoID.String())
+		return model.PhotoWithPreviewsDTO{}, serviceerr.NotFoundf("not found previews for photo %s", photoID.String())
 	}
 
-	original := PhotoPreview{}
-	photoPreviews := make([]PhotoPreview, 0, len(previews))
+	original := model.PhotoPreviewDTO{}
+	photoPreviews := make([]model.PhotoPreviewDTO, 0, len(previews))
 	for _, preview := range previews {
-		curr := PhotoPreview{
+		curr := model.PhotoPreviewDTO{
 			Src:    s.fileStorage.GetFileUrl(ctx, preview.FileKey),
 			Width:  preview.WidthPixel,
 			Height: preview.HeightPixel,
@@ -100,17 +86,17 @@ func (s *Service) getPhotoWithPreviews(ctx context.Context, photoID uuid.UUID) (
 		}
 		photoPreviews = append(photoPreviews, curr)
 	}
-	return PhotoWithPreviews{
-		ID:       photo.ID,
+	return model.PhotoWithPreviewsDTO{
+		PhotoID:  photoID,
 		Original: original,
 		Previews: photoPreviews,
 	}, nil
 }
 
 // GetPhotoGroups получение списка групп фотографий
-func (s *Service) GetPhotoGroups(ctx context.Context, req *GetPhotoGroupsRequest) (*PaginatedPhotoGroups, error) {
-	if err := validateGetPhotoGroups(req); err != nil {
-		return nil, serviceerr.InvalidInputErr(err, "validateGetPhotoGroups")
+func (s *Service) GetPhotoGroups(ctx context.Context, req form.GetPhotoGroups) (model.PaginatedPhotoGroupsDTO, error) {
+	if err := s.validate.Struct(req); err != nil {
+		return model.PaginatedPhotoGroupsDTO{}, serviceerr.InvalidInputErr(err, "error get photo groups")
 	}
 
 	groups, err := s.storage.GetPaginatedPhotoGroups(ctx, model.PhotoGroupsParams{
@@ -121,18 +107,18 @@ func (s *Service) GetPhotoGroups(ctx context.Context, req *GetPhotoGroupsRequest
 		//Filter:     model.PhotoGroupsFilter{},
 	})
 	if err != nil {
-		return nil, serviceerr.MakeErr(err, "s.storage.GetPaginatedPhotoGroups")
+		return model.PaginatedPhotoGroupsDTO{}, serviceerr.MakeErr(err, "s.storage.GetPaginatedPhotoGroups")
 	}
 
-	items := make([]PhotoGroup, 0, req.Paginator.PerPage)
+	items := make([]model.PhotoGroupDTO, 0, req.Paginator.PerPage)
 	for _, group := range groups {
 		photoWithPreviews, err := s.getPhotoWithPreviews(ctx, group.MainPhotoID)
 		if err != nil {
-			return nil, serviceerr.MakeErr(err, "s.storage.GetPhotoById")
+			return model.PaginatedPhotoGroupsDTO{}, serviceerr.MakeErr(err, "s.storage.getPhotoWithPreviews")
 		}
 
-		photoGroup := PhotoGroup{
-			ID:          group.ID,
+		photoGroup := model.PhotoGroupDTO{
+			GroupID:     group.ID,
 			MainPhoto:   photoWithPreviews,
 			PhotosCount: len(group.PhotoIDs),
 		}
@@ -143,47 +129,47 @@ func (s *Service) GetPhotoGroups(ctx context.Context, req *GetPhotoGroupsRequest
 		// TODO: параметры
 	})
 	if err != nil {
-		return nil, serviceerr.MakeErr(err, "s.storage.GetPhotoGroupsCount")
+		return model.PaginatedPhotoGroupsDTO{}, serviceerr.MakeErr(err, "s.storage.GetPhotoGroupsCount")
 	}
 
-	return &PaginatedPhotoGroups{
+	return model.PaginatedPhotoGroupsDTO{
 		Items:      items,
 		TotalItems: int(totalCount),
 	}, nil
 }
 
-func (s *Service) GetPhotoGroup(ctx context.Context, groupID uuid.UUID) (*PhotoGroup, error) {
+func (s *Service) GetPhotoGroup(ctx context.Context, groupID uuid.UUID) (model.PhotoGroupDTO, error) {
 	group, err := s.storage.GetGroupByID(ctx, groupID)
 	switch {
 	case err == nil:
 	case errors.Is(err, serviceerr.ErrNotFound):
-		return nil, serviceerr.NotFoundf("group not found")
+		return model.PhotoGroupDTO{}, serviceerr.NotFoundf("group not found")
 	default:
-		return nil, serviceerr.MakeErr(err, "s.storage.GetGroupByID")
+		return model.PhotoGroupDTO{}, serviceerr.MakeErr(err, "s.storage.GetGroupByID")
 	}
 
 	mainPhotoPreview, err := s.getPhotoWithPreviews(ctx, group.MainPhotoID)
 	if err != nil {
-		return nil, serviceerr.MakeErr(err, "s.storage.GetPhotoById")
+		return model.PhotoGroupDTO{}, serviceerr.MakeErr(err, "s.storage.getPhotoWithPreviews")
 	}
 
-	photosPreviews := make([]PhotoWithPreviews, 0, len(group.PhotoIDs))
+	photosPreviews := make([]model.PhotoWithPreviewsDTO, 0, len(group.PhotoIDs))
 	for _, photoID := range group.PhotoIDs {
 		photoPreview, err := s.getPhotoWithPreviews(ctx, photoID)
 		if err != nil {
-			return nil, serviceerr.MakeErr(err, "s.storage.GetPhotoById")
+			return model.PhotoGroupDTO{}, serviceerr.MakeErr(err, "s.storage.getPhotoWithPreviews")
 		}
 		photosPreviews = append(photosPreviews, photoPreview)
 	}
 
-	res := PhotoGroup{
-		ID:          group.MainPhotoID,
+	res := model.PhotoGroupDTO{
+		GroupID:     group.MainPhotoID,
 		MainPhoto:   mainPhotoPreview,
 		PhotosCount: len(group.PhotoIDs),
 		Photos:      photosPreviews,
 	}
 
-	return &res, nil
+	return res, nil
 }
 
 func (s *Service) SetMainPhotoGroup(ctx context.Context, groupID, photoID uuid.UUID) error {
@@ -211,16 +197,16 @@ func (s *Service) SetMainPhotoGroup(ctx context.Context, groupID, photoID uuid.U
 	return nil
 }
 
-func (s *Service) GetPhotoContent(ctx context.Context, fileKey string) (*PhotoContent, error) {
+func (s *Service) GetPhotoContent(ctx context.Context, fileKey string) (model.PhotoContentDTO, error) {
 	photoBody, err := s.fileStorage.GetFileBody(ctx, fileKey)
 	if err != nil {
-		return nil, serviceerr.MakeErr(err, "s.fileStorage.GetFileBody")
+		return model.PhotoContentDTO{}, serviceerr.MakeErr(err, "s.fileStorage.GetFileBody")
 	}
 	ext := utils.GetPhotoExtension(fileKey)
 	if ext == nil {
-		return nil, serviceerr.InvalidInputf("invalid file extension")
+		return model.PhotoContentDTO{}, serviceerr.InvalidInputf("invalid file extension")
 	}
-	return &PhotoContent{
+	return model.PhotoContentDTO{
 		PhotoBody: photoBody,
 		Extension: *ext,
 	}, nil

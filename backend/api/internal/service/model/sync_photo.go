@@ -1,4 +1,4 @@
-package sync_photos
+package model
 
 import "time"
 
@@ -11,9 +11,9 @@ type SyncPhotoRequest struct {
 	// Данные фото
 	Body []byte
 	// Информация о последнем изменении фото
-	UpdateAt time.Time
-	// Идентификатор клиента, загрузившего фотографии
-	ClientId string
+	PhotoUpdatedAt time.Time
+	// Информация о клиенте, загрузившего фотографии
+	ClientInfo string
 }
 
 type SyncPhotoResponse struct {

@@ -1,4 +1,4 @@
-package lock
+package model
 
 type RocketLockID struct {
 	Key string

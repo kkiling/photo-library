@@ -35,6 +35,10 @@ var (
 	ErrTooManyRequests = func(err error, details ...proto.Message) error {
 		return NewResponseError(codes.ResourceExhausted, err, details...)
 	}
+	// ErrFailedPrecondition .
+	ErrFailedPrecondition = func(err error, details ...proto.Message) error {
+		return NewResponseError(codes.FailedPrecondition, err, details...)
+	}
 )
 
 // NewResponseError .

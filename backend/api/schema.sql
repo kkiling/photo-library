@@ -17,6 +17,47 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
+-- Name: api_token_type; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.api_token_type AS ENUM (
+    'SYNC_PHOTO'
+);
+
+
+--
+-- Name: auth_role; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.auth_role AS ENUM (
+    'ADMIN',
+    'USER'
+);
+
+
+--
+-- Name: auth_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.auth_status AS ENUM (
+    'NOT_ACTIVATED',
+    'SENT_INVITE',
+    'ACTIVATED',
+    'BLOCKED'
+);
+
+
+--
+-- Name: code_type; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.code_type AS ENUM (
+    'ACTIVATE_INVITE',
+    'ACTIVATE_REGISTRATION'
+);
+
+
+--
 -- Name: photo_extension; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -52,7 +93,67 @@ CREATE TYPE public.processing_type AS ENUM (
 );
 
 
+--
+-- Name: refresh_token_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.refresh_token_status AS ENUM (
+    'ACTIVE',
+    'REVOKED',
+    'EXPIRED',
+    'LOGOUT'
+);
+
+
 SET default_table_access_method = heap;
+
+--
+-- Name: api_tokens; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.api_tokens (
+    id uuid NOT NULL,
+    person_id uuid NOT NULL,
+    caption text NOT NULL,
+    token text NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL,
+    expired_at timestamp with time zone,
+    type public.api_token_type NOT NULL,
+    CONSTRAINT api_tokens_caption_check CHECK ((length(caption) <= 128)),
+    CONSTRAINT api_tokens_caption_check1 CHECK ((length(caption) <= 32))
+);
+
+
+--
+-- Name: auth; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.auth (
+    person_id uuid NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL,
+    email text NOT NULL,
+    password_hash bytea NOT NULL,
+    status public.auth_status NOT NULL,
+    role public.auth_role NOT NULL,
+    CONSTRAINT auth_email_check CHECK ((length(email) <= 1024))
+);
+
+
+--
+-- Name: codes; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.codes (
+    code text NOT NULL,
+    person_id uuid NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL,
+    active boolean NOT NULL,
+    type public.code_type NOT NULL
+);
+
 
 --
 -- Name: coefficients_similar_photos; Type: TABLE; Schema: public; Owner: -
@@ -122,6 +223,23 @@ CREATE TABLE public.meta_photo_data (
     geo_latitude double precision,
     geo_longitude double precision,
     CONSTRAINT meta_photo_data_model_info_check CHECK ((length(model_info) <= 512))
+);
+
+
+--
+-- Name: people; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.people (
+    id uuid NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL,
+    firstname text NOT NULL,
+    surname text NOT NULL,
+    patronymic text,
+    CONSTRAINT people_firstname_check CHECK ((length(firstname) <= 1024)),
+    CONSTRAINT people_patronymic_check CHECK ((length(patronymic) <= 1024)),
+    CONSTRAINT people_surname_check CHECK ((length(surname) <= 1024))
 );
 
 
@@ -232,8 +350,9 @@ CREATE TABLE public.photo_upload_data (
     photo_id uuid NOT NULL,
     upload_at timestamp with time zone NOT NULL,
     paths text[] NOT NULL,
-    client_id text NOT NULL,
-    CONSTRAINT photo_upload_data_client_id_check CHECK ((length(client_id) <= 256)),
+    client_info text NOT NULL,
+    person_id uuid NOT NULL,
+    CONSTRAINT photo_upload_data_client_info_check CHECK ((length(client_info) <= 256)),
     CONSTRAINT photo_upload_data_paths_check CHECK ((cardinality(paths) <= 2048))
 );
 
@@ -257,12 +376,25 @@ CREATE TABLE public.photos (
     id uuid NOT NULL,
     file_key text NOT NULL,
     hash text NOT NULL,
-    updated_at timestamp with time zone NOT NULL,
+    photo_updated_at timestamp with time zone NOT NULL,
     extension public.photo_extension NOT NULL,
     status public.photo_status DEFAULT 'ACTIVE'::public.photo_status NOT NULL,
     error text,
     CONSTRAINT photos_file_key_check CHECK ((length(file_key) <= 1024)),
     CONSTRAINT photos_hash_check CHECK ((length(hash) <= 512))
+);
+
+
+--
+-- Name: refresh_codes; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.refresh_codes (
+    id uuid NOT NULL,
+    person_id uuid NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL,
+    status public.refresh_token_status NOT NULL
 );
 
 
@@ -298,6 +430,46 @@ ALTER TABLE ONLY public.goose_db_version ALTER COLUMN id SET DEFAULT nextval('pu
 
 
 --
+-- Name: api_tokens api_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.api_tokens
+    ADD CONSTRAINT api_tokens_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: api_tokens api_tokens_token_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.api_tokens
+    ADD CONSTRAINT api_tokens_token_key UNIQUE (token);
+
+
+--
+-- Name: auth auth_email_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.auth
+    ADD CONSTRAINT auth_email_key UNIQUE (email);
+
+
+--
+-- Name: auth auth_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.auth
+    ADD CONSTRAINT auth_pkey PRIMARY KEY (person_id);
+
+
+--
+-- Name: codes codes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.codes
+    ADD CONSTRAINT codes_pkey PRIMARY KEY (code);
+
+
+--
 -- Name: coefficients_similar_photos coefficients_similar_photos_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -327,6 +499,14 @@ ALTER TABLE ONLY public.goose_db_version
 
 ALTER TABLE ONLY public.meta_photo_data
     ADD CONSTRAINT meta_photo_data_pkey PRIMARY KEY (photo_id);
+
+
+--
+-- Name: people people_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.people
+    ADD CONSTRAINT people_pkey PRIMARY KEY (id);
 
 
 --
@@ -426,6 +606,14 @@ ALTER TABLE ONLY public.photos
 
 
 --
+-- Name: refresh_codes refresh_codes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.refresh_codes
+    ADD CONSTRAINT refresh_codes_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: rocket_locks rocket_locks_key_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -447,6 +635,13 @@ ALTER TABLE ONLY public.tag_categories
 
 ALTER TABLE ONLY public.tag_categories
     ADD CONSTRAINT tag_categories_type_key UNIQUE (type);
+
+
+--
+-- Name: idx_api_tokens_person_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_api_tokens_person_id ON public.api_tokens USING btree (person_id);
 
 
 --
@@ -482,6 +677,30 @@ CREATE INDEX idx_photos_groups_references_group_id ON public.photo_groups_photos
 --
 
 CREATE UNIQUE INDEX idx_tags_photo_id_name ON public.photo_tags USING btree (photo_id, name);
+
+
+--
+-- Name: api_tokens api_tokens_person_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.api_tokens
+    ADD CONSTRAINT api_tokens_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.people(id);
+
+
+--
+-- Name: auth auth_person_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.auth
+    ADD CONSTRAINT auth_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.people(id);
+
+
+--
+-- Name: codes codes_person_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.codes
+    ADD CONSTRAINT codes_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.people(id);
 
 
 --
@@ -581,6 +800,14 @@ ALTER TABLE ONLY public.photo_tags
 
 
 --
+-- Name: photo_upload_data photo_upload_data_person_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.photo_upload_data
+    ADD CONSTRAINT photo_upload_data_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.people(id);
+
+
+--
 -- Name: photo_upload_data photo_upload_data_photo_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -594,6 +821,14 @@ ALTER TABLE ONLY public.photo_upload_data
 
 ALTER TABLE ONLY public.photo_vectors
     ADD CONSTRAINT photo_vectors_photo_id_fkey FOREIGN KEY (photo_id) REFERENCES public.photos(id);
+
+
+--
+-- Name: refresh_codes refresh_codes_person_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.refresh_codes
+    ADD CONSTRAINT refresh_codes_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.people(id);
 
 
 --

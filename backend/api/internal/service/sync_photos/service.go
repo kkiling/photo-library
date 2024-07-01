@@ -42,51 +42,58 @@ func NewService(logger log.Logger, storage Storage, fileStorage FileStore) *Serv
 	}
 }
 
-func (s *Service) UploadPhoto(ctx context.Context, form *SyncPhotoRequest) (*SyncPhotoResponse, error) {
-	if len(form.Paths) == 0 {
-		return nil, serviceerr.InvalidInputf("paths must not be empty")
+func (s *Service) UploadPhoto(ctx context.Context, form *model.SyncPhotoRequest) (model.SyncPhotoResponse, error) {
+	apiToken, err := utils.GetApiToken(ctx)
+	if err != nil {
+		return model.SyncPhotoResponse{}, err
 	}
+	if len(form.Paths) == 0 {
+		return model.SyncPhotoResponse{}, serviceerr.InvalidInputf("paths must not be empty")
+	}
+
 	// Проверяем загружено ли фото
 	findPhoto, err := s.storage.GetPhotoByHash(ctx, form.Hash)
 	switch {
 	case errors.Is(err, serviceerr.ErrNotFound):
 	case err == nil:
-		return &SyncPhotoResponse{
+		return model.SyncPhotoResponse{
 			HasBeenUploadedBefore: true,
 			Hash:                  findPhoto.Hash,
 		}, nil
 	default:
-		return nil, serviceerr.MakeErr(err, "s.storage.GetPhotoByHash")
+		return model.SyncPhotoResponse{}, serviceerr.MakeErr(err, "s.storage.GetPhotoByHash")
 	}
 
 	// Проверка, поддерживается ли расширение
 	ex := utils.GetPhotoExtension(form.Paths[0])
 	if ex == nil {
-		return nil, serviceerr.InvalidInputf("photo extension not found")
+		return model.SyncPhotoResponse{}, serviceerr.InvalidInputf("photo extension not found")
 	}
 
 	photoID := uuid.New()
-	uploadAt := time.Now()
 
 	fileName := fmt.Sprintf("%s.%s", photoID, strings.ToLower(string(*ex)))
 	fileKey, err := s.fileStorage.SaveFile(ctx, fileName, form.Body)
 	if err != nil {
-		return nil, serviceerr.MakeErr(err, "s.fileStorage.SaveFileBody")
+		return model.SyncPhotoResponse{}, serviceerr.MakeErr(err, "s.fileStorage.SaveFileBody")
 	}
 
+	// TODO: добавление в photo space
+
 	newPhoto := model.Photo{
-		ID:        photoID,
-		FileKey:   fileKey,
-		Hash:      form.Hash,
-		UpdateAt:  form.UpdateAt,
-		Extension: *ex,
+		ID:             photoID,
+		FileKey:        fileKey,
+		Hash:           form.Hash,
+		PhotoUpdatedAt: form.PhotoUpdatedAt,
+		Extension:      *ex,
 	}
 
 	uploadPhotoData := model.PhotoUploadData{
-		PhotoID:  photoID,
-		UploadAt: uploadAt,
-		Paths:    form.Paths,
-		ClientID: form.ClientId,
+		PhotoID:    photoID,
+		UploadAt:   time.Now(),
+		Paths:      form.Paths,
+		ClientInfo: form.ClientInfo,
+		PersonID:   apiToken.PersonID,
 	}
 
 	// Если произошла ошибка при сохранении фото в базе
@@ -109,10 +116,10 @@ func (s *Service) UploadPhoto(ctx context.Context, form *SyncPhotoRequest) (*Syn
 		if delErr := s.fileStorage.DeleteFile(ctx, newPhoto.FileKey); delErr != nil {
 			s.logger.Errorf("fail fileStorage.DeleteFile %s: %v", newPhoto.FileKey, delErr)
 		}
-		return nil, serviceerr.MakeErr(err, "s.storage.RunTransaction")
+		return model.SyncPhotoResponse{}, serviceerr.MakeErr(err, "s.storage.RunTransaction")
 	}
 
-	return &SyncPhotoResponse{
+	return model.SyncPhotoResponse{
 		HasBeenUploadedBefore: false,
 		Hash:                  newPhoto.Hash,
 	}, nil

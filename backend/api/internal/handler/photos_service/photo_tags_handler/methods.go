@@ -48,7 +48,7 @@ func (p *PhotoTagsHandler) AddPhotoTag(ctx context.Context, request *desc.AddPho
 }
 
 func (p *PhotoTagsHandler) DeletePhotoTag(ctx context.Context, request *desc.DeletePhotoTagRequest) (*emptypb.Empty, error) {
-	photoID, err := uuid.Parse(request.PhotoId)
+	photoID, err := uuid.Parse(request.TagId)
 	if err != nil {
 		return nil, server.ErrInvalidArgument(fmt.Errorf("photoID is invalid: %w", err))
 	}

@@ -74,7 +74,7 @@ func (r *Adapter) SaveGroup(ctx context.Context, group model.PhotoGroup) error {
 			ID:          group.ID,
 			MainPhotoID: group.MainPhotoID,
 			CreatedAt:   group.CreatedAt,
-			UpdatedAt:   group.UpdatedAt,
+			PhotoUpdatedAt:   group.PhotoUpdatedAt,
 		}
 		if err := queries.SaveGroup(ctxTx, paramsGroup); err != nil {
 			return err
@@ -82,7 +82,7 @@ func (r *Adapter) SaveGroup(ctx context.Context, group model.PhotoGroup) error {
 
 		paramsAdd := photo_library.AddPhotoIDToGroupParams{
 			PhotoID: group.MainPhotoID,
-			GroupID: group.ID,
+			ID: group.ID,
 		}
 		if err := queries.AddPhotoIDToGroup(ctxTx, paramsAdd); err != nil {
 			return err

@@ -99,7 +99,7 @@ type imagePreview struct {
 	height    int
 }
 
-func createImagePreview(originalImage ImageCV, originalWidth, originalHeight, maxSize int, fileExt model.PhotoExtension) (imagePreview, error) {
+func createImagePreview(originalImage imageCsv, originalWidth, originalHeight, maxSize int, fileExt model.PhotoExtension) (imagePreview, error) {
 	// Вычисление новых размеров для сохранения пропорций
 	newWidth, newHeight := originalWidth, originalHeight
 	if originalWidth > maxSize || originalHeight > maxSize {

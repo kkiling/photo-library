@@ -40,3 +40,17 @@ photo_preview:
     - 1440
     - 1620
     - 2048
+
+auth:
+  allow_registration: true
+
+session_manager:
+  audience: "PhotoLibraryServer"
+  issuer: "PhotoLibrary"
+  access_token_duration: "15m"
+  refresh_token_duration: "48h"
+
+jwt_helper:
+  cert_file: "configs\\ssl\\crt.pem"
+  private_key_file: "configs\\ssl\\private.key.pem"
+  public_key_file: "configs\\ssl\\public.key.pem"
